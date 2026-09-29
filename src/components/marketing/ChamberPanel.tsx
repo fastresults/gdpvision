@@ -1,12 +1,6 @@
-import {
-  useEffect,
-  useRef,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Illustration } from "./Illustration";
-
 
 interface ChamberPanelProps {
   index: string; // "01" .. "10"
@@ -21,6 +15,7 @@ interface ChamberPanelProps {
   image?: string;
   /** Curated 16:9 capture of the chamber's strongest product view. */
   screenshot?: string;
+  valueEstimate?: ReactNode;
   children?: ReactNode;
   className?: string;
 }
@@ -36,6 +31,7 @@ export function ChamberPanel({
   accentVar,
   image,
   screenshot,
+  valueEstimate,
   className,
 }: ChamberPanelProps) {
   const frameRef = useRef<HTMLDivElement>(null);
@@ -45,9 +41,7 @@ export function ChamberPanel({
   // The zoom follows the cursor only on a mouse-like pointer; on touch the
   // image simply scales from its centre.
   useEffect(() => {
-    finePointer.current = window.matchMedia(
-      "(hover: hover) and (pointer: fine)",
-    ).matches;
+    finePointer.current = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   }, []);
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -117,6 +111,8 @@ export function ChamberPanel({
             />
           </div>
         ) : null}
+
+        {valueEstimate}
 
         <div className="mt-6">
           <span

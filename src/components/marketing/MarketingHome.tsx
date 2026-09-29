@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { MarketingShell } from "./MarketingShell";
 
@@ -43,6 +45,14 @@ import illSovereignty from "@/assets/illustrations/section-sovereignty.jpg.asset
 import illProvenance from "@/assets/illustrations/section-provenance.jpg.asset.json";
 import illBriefing from "@/assets/illustrations/section-briefing.jpg.asset.json";
 import { CHAMBERS } from "@/lib/chambers";
+import { getBriefCountries, getCountryFacts } from "@/lib/calculator/facts.functions";
+import { computeValue } from "@/lib/calculator/model";
+import { proposedInputForCountry } from "@/lib/calculator/proposal";
+import { encodeBrief } from "@/lib/calculator/brief-link";
+import { ChamberValueEstimate } from "./ChamberValueEstimate";
+import { ExplainProvider } from "@/components/explain/ExplainProvider";
+import type { CalcCtx } from "@/lib/explain/calculator-entries";
+import "@/lib/explain/calculator-entries";
 
 const FEATURE_LABELS: Record<string, string> = {
   "04": "04 →  Where the revenue cliff is priced",
@@ -118,6 +128,46 @@ function shuffleTail() {
 
 export function MarketingHome() {
   useHashScroll();
+  const fetchCountries = useServerFn(getBriefCountries);
+  const fetchFacts = useServerFn(getCountryFacts);
+  const [estimateCountry, setEstimateCountry] = useState("LCA");
+  const estimateCountriesQ = useQuery({
+    queryKey: ["brief-countries"],
+    queryFn: () => fetchCountries(),
+  });
+  const estimateFactsQ = useQuery({
+    queryKey: ["brief-facts", estimateCountry],
+    queryFn: () => fetchFacts({ data: { code: estimateCountry } }),
+    staleTime: 60 * 60 * 1000,
+  });
+  const estimateFacts = estimateFactsQ.data ?? null;
+  const estimateInput = proposedInputForCountry(estimateCountry, estimateFacts);
+  const estimateResult = computeValue(estimateInput);
+  const estimateCountryName =
+    estimateFacts?.name ??
+    estimateCountriesQ.data?.find((country) => country.code === estimateCountry)?.name ??
+    "St Lucia";
+  const estimateConfig = encodeBrief(estimateInput);
+  const estimateContext: CalcCtx = {
+    input: estimateInput,
+    result: estimateResult,
+    countryName: estimateCountryName,
+  };
+  const chamberValue = (chamberIndex: string) => {
+    const contribution = estimateResult.chambers.find((item) => item.index === chamberIndex);
+    return (
+      <ChamberValueEstimate
+        index={chamberIndex}
+        countryName={estimateCountryName}
+        countryCode={estimateCountry}
+        config={estimateConfig}
+        usd={contribution?.usd ?? 0}
+        adoption={contribution?.adoption ?? 0}
+        context={estimateContext}
+        loading={estimateFactsQ.isLoading}
+      />
+    );
+  };
   const [tail, setTail] = useState(() => EXISTENTIAL_THREATS.slice(1));
 
   const [index, setIndex] = useState(0);
@@ -478,30 +528,58 @@ export function MarketingHome() {
             title="Ten Chambers connect national evidence to delivery."
             lede="Each Chamber is a dedicated working area for one government responsibility. Together, the ten Chambers connect national evidence, Cabinet choices, ministry delivery, public understanding, and accountability."
           />
-          <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
-            {FEATURED_CHAMBERS.map((c) => (
-              <div key={c.index}>
-                <div className="mb-4 font-mono text-[12px] uppercase tracking-[0.18em] text-gold-500">
-                  {c.featureLabel}
+          <div className="mt-8 flex flex-col gap-4 border-y border-line-200 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <label
+                htmlFor="chamber-estimate-country"
+                className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500"
+              >
+                Estimate for
+              </label>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
+                Public records where available; clearly marked reference assumptions elsewhere.
+              </p>
+            </div>
+            <select
+              id="chamber-estimate-country"
+              value={estimateCountry}
+              onChange={(event) => setEstimateCountry(event.target.value)}
+              className="min-h-11 w-full border border-line-200 bg-paper-0 px-4 py-2.5 text-[15px] text-ink-950 focus:border-ink-950 focus:outline-none sm:w-[300px]"
+            >
+              {(estimateCountriesQ.data ?? [{ code: "LCA", name: "St Lucia" }]).map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <ExplainProvider value={{ ctx: estimateContext }}>
+            <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
+              {FEATURED_CHAMBERS.map((c) => (
+                <div key={c.index}>
+                  <div className="mb-4 font-mono text-[12px] uppercase tracking-[0.18em] text-gold-500">
+                    {c.featureLabel}
+                  </div>
+                  <ChamberPanel
+                    index={c.index}
+                    title={c.title}
+                    outcome={c.outcome}
+                    purpose={c.purpose}
+                    bullets={c.bullets}
+                    accentVar={c.accentVar}
+                    image={c.image}
+                    screenshot={c.screenshot}
+                    valueEstimate={chamberValue(c.index)}
+                  />
                 </div>
-                <ChamberPanel
-                  index={c.index}
-                  title={c.title}
-                  outcome={c.outcome}
-                  purpose={c.purpose}
-                  bullets={c.bullets}
-                  accentVar={c.accentVar}
-                  image={c.image}
-                  screenshot={c.screenshot}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="mt-10 grid gap-x-8 gap-y-6 sm:mt-16 md:grid-cols-2 lg:grid-cols-3">
-            {GRID_CHAMBERS.map((c) => (
-              <ChamberPanel key={c.index} {...c} />
-            ))}
-          </div>
+              ))}
+            </div>
+            <div className="mt-10 grid gap-x-8 gap-y-6 sm:mt-16 md:grid-cols-2 lg:grid-cols-3">
+              {GRID_CHAMBERS.map((c) => (
+                <ChamberPanel key={c.index} {...c} valueEstimate={chamberValue(c.index)} />
+              ))}
+            </div>
+          </ExplainProvider>
         </div>
       </section>
 

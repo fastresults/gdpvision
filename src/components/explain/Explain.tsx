@@ -38,6 +38,7 @@ export function Explain({
   mark = true,
   underline = true,
   label,
+  modalAction,
 }: {
   /** Registry key, e.g. "calc.uplift". */
   id: string;
@@ -51,6 +52,8 @@ export function Explain({
   underline?: boolean;
   /** Accessible name suffix, defaults to the rationale title. */
   label?: string;
+  /** Optional action rendered in the full rationale modal. */
+  modalAction?: React.ReactNode;
 }) {
   const rationale = getRationale(id);
   const { ctx, onTrace, traceLabel } = useExplainContext();
@@ -102,7 +105,9 @@ export function Explain({
             <div className="break-words font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink-500">
               {rationale.title}
             </div>
-            <p className="mt-2 break-words text-[13px] leading-relaxed text-ink-700">{rationale.short}</p>
+            <p className="mt-2 break-words text-[13px] leading-relaxed text-ink-700">
+              {rationale.short}
+            </p>
             <button
               type="button"
               onClick={() => setOpen(true)}
@@ -122,6 +127,7 @@ export function Explain({
           onOpenChange={setOpen}
           onTrace={onTrace}
           traceLabel={traceLabel}
+          action={modalAction}
         />
       ) : null}
     </>

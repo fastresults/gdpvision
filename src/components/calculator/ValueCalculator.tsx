@@ -30,6 +30,11 @@ import { Term, termMonths } from "@/components/brief/figures/Term";
 import { Waterfall } from "@/components/brief/figures/Waterfall";
 import { briefPalette } from "@/components/brief/figures/shared";
 import { briefUrl, decodeBrief, encodeBrief } from "@/lib/calculator/brief-link";
+import {
+  proposedInputForCountry,
+  proposeSequence,
+  SEQUENCE_ADOPTION,
+} from "@/lib/calculator/proposal";
 import type { AdviserContext } from "@/lib/calculator/adviser.server";
 import { FramingCard } from "@/components/brief/FramingCard";
 import {
@@ -57,80 +62,6 @@ const ACCENT: Record<string, string> = Object.fromEntries(
   CHAMBERS.map((c) => [c.index, c.accentVar]),
 );
 const TITLE: Record<string, string> = Object.fromEntries(CHAMBERS.map((c) => [c.index, c.title]));
-
-/**
- * A first-year sequence proposed from the country's own record: the Ledger
- * always first; then whichever chamber the evidence says is the weak link.
- * Adoption levels follow the order (institutionalised → piloted).
- */
-function proposeSequence(facts: CountryFacts | null): {
-  order: string[];
-  why: Record<string, string>;
-} {
-  const v = (k: string) => facts?.facts.find((f) => f.key === k)?.value ?? null;
-  const g = (k: string) => facts?.facts.find((f) => f.key === k)?.grade ?? "assumption";
-  const scored: Array<{ index: string; score: number; why: string }> = [
-    {
-      index: "01",
-      score: 100,
-      why: "One agreed set of numbers comes first; every other chamber reads from it.",
-    },
-    {
-      index: "06",
-      score: 60 + Math.min(30, (v("follow_through") ?? 35) * 0.6),
-      why: `${v("follow_through") != null ? `${Math.round(v("follow_through")!)}% of open commitments are past due` : "Follow-through is unmeasured"}; a named owner and a standing record is the cheapest recovery of value.`,
-    },
-    {
-      index: "10",
-      score: 55 + Math.min(30, (v("sectors") ?? 30) * 0.8),
-      why:
-        g("sectors") === "assumption"
-          ? "No priority sectors are chosen yet; choosing few and planning them is the next decision."
-          : `${Math.round(v("sectors") ?? 0)}% of output sits in priority sectors without an approved plan.`,
-    },
-    {
-      index: "08",
-      score: 50 + (g("latency") === "assumption" ? 20 : Math.min(30, (v("latency") ?? 6) * 4)),
-      why: "Pledges decomposed to ministry-owned deliverables and scored quarterly turn intent into completed work.",
-    },
-    {
-      index: "02",
-      score: 45 + Math.min(30, (100 - (v("standards") ?? 50)) * 0.5),
-      why: `${v("standards") != null ? `${Math.round(v("standards")!)}% standards coverage` : "Standards coverage unknown"}; ministers who can see their own contribution reallocate at the margin.`,
-    },
-    {
-      index: "09",
-      score: 40 + (g("government") === "assumption" ? 25 : 10),
-      why:
-        g("government") === "assumption"
-          ? "No government record or platform PRD yet; the public site is the citizen's first contact with the state."
-          : "The platform can now be fed from the record rather than typed.",
-    },
-    {
-      index: "04",
-      score: 40 + Math.min(25, ((v("top_sector") ?? 40) - 25) * 0.8),
-      why: `${v("top_sector") != null ? `${Math.round(v("top_sector")!)}% of output in one sector` : "Concentration unknown"}; readiness answered before investors ask.`,
-    },
-    {
-      index: "03",
-      score: 38,
-      why: "Rehearsal before commitment prices the downside while it is still avoidable.",
-    },
-    { index: "05", score: 30, why: "A programme that is explained survives its first bad week." },
-    {
-      index: "07",
-      score: 25,
-      why: "A rehearsal instrument for how policy lands; last because it protects rather than creates value.",
-    },
-  ];
-  scored.sort((a, b) => b.score - a.score);
-  return {
-    order: scored.map((x) => x.index),
-    why: Object.fromEntries(scored.map((x) => [x.index, x.why])),
-  };
-}
-
-const SEQUENCE_ADOPTION = [100, 75, 75, 50, 50, 50, 25, 25, 25, 0];
 
 function StepHeading({ n, title, lede }: { n: string; title: string; lede?: string }) {
   return (
@@ -196,21 +127,7 @@ export function ValueCalculator({
       setInput(restored);
       return;
     }
-    const p = facts.proposed;
-    const seq = proposeSequence(facts);
-    setInput((s) => ({
-      ...s,
-      gdpUsd:
-        p.gdpUsd?.value ?? COUNTRY_PRESETS.find((c) => c.code === facts.code)?.gdpUsd ?? s.gdpUsd,
-      publicSpendPct: p.publicSpendPct?.value ?? s.publicSpendPct,
-      topSectorSharePct: p.topSectorSharePct?.value ?? s.topSectorSharePct,
-      decisionsPerQuarter: p.decisionsPerQuarter?.value ?? s.decisionsPerQuarter,
-      latencyMonths: p.latencyMonths?.value ?? s.latencyMonths,
-      unmeasuredPct: p.unmeasuredPct?.value ?? s.unmeasuredPct,
-      servicesOfflinePct: p.servicesOfflinePct?.value ?? s.servicesOfflinePct,
-      unplannedPrioritySharePct: p.unplannedPrioritySharePct?.value ?? s.unplannedPrioritySharePct,
-      chambers: Object.fromEntries(seq.order.map((idx, i) => [idx, SEQUENCE_ADOPTION[i] ?? 0])),
-    }));
+    setInput((current) => proposedInputForCountry(facts.code, facts, current));
   }, [facts]);
 
   const proposedFor = (key: keyof CountryFacts["proposed"]) => {

@@ -37,10 +37,10 @@ import { BriefingForm } from "./BriefingForm";
 import { Wordmark } from "./Wordmark";
 import { Illustration } from "./Illustration";
 import { SovereignCustodySeal } from "./SovereignCustodySeal";
+import { NationalCustodyRelay } from "./NationalCustodyRelay";
 import { FloatingBackToTop } from "./FloatingBackToTop";
 import illMoment from "@/assets/illustrations/section-moment.jpg.asset.json";
 import illCorpus from "@/assets/illustrations/section-corpus.jpg.asset.json";
-import illLoop from "@/assets/illustrations/section-loop.jpg.asset.json";
 import illCounsel from "@/assets/illustrations/section-counsel.jpg.asset.json";
 import illProvenance from "@/assets/illustrations/section-provenance.jpg.asset.json";
 import illBriefing from "@/assets/illustrations/section-briefing.jpg.asset.json";
@@ -537,11 +537,7 @@ export function MarketingHome() {
               title="Move every decision from evidence to accountable delivery."
               lede="Most systems report what has already happened. GDPVision helps government move a live decision from the evidence placed before Cabinet to the result a ministry must deliver."
             />
-            <Illustration
-              src={illLoop.url}
-              variant="spot"
-              className="mx-auto md:mx-0 md:justify-self-end"
-            />
+            <NationalCustodyRelay />
           </div>
           <div className="mt-10 grid gap-8 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2 lg:grid-cols-5">
             {LOOP_STEPS.map((s) => (

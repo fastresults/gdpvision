@@ -118,7 +118,7 @@ function BusinessCasePage() {
       {/* Masthead */}
       <section className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-28">
-          <div className="grid gap-10 md:grid-cols-[1fr_360px] md:items-center">
+          <div className="grid gap-10 md:grid-cols-[1fr_460px] md:items-center">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
                 {BUSINESS_CASE_META.eyebrow}

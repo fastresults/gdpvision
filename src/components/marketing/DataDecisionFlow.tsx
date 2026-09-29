@@ -212,8 +212,8 @@ export function DataDecisionFlow() {
   const toggle = (id: string) => setSelected((s) => (s === id ? null : id));
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
-      <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex flex-col gap-4 md:h-full md:min-h-0 lg:flex-row">
+      <div className="flex flex-col md:min-h-0 md:flex-1">
         <div className="mb-3 flex flex-wrap items-center gap-3 shrink-0">
           <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Chambers">
             {["all", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10"].map((c) => (

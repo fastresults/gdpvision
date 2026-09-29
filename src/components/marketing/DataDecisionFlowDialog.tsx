@@ -25,7 +25,7 @@ export function DataDecisionFlowDialog() {
               <X className="h-5 w-5" />
             </DialogPrimitive.Close>
           </div>
-          <div className="min-h-0 flex-1">
+          <div className="md:min-h-0 md:flex-1">
             <DataDecisionFlow />
           </div>
         </DialogPrimitive.Content>

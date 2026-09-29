@@ -608,3 +608,49 @@
   .ccr .ccr-draw, .ccr .ccr-rise { stroke-dashoffset: 0; animation: none !important; }
   .ccr .ccr-frag, .ccr .ccr-glow, .ccr .ccr-core, .ccr .ccr-spin, .ccr .ccr-counter { animation: none !important; }
 }
+
+/* Decision Brief — evidence becomes a governed decision dividend. */
+.dde .dde-evidence,
+.dde .dde-instrument,
+.dde .dde-value,
+.dde .dde-delay-label,
+.dde .dde-floor { opacity: 0; }
+.dde .dde-input,
+.dde .dde-clock,
+.dde .dde-delay,
+.dde .dde-value-path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.dde .dde-mark { opacity: 0; transform: translateX(-14px); transform-box: fill-box; transform-origin: center; }
+.dde .dde-value-node { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.dde .dde-value-wash { opacity: 0; }
+.dde-on .dde-evidence { animation: dde-fade .55s ease-out forwards; }
+.dde-on .dde-clock { animation: dde-draw 1.1s ease-out .2s forwards; }
+.dde-on .dde-mark { animation: dde-arrive .5s ease-out forwards; animation-delay: calc(.35s + var(--i) * .16s); }
+.dde-on .dde-input { animation: dde-draw .7s ease-out 1s forwards; }
+.dde-on .dde-instrument { animation: dde-fade .6s ease-out 1.2s forwards; }
+.dde-on .dde-needle { animation: dde-calibrate 1.5s cubic-bezier(.2,.8,.2,1) 1.7s forwards, dde-measure 5s ease-in-out 4.7s infinite; }
+.dde-on .dde-delay { animation: dde-draw .9s ease-out 2.6s forwards; }
+.dde-on .dde-delay-label { animation: dde-fade .5s ease-out 3s forwards; }
+.dde-on .dde-value { animation: dde-fade .4s ease-out 3.1s forwards; }
+.dde-on .dde-value-path { animation: dde-draw 1.4s ease-out 3.2s forwards; }
+.dde-on .dde-value-wash { animation: dde-wash .8s ease-out 4s forwards; }
+.dde-on .dde-value-node { animation: dde-node .45s cubic-bezier(.2,.9,.3,1.25) forwards; animation-delay: calc(3.5s + var(--i) * .18s); }
+.dde-on .dde-floor { animation: dde-fade .7s ease-out 4.5s forwards; }
+.dde [role="button"] { cursor: help; outline: none; transition: opacity .25s ease; }
+.dde [role="button"]:focus-visible { filter: drop-shadow(0 0 3px var(--color-gold-300)); }
+.dde:has([role="button"]:hover) [role="button"]:not(:hover),
+.dde:has([role="button"]:focus) [role="button"]:not(:focus) { opacity: .3; }
+.dde-paused .dde-needle { animation-play-state: paused; }
+@keyframes dde-draw { to { stroke-dashoffset: 0; } }
+@keyframes dde-fade { to { opacity: 1; } }
+@keyframes dde-arrive { to { opacity: 1; transform: translateX(0); } }
+@keyframes dde-calibrate { 0% { transform: rotate(-42deg); } 68% { transform: rotate(22deg); } 100% { transform: rotate(8deg); } }
+@keyframes dde-measure { 0%, 100% { transform: rotate(8deg); } 50% { transform: rotate(15deg); } }
+@keyframes dde-wash { to { opacity: .08; } }
+@keyframes dde-node { 0% { opacity: 0; transform: scale(.3); } 70% { opacity: 1; transform: scale(1.5); } 100% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .dde .dde-evidence, .dde .dde-instrument, .dde .dde-value, .dde .dde-delay-label, .dde .dde-floor,
+  .dde .dde-mark, .dde .dde-value-node { opacity: 1; transform: none; animation: none !important; }
+  .dde .dde-input, .dde .dde-clock, .dde .dde-delay, .dde .dde-value-path { stroke-dashoffset: 0; animation: none !important; }
+  .dde .dde-value-wash { opacity: .08; animation: none !important; }
+  .dde .dde-needle { transform: rotate(8deg); animation: none !important; }
+}

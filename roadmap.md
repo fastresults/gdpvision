@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Replace the Decision Brief calculator engraving with an animated evidence-to-decision-to-national-value instrument
+
 - [x] Explain how the Corpus, Sovereign Vault and Second Brain combine into stronger economic decisions through an interactive National Record animation
 
 - [x] Add country-specific, explainable Chamber value estimates to all ten homepage cards, linked to an exact Decision Brief configuration

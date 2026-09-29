@@ -777,3 +777,49 @@
     stroke-dashoffset: 0; animation: none !important;
   }
 }
+
+/* Homepage decision loop — the decision advances while national evidence stays in custody. */
+.ncr .ncr-boundary,
+.ncr .ncr-register,
+.ncr .ncr-stage,
+.ncr .ncr-resolution { opacity: 0; }
+.ncr .ncr-relay-path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.ncr .ncr-authorised,
+.ncr .ncr-custody-mark { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.ncr-on .ncr-boundary { animation: ncr-fade .55s ease-out forwards; }
+.ncr-on .ncr-register { animation: ncr-rise .6s cubic-bezier(.2,.85,.25,1) .45s forwards; transform-box: fill-box; transform-origin: center; }
+.ncr-on .ncr-relay-path { animation: ncr-draw 1.2s ease-out 1s forwards; }
+.ncr-on .ncr-stage { animation: ncr-fade .35s ease-out forwards; }
+.ncr-on .ncr-stage[data-stage="understand"] { animation-delay: 1.25s; }
+.ncr-on .ncr-stage[data-stage="rehearse"] { animation-delay: 2.05s; }
+.ncr-on .ncr-stage[data-stage="decide"] { animation-delay: 2.85s; }
+.ncr-on .ncr-stage[data-stage="deliver"] { animation-delay: 3.65s; }
+.ncr-on .ncr-stage[data-stage="learn"] { animation-delay: 4.45s; }
+.ncr-on .ncr-stage[data-stage="understand"] .ncr-authorised,
+.ncr-on .ncr-stage[data-stage="understand"] .ncr-custody-mark { animation: ncr-mark .4s cubic-bezier(.2,.9,.3,1.2) 1.6s forwards; }
+.ncr-on .ncr-stage[data-stage="rehearse"] .ncr-authorised,
+.ncr-on .ncr-stage[data-stage="rehearse"] .ncr-custody-mark { animation: ncr-mark .4s cubic-bezier(.2,.9,.3,1.2) 2.4s forwards; }
+.ncr-on .ncr-stage[data-stage="decide"] .ncr-authorised,
+.ncr-on .ncr-stage[data-stage="decide"] .ncr-custody-mark { animation: ncr-mark .4s cubic-bezier(.2,.9,.3,1.2) 3.2s forwards; }
+.ncr-on .ncr-stage[data-stage="deliver"] .ncr-authorised,
+.ncr-on .ncr-stage[data-stage="deliver"] .ncr-custody-mark { animation: ncr-mark .4s cubic-bezier(.2,.9,.3,1.2) 4s forwards; }
+.ncr-on .ncr-stage[data-stage="learn"] .ncr-authorised,
+.ncr-on .ncr-stage[data-stage="learn"] .ncr-custody-mark { animation: ncr-mark .4s cubic-bezier(.2,.9,.3,1.2) 4.8s forwards; }
+.ncr-on .ncr-resolution { animation: ncr-fade .65s ease-out 5.7s forwards; }
+.ncr [role="button"] { cursor: help; outline: none; transition: opacity .25s ease; }
+.ncr [role="button"]:focus-visible { filter: drop-shadow(0 0 3px var(--color-gold-300)); }
+.ncr:has([role="button"]:hover) [role="button"]:not(:hover),
+.ncr:has([role="button"]:focus) [role="button"]:not(:focus) { opacity: .25; }
+.ncr-paused *, .ncr-paused *::before, .ncr-paused *::after { animation-play-state: paused !important; }
+@keyframes ncr-fade { to { opacity: 1; } }
+@keyframes ncr-draw { to { stroke-dashoffset: 0; } }
+@keyframes ncr-rise { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
+@keyframes ncr-mark { 0% { opacity: 0; transform: scale(.25); } 70% { opacity: 1; transform: scale(1.35); } 100% { opacity: 1; transform: scale(1); } }
+@media (max-width: 767px) {
+  .ncr { margin-inline: auto; max-width: 360px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ncr .ncr-boundary, .ncr .ncr-register, .ncr .ncr-stage, .ncr .ncr-resolution,
+  .ncr .ncr-authorised, .ncr .ncr-custody-mark { opacity: 1; transform: none; animation: none !important; }
+  .ncr .ncr-relay-path { stroke-dashoffset: 0; animation: none !important; }
+}

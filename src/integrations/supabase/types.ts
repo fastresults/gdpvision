@@ -6192,6 +6192,8 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          portfolio_code: string | null
+          secondary_portfolio_codes: string[]
           slug: string
           sort_order: number
           updated_at: string
@@ -6201,6 +6203,8 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          portfolio_code?: string | null
+          secondary_portfolio_codes?: string[]
           slug: string
           sort_order?: number
           updated_at?: string
@@ -6210,6 +6214,8 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          portfolio_code?: string | null
+          secondary_portfolio_codes?: string[]
           slug?: string
           sort_order?: number
           updated_at?: string
@@ -6220,6 +6226,13 @@ export type Database = {
             columns: ["country_code"]
             isOneToOne: false
             referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "ministries_portfolio_code_fkey"
+            columns: ["portfolio_code"]
+            isOneToOne: false
+            referencedRelation: "ministry_portfolios"
             referencedColumns: ["code"]
           },
         ]
@@ -6280,6 +6293,51 @@ export type Database = {
           run_id?: string
           source_tier?: string | null
           status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ministry_portfolios: {
+        Row: {
+          code: string
+          created_at: string
+          decision_classes: Json
+          default_sector_codes: string[]
+          description: string
+          first_wave: boolean
+          kind: string
+          label: string
+          matrix_axes: Json
+          name_pattern: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          decision_classes?: Json
+          default_sector_codes?: string[]
+          description?: string
+          first_wave?: boolean
+          kind?: string
+          label: string
+          matrix_axes?: Json
+          name_pattern?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          decision_classes?: Json
+          default_sector_codes?: string[]
+          description?: string
+          first_wave?: boolean
+          kind?: string
+          label?: string
+          matrix_axes?: Json
+          name_pattern?: string | null
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -7875,6 +7933,287 @@ export type Database = {
           uploaded_by?: string | null
           version?: number
           visibility?: string
+        }
+        Relationships: []
+      }
+      portfolio_persona_sets: {
+        Row: {
+          approval_mode: string | null
+          approved_at: string | null
+          approved_by: string | null
+          base_set_id: string | null
+          context: Json
+          context_hash: string | null
+          created_at: string
+          created_by: string | null
+          design_matrix: Json
+          id: string
+          kind: string
+          lock_until: string | null
+          model: string | null
+          phase: string
+          phase_log: Json
+          portfolio_code: string
+          proposed_skills: Json
+          returned_at: string | null
+          returned_by: string | null
+          returned_note: string | null
+          run_error: string | null
+          run_state: string
+          scope_key: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          target_size: number
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approval_mode?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          base_set_id?: string | null
+          context?: Json
+          context_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          design_matrix?: Json
+          id?: string
+          kind?: string
+          lock_until?: string | null
+          model?: string | null
+          phase?: string
+          phase_log?: Json
+          portfolio_code: string
+          proposed_skills?: Json
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_note?: string | null
+          run_error?: string | null
+          run_state?: string
+          scope_key: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          target_size?: number
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approval_mode?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          base_set_id?: string | null
+          context?: Json
+          context_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          design_matrix?: Json
+          id?: string
+          kind?: string
+          lock_until?: string | null
+          model?: string | null
+          phase?: string
+          phase_log?: Json
+          portfolio_code?: string
+          proposed_skills?: Json
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_note?: string | null
+          run_error?: string | null
+          run_state?: string
+          scope_key?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          target_size?: number
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_persona_sets_base_set_id_fkey"
+            columns: ["base_set_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_persona_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolio_persona_sets_portfolio_code_fkey"
+            columns: ["portfolio_code"]
+            isOneToOne: false
+            referencedRelation: "ministry_portfolios"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      portfolio_persona_syntheses: {
+        Row: {
+          aggregates: Json
+          citations: Json
+          created_at: string
+          edited_at: string | null
+          edited_by: string | null
+          id: string
+          input_synthesis_ids: string[]
+          model: string | null
+          narrative_md: string
+          portfolio_code: string
+          profile: Json
+          scope_key: string
+          set_id: string
+          updated_at: string
+        }
+        Insert: {
+          aggregates?: Json
+          citations?: Json
+          created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
+          id?: string
+          input_synthesis_ids?: string[]
+          model?: string | null
+          narrative_md?: string
+          portfolio_code: string
+          profile?: Json
+          scope_key: string
+          set_id: string
+          updated_at?: string
+        }
+        Update: {
+          aggregates?: Json
+          citations?: Json
+          created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
+          id?: string
+          input_synthesis_ids?: string[]
+          model?: string | null
+          narrative_md?: string
+          portfolio_code?: string
+          profile?: Json
+          scope_key?: string
+          set_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_persona_syntheses_portfolio_code_fkey"
+            columns: ["portfolio_code"]
+            isOneToOne: false
+            referencedRelation: "ministry_portfolios"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "portfolio_persona_syntheses_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: true
+            referencedRelation: "portfolio_persona_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolio_personas: {
+        Row: {
+          archetype: string
+          attributes: Json
+          career_route: string
+          citations: Json
+          created_at: string
+          decision_style: Json
+          id: string
+          matrix_cell: Json
+          model: string | null
+          name: string
+          normalized_key: string
+          ocean: Json
+          qa: Json
+          scope_key: string
+          set_id: string
+          skills: Json
+          slot_index: number
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          archetype?: string
+          attributes?: Json
+          career_route?: string
+          citations?: Json
+          created_at?: string
+          decision_style?: Json
+          id?: string
+          matrix_cell?: Json
+          model?: string | null
+          name: string
+          normalized_key?: string
+          ocean?: Json
+          qa?: Json
+          scope_key: string
+          set_id: string
+          skills?: Json
+          slot_index: number
+          summary?: string
+          updated_at?: string
+        }
+        Update: {
+          archetype?: string
+          attributes?: Json
+          career_route?: string
+          citations?: Json
+          created_at?: string
+          decision_style?: Json
+          id?: string
+          matrix_cell?: Json
+          model?: string | null
+          name?: string
+          normalized_key?: string
+          ocean?: Json
+          qa?: Json
+          scope_key?: string
+          set_id?: string
+          skills?: Json
+          slot_index?: number
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_personas_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_persona_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolio_skills: {
+        Row: {
+          code: string
+          created_at: string
+          definition: string
+          family: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          definition?: string
+          family: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          definition?: string
+          family?: string
+          label?: string
+          sort_order?: number
         }
         Relationships: []
       }
@@ -10813,6 +11152,10 @@ export type Database = {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
       }
+      can_approve_portfolio: {
+        Args: { _scope: string; _user_id: string }
+        Returns: boolean
+      }
       can_approve_protocol: {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
@@ -10825,12 +11168,24 @@ export type Database = {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
       }
+      can_read_portfolio_scope: {
+        Args: { _scope: string; _user_id: string }
+        Returns: boolean
+      }
       can_sole_approve_egov: {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
       }
+      can_sole_approve_portfolio: {
+        Args: { _scope: string; _user_id: string }
+        Returns: boolean
+      }
       can_sole_approve_sector: {
         Args: { _country_code: string; _user_id: string }
+        Returns: boolean
+      }
+      can_write_portfolio_scope: {
+        Args: { _scope: string; _user_id: string }
         Returns: boolean
       }
       country_chunks_search: {
@@ -10917,6 +11272,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      portfolio_profile_history: {
+        Args: { _set_id: string }
+        Returns: {
+          action: string
+          actor_id: string
+          actor_label: string
+          created_at: string
+          id: string
+          metadata: Json
+        }[]
+      }
       record_egov_prd_view: {
         Args: { _link_id: string; _user_agent: string; _visitor_hash: string }
         Returns: boolean
@@ -10950,6 +11316,10 @@ export type Database = {
           prd_id: string
           scopes: string[]
         }[]
+      }
+      set_ministry_portfolio: {
+        Args: { _ministry_id: string; _primary: string; _secondary: string[] }
+        Returns: undefined
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

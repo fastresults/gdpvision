@@ -11,14 +11,12 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useRef, type ReactNode } from "react";
 
-
 import appCss from "../styles.css?url";
 import faviconAsset from "../assets/favicon-seal.png.asset.json";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ViewAsBanner } from "../lib/impersonation";
 import { NavRuntime } from "@/components/nav/NavControls";
 import { Toaster } from "@/components/ui/sonner";
-
 
 function NotFoundComponent() {
   return (
@@ -90,8 +88,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "GDPVision" },
       {
         name: "description",
-        content:
-          "GDPVision — the sovereign decision instrument for Caribbean Cabinets.",
+        content: "GDPVision — the sovereign decision instrument for Caribbean Cabinets.",
       },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
@@ -187,4 +184,3 @@ function RouteScrollTop() {
   }, [pathname, hash]);
   return null;
 }
-

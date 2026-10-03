@@ -22,7 +22,10 @@ function load() {
   loaded = true;
   try {
     const raw = sessionStorage.getItem(KEY);
-    if (raw) trail = (JSON.parse(raw) as TrailEntry[]).filter((e) => typeof e?.href === "string" && typeof e?.idx === "number");
+    if (raw)
+      trail = (JSON.parse(raw) as TrailEntry[]).filter(
+        (e) => typeof e?.href === "string" && typeof e?.idx === "number",
+      );
   } catch {
     trail = [];
   }
@@ -52,7 +55,10 @@ export function record(href: string, pathname: string, idx: number) {
   const cur = trail.find((e) => e.idx === idx);
   if (cur?.href === href && trail[trail.length - 1] === cur) return;
   const title = cur && cur.pathname === pathname ? cur.title : "";
-  trail = [...trail.filter((e) => e.idx < idx), { idx, href, pathname, title, at: Date.now() }].slice(-MAX);
+  trail = [
+    ...trail.filter((e) => e.idx < idx),
+    { idx, href, pathname, title, at: Date.now() },
+  ].slice(-MAX);
   save();
 }
 

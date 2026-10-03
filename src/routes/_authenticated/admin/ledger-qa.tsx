@@ -62,7 +62,7 @@ export const Route = createFileRoute("/_authenticated/admin/ledger-qa")({
   errorComponent: ({ error }) => (
     <div className="mx-auto max-w-3xl px-8 py-24 text-ink-500">
       <p className="font-mono text-[11px] uppercase tracking-[0.2em]">QA unavailable</p>
-      <p className="mt-4 text-sm">{error.message}</p>
+      <p className="mt-4 text-sm">{(error as Error).message}</p>
     </div>
   ),
   notFoundComponent: () => (

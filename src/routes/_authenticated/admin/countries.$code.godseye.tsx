@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/gods
   component: SovereignEyeRoute,
   errorComponent: ({ error }) => (
     <SuperAdminShell wide crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Sovereign Eye" }]}>
-      <p className="text-sm text-signal-negative">{error.message}</p>
+      <p className="text-sm text-signal-negative">{(error as Error).message}</p>
     </SuperAdminShell>
   ),
 });

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/glob
   component: GlobalViewRoute,
   errorComponent: ({ error }) => (
     <SuperAdminShell wide crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Global view" }]}>
-      <p className="text-sm text-signal-negative">{error.message}</p>
+      <p className="text-sm text-signal-negative">{(error as Error).message}</p>
     </SuperAdminShell>
   ),
 });

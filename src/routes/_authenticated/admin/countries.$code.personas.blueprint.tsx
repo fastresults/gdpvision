@@ -7,7 +7,7 @@ import { useProgramBriefGate } from "@/hooks/useProgramBriefGate";
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/blueprint")({
   component: BlueprintPage,
-  errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
+  errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{(error as Error).message}</p>,
 });
 
 function BlueprintPage() {

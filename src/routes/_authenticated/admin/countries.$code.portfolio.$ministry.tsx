@@ -62,7 +62,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/port
     ]);
   },
   errorComponent: ({ error }) => (
-    <div className="px-8 py-16 text-sm text-red-600">{error.message}</div>
+    <div className="px-8 py-16 text-sm text-red-600">{(error as Error).message}</div>
   ),
   notFoundComponent: () => (
     <div className="px-8 py-16 text-sm text-ink-500">Portfolio not found.</div>

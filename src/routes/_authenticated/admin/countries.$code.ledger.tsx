@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/ledg
   },
   errorComponent: ({ error }) => (
     <div className="min-h-dvh grid place-items-center bg-paper-0 p-8 text-center">
-      <p className="max-w-md text-sm text-red-600">{error.message}</p>
+      <p className="max-w-md text-sm text-red-600">{(error as Error).message}</p>
     </div>
   ),
   component: LedgerChamber,

@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/onboarding/country")({
   component: OnboardingCountryPage,
   errorComponent: ({ error }) => (
     <div className="min-h-dvh grid place-items-center p-8 text-center">
-      <p className="text-sm text-red-600">{error.message}</p>
+      <p className="text-sm text-red-600">{(error as Error).message}</p>
     </div>
   ),
 });

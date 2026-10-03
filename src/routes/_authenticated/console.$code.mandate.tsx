@@ -35,7 +35,7 @@ export const Route = createFileRoute("/_authenticated/console/$code/mandate")({
     <div className="p-6 text-sm text-ink-500">No active compact for this country.</div>
   ),
   errorComponent: ({ error }) => (
-    <div className="p-6 text-sm text-rose-600">Failed to load Mandate Compact: {error.message}</div>
+    <div className="p-6 text-sm text-rose-600">Failed to load Mandate Compact: {(error as Error).message}</div>
   ),
   component: ConsoleMandatePage,
 });

@@ -42,7 +42,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
   },
   errorComponent: ({ error }) => (
     <div className="min-h-dvh grid place-items-center bg-paper-0 p-8">
-      <p className="max-w-md text-sm text-rose-600">{error.message}</p>
+      <p className="max-w-md text-sm text-rose-600">{(error as Error).message}</p>
     </div>
   ),
   notFoundComponent: () => (

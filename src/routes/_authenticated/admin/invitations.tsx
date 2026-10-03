@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/admin/invitations")({
   component: InvitationsPage,
   errorComponent: ({ error }) => (
     <SuperAdminShell crumbs={[{ label: "Invitations" }]}>
-      <p className="text-sm text-red-600">{error.message}</p>
+      <p className="text-sm text-red-600">{(error as Error).message}</p>
     </SuperAdminShell>
   ),
   notFoundComponent: () => (

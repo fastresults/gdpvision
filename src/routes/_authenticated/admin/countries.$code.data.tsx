@@ -104,7 +104,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/data
   component: DataDashboard,
   errorComponent: ({ error }) => (
     <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Data" }]}>
-      <p className="text-sm text-signal-negative">{error.message}</p>
+      <p className="text-sm text-signal-negative">{(error as Error).message}</p>
     </SuperAdminShell>
   ),
   notFoundComponent: () => (

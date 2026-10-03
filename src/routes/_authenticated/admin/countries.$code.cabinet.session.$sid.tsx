@@ -18,7 +18,7 @@ function sessionQuery(sid: string) {
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/cabinet/session/$sid")({
   head: ({ params }) => ({ meta: [{ title: `Session Mode · ${params.code} — GDPVision` }, { name: "robots", content: "noindex" }] }),
   loader: ({ context, params }) => context.queryClient.ensureQueryData(sessionQuery(params.sid)),
-  errorComponent: ({ error }) => (<div className="min-h-dvh grid place-items-center bg-ink-950 p-8 text-paper-0"><p>{error.message}</p></div>),
+  errorComponent: ({ error }) => (<div className="min-h-dvh grid place-items-center bg-ink-950 p-8 text-paper-0"><p>{(error as Error).message}</p></div>),
   component: SessionMode,
 });
 

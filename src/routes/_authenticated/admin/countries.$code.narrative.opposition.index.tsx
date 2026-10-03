@@ -34,7 +34,7 @@ export const Route = createFileRoute(
     await context.queryClient.ensureQueryData(itemsQuery(params.code));
   },
   errorComponent: ({ error }) => (
-    <div className="p-8 text-sm text-rose-600">{error.message}</div>
+    <div className="p-8 text-sm text-rose-600">{(error as Error).message}</div>
   ),
   notFoundComponent: () => (
     <div className="p-8 text-sm text-ink-500">Opposition Intel not found.</div>

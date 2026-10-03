@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_authenticated/console/$code/")({
   }),
   errorComponent: ({ error }) => (
     <div className="border border-line-200 p-6 text-sm text-[var(--signal-negative)]">
-      {error.message}
+      {(error as Error).message}
     </div>
   ),
   component: BriefPage,

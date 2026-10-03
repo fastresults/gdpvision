@@ -49,7 +49,7 @@ function segmentsQuery(code: string, projectId: string) {
 }
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/segments")({
-  errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
+  errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{(error as Error).message}</p>,
   notFoundComponent: () => <p className="p-6 text-sm text-ink-500">Segments not found.</p>,
   component: SegmentsPage,
 });

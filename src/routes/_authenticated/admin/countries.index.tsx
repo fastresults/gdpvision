@@ -57,7 +57,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/")({
   component: CountriesQueue,
   errorComponent: ({ error }) => (
     <SuperAdminShell crumbs={[{ label: "Countries" }]}>
-      <p className="text-sm text-red-600">{error.message}</p>
+      <p className="text-sm text-red-600">{(error as Error).message}</p>
     </SuperAdminShell>
   ),
   notFoundComponent: () => (

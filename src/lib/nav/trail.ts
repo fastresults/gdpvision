@@ -95,7 +95,8 @@ export function parentPath(router: AnyRouter, pathname: string): string {
     const p = "/" + parts.join("/");
     if (p === "/") break;
     try {
-      const { foundRoute } = router.getMatchedRoutes(p);
+      // TanStack Router ≥1.170 returns [matchedRoutes, rawParams, foundRoute].
+      const [, , foundRoute] = router.getMatchedRoutes(p);
       const full = String(foundRoute?.fullPath ?? "").replace(/\/+$/, "");
       const segs = full.split("/").filter(Boolean);
       if (

@@ -52,7 +52,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
       { name: "robots", content: "noindex" },
     ],
   }),
-  errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
+  errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{(error as Error).message}</p>,
   notFoundComponent: () => <p className="p-6 text-sm text-ink-500">No such field stage.</p>,
   component: FieldStagePage,
 });

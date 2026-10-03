@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
       context.queryClient.ensureQueryData(chatsQuery(params.id)),
     ]);
   },
-  errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
+  errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{(error as Error).message}</p>,
   component: PersonaDetail,
 });
 

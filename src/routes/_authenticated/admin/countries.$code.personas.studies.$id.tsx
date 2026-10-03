@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
   validateSearch: (s) => searchSchema.parse(s),
   loaderDeps: ({ search: { project } }) => ({ project }),
   loader: ({ context, params, deps }) => context.queryClient.ensureQueryData(studyQuery(params.id, deps.project)),
-  errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
+  errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{(error as Error).message}</p>,
   component: StudyDetail,
 });
 

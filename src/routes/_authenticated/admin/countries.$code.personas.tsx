@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
   }),
   errorComponent: ({ error }) => (
     <div className="min-h-dvh grid place-items-center bg-paper-0 p-8">
-      <p className="max-w-md text-sm text-rose-600">{error.message}</p>
+      <p className="max-w-md text-sm text-rose-600">{(error as Error).message}</p>
     </div>
   ),
   notFoundComponent: () => <div className="p-8 text-sm text-ink-500">Research Chamber not found.</div>,

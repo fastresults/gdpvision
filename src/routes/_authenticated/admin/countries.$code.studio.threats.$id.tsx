@@ -56,7 +56,7 @@ export const Route = createFileRoute(
     ]);
   },
   errorComponent: ({ error }) => (
-    <p className="text-sm text-red-600">{error.message}</p>
+    <p className="text-sm text-red-600">{(error as Error).message}</p>
   ),
   notFoundComponent: () => (
     <p className="text-sm text-ink-500">Threat not found.</p>

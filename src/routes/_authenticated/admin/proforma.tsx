@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_authenticated/admin/proforma")({
   }),
   errorComponent: ({ error }) => (
     <div className="grid min-h-dvh place-items-center bg-paper-0 p-8 text-center">
-      <p className="max-w-md text-sm text-[var(--signal-negative)]">{error.message}</p>
+      <p className="max-w-md text-sm text-[var(--signal-negative)]">{(error as Error).message}</p>
     </div>
   ),
   notFoundComponent: () => (

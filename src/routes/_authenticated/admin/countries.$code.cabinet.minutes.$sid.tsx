@@ -16,7 +16,7 @@ function minutesQuery(sid: string) {
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/cabinet/minutes/$sid")({
   head: ({ params }) => ({ meta: [{ title: `Minutes · ${params.code} — GDPVision` }, { name: "robots", content: "noindex" }] }),
   loader: ({ context, params }) => context.queryClient.ensureQueryData(minutesQuery(params.sid)),
-  errorComponent: ({ error }) => (<div className="min-h-dvh grid place-items-center p-8"><p className="text-sm text-red-600">{error.message}</p></div>),
+  errorComponent: ({ error }) => (<div className="min-h-dvh grid place-items-center p-8"><p className="text-sm text-red-600">{(error as Error).message}</p></div>),
   component: MinutesPage,
 });
 

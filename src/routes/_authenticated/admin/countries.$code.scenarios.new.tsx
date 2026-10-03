@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useRouter, useSearch } from "@tanstack/react-router";
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
@@ -50,7 +51,9 @@ function initRunQuery(code: string) {
   });
 }
 
-function ScenarioRouteError({ error, reset }: { error: Error; reset: () => void }) {
+function ScenarioRouteError(props: ErrorComponentProps) {
+  const error = props.error as Error;
+  const reset = props.reset;
   const router = useRouter();
   return (
     <div className="px-6 py-16">

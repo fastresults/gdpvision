@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/cabi
     await context.queryClient.ensureQueryData(sessionQuery(params.sid));
   },
   errorComponent: ({ error }) => (
-    <div className="min-h-dvh grid place-items-center p-8"><p className="max-w-md text-sm text-red-600">{error.message}</p></div>
+    <div className="min-h-dvh grid place-items-center p-8"><p className="max-w-md text-sm text-red-600">{(error as Error).message}</p></div>
   ),
   component: AgendaEditor,
 });

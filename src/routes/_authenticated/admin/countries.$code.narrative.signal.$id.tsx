@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
   loader: async ({ context, params }) => {
     await context.queryClient.ensureQueryData(signalQuery(params.id));
   },
-  errorComponent: ({ error }) => <p className="text-sm text-rose-600">{error.message}</p>,
+  errorComponent: ({ error }) => <p className="text-sm text-rose-600">{(error as Error).message}</p>,
   notFoundComponent: () => <p className="text-sm text-ink-500">Signal not found.</p>,
   component: SignalWorkspace,
 });

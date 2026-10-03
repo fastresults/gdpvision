@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/console/$code/chamber/$cha
     ],
   }),
   errorComponent: ({ error }) => (
-    <div className="border border-line-200 p-6 text-sm text-[var(--signal-negative)]">{error.message}</div>
+    <div className="border border-line-200 p-6 text-sm text-[var(--signal-negative)]">{(error as Error).message}</div>
   ),
   notFoundComponent: () => (
     <p className="border border-line-200 p-6 text-sm text-ink-500">No chamber on record under that name.</p>

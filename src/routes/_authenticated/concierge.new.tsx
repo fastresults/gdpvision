@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_authenticated/concierge/new")({
   errorComponent: ({ error, reset }) => (
     <div className="mx-auto max-w-xl p-12">
       <h1 className="font-serif text-2xl text-ink-950">Something went wrong.</h1>
-      <p className="mt-2 text-sm text-ink-500">{error.message}</p>
+      <p className="mt-2 text-sm text-ink-500">{(error as Error).message}</p>
       <button onClick={reset} className="mt-4 text-sm underline">Try again</button>
     </div>
   ),

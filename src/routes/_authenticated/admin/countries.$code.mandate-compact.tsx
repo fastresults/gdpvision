@@ -55,7 +55,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/mand
     await context.queryClient.ensureQueryData(compactsQuery(params.code));
   },
   errorComponent: ({ error }) => (
-    <div className="p-6 text-sm text-rose-600">Failed to load Mandate Compact: {error.message}</div>
+    <div className="p-6 text-sm text-rose-600">Failed to load Mandate Compact: {(error as Error).message}</div>
   ),
   notFoundComponent: () => <div className="p-6 text-sm text-ink-500">Not found.</div>,
   component: MandateCompactPage,

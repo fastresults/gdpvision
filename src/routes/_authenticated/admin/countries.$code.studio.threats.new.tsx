@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/stud
   loader: async ({ context, params }) => {
     await context.queryClient.ensureQueryData(ctxQuery(params.code));
   },
-  errorComponent: ({ error }) => <p className="text-sm text-red-600">{error.message}</p>,
+  errorComponent: ({ error }) => <p className="text-sm text-red-600">{(error as Error).message}</p>,
   component: ThreatComposerPage,
 });
 

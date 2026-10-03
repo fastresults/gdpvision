@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -56,7 +57,9 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
   ),
 });
 
-function LibraryError({ error, reset }: { error: Error; reset: () => void }) {
+function LibraryError(props: ErrorComponentProps) {
+  const error = props.error as Error;
+  const reset = props.reset;
   return (
     <div className="border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800 space-y-3">
       <div className="font-mono text-[10px] uppercase tracking-widest">Comms library failed to load</div>

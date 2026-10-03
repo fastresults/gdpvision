@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/viz"
   component: VizPage,
   errorComponent: ({ error }) => (
     <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "GDP Visualizations" }]}>
-      <p className="text-sm text-signal-negative">{error.message}</p>
+      <p className="text-sm text-signal-negative">{(error as Error).message}</p>
     </SuperAdminShell>
   ),
   notFoundComponent: () => (

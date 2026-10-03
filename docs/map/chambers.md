@@ -60,6 +60,18 @@ Each of the 7 chambers = a route surface + component tree + server-fn module(s) 
 - **Hooks**: `src/hooks/useProgramBriefGate.ts`, `useVoiceRecorder.ts`
 - **Server fns**: `src/lib/personas/{wizard,study,generate,blueprint,projects,project-brief,parse-upload,transcribe,compose-study,compose-segments,autorun}.functions.ts`, helper `personas/context-pack.server.ts`, `personas/study-autorun.ts`, `personas/report-export.ts`
 
+### Ministers track — the Ideal Minister (migration `drizzle/migrations/0028_portfolio_personas.sql`)
+
+For each portfolio type — and the Prime Minister — 50 composite minister personas grounded in the corpus and cited research, scored on one skill taxonomy, counted in code, and synthesised into an Ideal Minister Profile (personality, values, decision model per decision class, tiered skill stack). Regional profiles are approved by global admins; a country overlay re-weights the approved regional profile. The Prime Minister's profile is built last, from its own cast and the approved ministry profiles, and carries the Cabinet weighting.
+
+- **Routes**: `admin/countries.$code.personas.portfolios.index.tsx` (board + ministry mapping), `admin/countries.$code.personas.portfolios.$setId.tsx` (workspace: profile, cast, skills, Cabinet weighting, Convene). Linked from the Persona Lab sidebar.
+- **Components**: `src/components/personas/portfolio/{PortfolioBoard,MinistryMapping,RunRail,useRunLoop,PersonaGrid,IdealProfileView,Panels,Charts,labels}`
+- **Server fns**: `src/lib/personas/portfolio/{studio,run,convene}.functions.ts`; engine `portfolio/engine.server.ts` (one phase per tick under a row lock: scope → matrix → generate ×10 → qa → aggregate → synthesise; overlay: scope → overlay); grounding `portfolio/context.server.ts`; pure `portfolio/{aggregate,qa,db}.ts`
+- **Tables**: `ministry_portfolios` (seeded, 19 incl. PM), `portfolio_skills` (seeded, 67 in 7 families), `portfolio_persona_sets`, `portfolio_personas`, `portfolio_persona_syntheses`; columns `ministries.portfolio_code`, `ministries.secondary_portfolio_codes`
+- **Governance**: `can_approve_portfolio`, `can_sole_approve_portfolio`, guard + history triggers (two-person rule, sole-admin exception, approval supersedes, approved profiles frozen), `set_ministry_portfolio()`
+- **Corpus**: domain `portfolio_persona` — `corpus/searchers/portfolio-persona.server.ts` (`readIdealProfile`, `idealProfileLines`); fed into the Sector Studio packs (pillars, compact, council). Ask the Ideal Minister mirrors the profile into `personas` (archetype `ideal_minister:<CODE>` / `ideal_pm`) for persona chat.
+- **Explain**: `src/lib/explain/ministers-entries.ts`
+
 ## Chamber 08 · Mandate Compact
 
 - **Route**: `admin/countries.$code.mandate-compact.tsx`

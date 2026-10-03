@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useSearch } from "@tanstack/react-router
 import { Illustration } from "@/components/marketing/Illustration";
 import chamber_07Art from "@/assets/chambers/chamber-07.jpg.asset.json";
 import { useQuery } from "@tanstack/react-query";
-import { Users, Layers, FlaskConical, Wand2 } from "lucide-react";
+import { Users, Layers, FlaskConical, Wand2, Landmark } from "lucide-react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listPersonas, listSegments } from "@/lib/personas/generate.functions";
@@ -226,6 +226,23 @@ function PersonasLayout() {
             </Link>
           )}
 
+
+          <Link
+            to="/admin/countries/$code/personas/portfolios"
+            params={{ code }}
+            activeProps={{ className: "border-ink-950" }}
+            className="block border border-line-200 p-3 hover:border-ink-950"
+          >
+            <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              <Landmark size={11} /> Ministers
+            </p>
+            <p className="mt-1 font-serif text-[15px] leading-tight text-ink-950">
+              The Ideal Minister
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-ink-500">
+              50 personas per portfolio, their skills, and one synthesised profile — Prime Minister included.
+            </p>
+          </Link>
 
           <Link
             to="/admin/countries/$code/onboard"

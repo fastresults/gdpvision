@@ -20,6 +20,7 @@ Everything AI-researched lands in the corpus. All reads and writes go through th
 |--------|------|---------|
 | `citation` | `citation.server.ts` | 3–8 authoritative URLs (`CorpusCitation[]`) |
 | `sector` | `sector.server.ts` | GDP share % by 3-letter sector code |
+| `portfolio_persona` | `portfolio-persona.server.ts` | approved Ideal Minister Profile in force (country overlay, else regional) and `ideal.*` context lines. Read directly — no external search or write-back; profiles are made by the Persona Lab run and approved by people |
 | (extend) | add file + register in gateway | typed payload + citations |
 
 All searchers wrap `runWithFallbacks` from `src/lib/country-onboarding/fallback.server.ts` (Perplexity → Gemini repair → infer). Every returned row must carry an https `source_url` when applicable.

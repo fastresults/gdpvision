@@ -104,6 +104,8 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/personas/$id` | `src/routes/_authenticated/admin/countries.$code.personas.$id.tsx` |
 | `/_authenticated/admin/countries/$code/personas/blueprint` | `src/routes/_authenticated/admin/countries.$code.personas.blueprint.tsx` |
 | `/_authenticated/admin/countries/$code/personas/field/$step` | `src/routes/_authenticated/admin/countries.$code.personas.field.$step.tsx` |
+| `/_authenticated/admin/countries/$code/personas/portfolios/` | `src/routes/_authenticated/admin/countries.$code.personas.portfolios.index.tsx` |
+| `/_authenticated/admin/countries/$code/personas/portfolios/$setId` | `src/routes/_authenticated/admin/countries.$code.personas.portfolios.$setId.tsx` |
 | `/_authenticated/admin/countries/$code/personas/segments` | `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` |
 | `/_authenticated/admin/countries/$code/personas/studies` | `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` |
 | `/_authenticated/admin/countries/$code/personas/studies/$id` | `src/routes/_authenticated/admin/countries.$code.personas.studies.$id.tsx` |

@@ -8,7 +8,9 @@ export type CorpusDomain =
   | "ministry"
   | "dossier"
   | "flow"
-  | "citation";
+  | "citation"
+  /** Ideal Minister Profiles (chamber 07, Ministers track). Read-only; see searchers/portfolio-persona.server.ts. */
+  | "portfolio_persona";
 
 export type CorpusCitation = {
   url: string;

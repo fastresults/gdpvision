@@ -1,5 +1,5 @@
 // @domain sector
-// @tables sectors,country_sectors,sector_dossiers,sector_dossier_briefs,sector_edges,memory_objects,investment_projects,fdi_threats,scenarios,commitments,ministries,ministry_sectors
+// @tables sectors,country_sectors,sector_dossiers,sector_dossier_briefs,sector_edges,memory_objects,investment_projects,fdi_threats,scenarios,commitments,ministries,ministry_sectors,ministry_portfolios,portfolio_persona_sets,portfolio_persona_syntheses
 // @ui src/routes/_authenticated/admin/countries.$code.sector_.$planId.tsx
 //
 // Context packs for the Sector Studio: the lines a plan section (or the
@@ -407,6 +407,14 @@ function scopeLines(scope: PlanScope): ContextLine[] {
   ];
 }
 
+// The approved Ideal Minister Profiles (chamber 07) for the portfolios that
+// cover this sector, and for the Prime Minister. Absent until approved.
+const readSectorIdealMinisters: SectorReader = async (sb, code, sector) => {
+  const { idealProfileLines, portfoliosForSector } =
+    await import("@/lib/corpus/searchers/portfolio-persona.server");
+  return idealProfileLines(sb, code, await portfoliosForSector(sb, sector));
+};
+
 // ------------------------------------------------------------------ packs
 
 const C = CORPUS_READERS;
@@ -436,6 +444,7 @@ const READERS: Record<SectorStage, SectorReader[]> = {
     readSectorCore,
     readSectorMinistries,
     readSectorGovernment,
+    readSectorIdealMinisters,
     readSectorMemory,
     country(C.standardsGaps),
   ],
@@ -460,8 +469,20 @@ const READERS: Record<SectorStage, SectorReader[]> = {
     country(C.standardsGaps),
     readSectorCommitments,
   ],
-  compact: [country(C.country), readSectorMinistries, readSectorGovernment, country(C.commitments)],
-  council: [country(C.country), readSectorMinistries, readSectorGovernment, readSectorMemory],
+  compact: [
+    country(C.country),
+    readSectorMinistries,
+    readSectorGovernment,
+    readSectorIdealMinisters,
+    country(C.commitments),
+  ],
+  council: [
+    country(C.country),
+    readSectorMinistries,
+    readSectorGovernment,
+    readSectorIdealMinisters,
+    readSectorMemory,
+  ],
   sensitisation: [country(C.country), country(C.personas), readSectorCore],
   roadmap: [country(C.country), readSectorMinistries, country(C.kpis), readSectorProjects],
 };

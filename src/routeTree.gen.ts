@@ -9,193 +9,169 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as BusinessCaseRouteImport } from './routes/business-case'
-import { Route as KioskRouteImport } from './routes/kiosk'
-import { Route as RecordRouteImport } from './routes/record'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as VaultRouteImport } from './routes/vault'
-import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
-import { Route as AuthenticatedConsoleRouteImport } from './routes/_authenticated/console'
-import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
-import { Route as AuthenticatedInstrumentRouteRouteImport } from './routes/_authenticated/instrument/route'
-import { Route as AuthenticatedNarrativeRouteRouteImport } from './routes/_authenticated/narrative/route'
-import { Route as AuthInviteRouteImport } from './routes/auth.invite'
-import { Route as BusinessCaseBriefRouteImport } from './routes/business-case_.brief'
-import { Route as BusinessCaseCalculatorRouteImport } from './routes/business-case_.calculator'
-import { Route as DTokenRouteImport } from './routes/d.$token'
-import { Route as ETokenRouteImport } from './routes/e.$token'
-import { Route as FTokenRouteImport } from './routes/f.$token'
-import { Route as ITokenRouteImport } from './routes/i.$token'
-import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
-import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RecordRouteImport } from './routes/record'
+import { Route as KioskRouteImport } from './routes/kiosk'
+import { Route as BusinessCaseRouteImport } from './routes/business-case'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as OpEdsIndexRouteImport } from './routes/op-eds.index'
-import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
-import { Route as PTokenRouteImport } from './routes/p.$token'
+import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
 import { Route as STokenRouteImport } from './routes/s.$token'
-import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
-import { Route as AuthenticatedAdminActivityRouteImport } from './routes/_authenticated/admin/activity'
-import { Route as AuthenticatedAdminBrainRouteImport } from './routes/_authenticated/admin/brain'
-import { Route as AuthenticatedAdminCorpusAuditRouteImport } from './routes/_authenticated/admin/corpus-audit'
-import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
-import { Route as AuthenticatedAdminGithubRouteImport } from './routes/_authenticated/admin/github'
-import { Route as AuthenticatedAdminInvitationsRouteImport } from './routes/_authenticated/admin/invitations'
-import { Route as AuthenticatedAdminLedgerQaRouteImport } from './routes/_authenticated/admin/ledger-qa'
-import { Route as AuthenticatedAdminProformaRouteImport } from './routes/_authenticated/admin/proforma'
-import { Route as AuthenticatedAdminScorecardsRouteImport } from './routes/_authenticated/admin/scorecards'
-import { Route as AuthenticatedAgencyIndexRouteImport } from './routes/_authenticated/agency.index'
-import { Route as AuthenticatedCodexIndexRouteImport } from './routes/_authenticated/codex/index'
-import { Route as AuthenticatedConciergeIndexRouteImport } from './routes/_authenticated/concierge.index'
-import { Route as AuthenticatedConciergeIdRouteImport } from './routes/_authenticated/concierge.$id'
-import { Route as AuthenticatedConciergeNewRouteImport } from './routes/_authenticated/concierge.new'
-import { Route as AuthenticatedConfigIndexRouteImport } from './routes/_authenticated/config/index'
-import { Route as AuthenticatedCounselIndexRouteImport } from './routes/_authenticated/counsel/index'
-import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
-import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authenticated/counsel/mobile'
-import { Route as AuthenticatedInstrumentIndexRouteImport } from './routes/_authenticated/instrument/index'
-import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
-import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes/_authenticated/instrument/stewardship'
+import { Route as PTokenRouteImport } from './routes/p.$token'
+import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
+import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
+import { Route as ITokenRouteImport } from './routes/i.$token'
+import { Route as FTokenRouteImport } from './routes/f.$token'
+import { Route as ETokenRouteImport } from './routes/e.$token'
+import { Route as DTokenRouteImport } from './routes/d.$token'
+import { Route as BusinessCaseCalculatorRouteImport } from './routes/business-case_.calculator'
+import { Route as BusinessCaseBriefRouteImport } from './routes/business-case_.brief'
+import { Route as AuthInviteRouteImport } from './routes/auth.invite'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as AuthenticatedConsoleRouteImport } from './routes/_authenticated/console'
+import { Route as AuthenticatedNarrativeRouteRouteImport } from './routes/_authenticated/narrative/route'
+import { Route as AuthenticatedInstrumentRouteRouteImport } from './routes/_authenticated/instrument/route'
+import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedNarrativeIndexRouteImport } from './routes/_authenticated/narrative/index'
-import { Route as AuthenticatedNarrativeBrainRouteImport } from './routes/_authenticated/narrative/brain'
-import { Route as AuthenticatedNarrativeCommsRouteImport } from './routes/_authenticated/narrative/comms'
-import { Route as AuthenticatedNarrativeCoverageRouteImport } from './routes/_authenticated/narrative/coverage'
-import { Route as AuthenticatedNarrativeIngestRouteImport } from './routes/_authenticated/narrative/ingest'
-import { Route as AuthenticatedNarrativeQueueRouteImport } from './routes/_authenticated/narrative/queue'
-import { Route as AuthenticatedOnboardingCountryRouteImport } from './routes/_authenticated/onboarding/country'
-import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
-import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
+import { Route as AuthenticatedInstrumentIndexRouteImport } from './routes/_authenticated/instrument/index'
+import { Route as AuthenticatedCounselIndexRouteImport } from './routes/_authenticated/counsel/index'
+import { Route as AuthenticatedConfigIndexRouteImport } from './routes/_authenticated/config/index'
+import { Route as AuthenticatedConciergeIndexRouteImport } from './routes/_authenticated/concierge.index'
+import { Route as AuthenticatedCodexIndexRouteImport } from './routes/_authenticated/codex/index'
+import { Route as AuthenticatedAgencyIndexRouteImport } from './routes/_authenticated/agency.index'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
-import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
-import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
-import { Route as AuthenticatedAdminCountriesIndexRouteImport } from './routes/_authenticated/admin/countries.index'
-import { Route as AuthenticatedAdminCountryCodeRouteImport } from './routes/_authenticated/admin/country.$code'
-import { Route as AuthenticatedConsoleCodeIndexRouteImport } from './routes/_authenticated/console.$code.index'
-import { Route as AuthenticatedConsoleCodeAskRouteImport } from './routes/_authenticated/console.$code.ask'
-import { Route as AuthenticatedConsoleCodeBriefRouteImport } from './routes/_authenticated/console.$code.brief'
-import { Route as AuthenticatedConsoleCodeMandateRouteImport } from './routes/_authenticated/console.$code.mandate'
-import { Route as AuthenticatedConsoleCodeStudyRouteImport } from './routes/_authenticated/console.$code.study'
-import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
-import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './routes/_authenticated/instrument/cabinet.decisions'
-import { Route as AuthenticatedInstrumentCabinetSessionRouteImport } from './routes/_authenticated/instrument/cabinet.session'
-import { Route as AuthenticatedInstrumentMandateScorecardRouteImport } from './routes/_authenticated/instrument/mandate.scorecard'
-import { Route as AuthenticatedInstrumentMandateStudioRouteImport } from './routes/_authenticated/instrument/mandate.studio'
-import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
-import { Route as AuthenticatedInstrumentPortfolioMinistryRouteImport } from './routes/_authenticated/instrument/portfolio.$ministry'
-import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
-import { Route as AuthenticatedInstrumentScenariosIdRouteImport } from './routes/_authenticated/instrument/scenarios.$id'
-import { Route as AuthenticatedInstrumentScenariosCompareRouteImport } from './routes/_authenticated/instrument/scenarios.compare'
-import { Route as AuthenticatedInstrumentScenariosNewRouteImport } from './routes/_authenticated/instrument/scenarios.new'
-import { Route as AuthenticatedInstrumentSectorCodeRouteImport } from './routes/_authenticated/instrument/sector.$code'
-import { Route as AuthenticatedInstrumentStudioGapRouteImport } from './routes/_authenticated/instrument/studio.gap'
-import { Route as AuthenticatedInstrumentStudioPackagesRouteImport } from './routes/_authenticated/instrument/studio.packages'
-import { Route as AuthenticatedNarrativeCommsIdRouteImport } from './routes/_authenticated/narrative/comms.$id'
-import { Route as AuthenticatedNarrativeCommsNewRouteImport } from './routes/_authenticated/narrative/comms.new'
-import { Route as AuthenticatedNarrativeSignalIdRouteImport } from './routes/_authenticated/narrative/signal.$id'
+import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
+import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
+import { Route as AuthenticatedOnboardingCountryRouteImport } from './routes/_authenticated/onboarding/country'
+import { Route as AuthenticatedNarrativeQueueRouteImport } from './routes/_authenticated/narrative/queue'
+import { Route as AuthenticatedNarrativeIngestRouteImport } from './routes/_authenticated/narrative/ingest'
+import { Route as AuthenticatedNarrativeCoverageRouteImport } from './routes/_authenticated/narrative/coverage'
+import { Route as AuthenticatedNarrativeCommsRouteImport } from './routes/_authenticated/narrative/comms'
+import { Route as AuthenticatedNarrativeBrainRouteImport } from './routes/_authenticated/narrative/brain'
+import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes/_authenticated/instrument/stewardship'
+import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
+import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authenticated/counsel/mobile'
+import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
+import { Route as AuthenticatedConciergeNewRouteImport } from './routes/_authenticated/concierge.new'
+import { Route as AuthenticatedConciergeIdRouteImport } from './routes/_authenticated/concierge.$id'
+import { Route as AuthenticatedAdminScorecardsRouteImport } from './routes/_authenticated/admin/scorecards'
+import { Route as AuthenticatedAdminProformaRouteImport } from './routes/_authenticated/admin/proforma'
+import { Route as AuthenticatedAdminLedgerQaRouteImport } from './routes/_authenticated/admin/ledger-qa'
+import { Route as AuthenticatedAdminInvitationsRouteImport } from './routes/_authenticated/admin/invitations'
+import { Route as AuthenticatedAdminGithubRouteImport } from './routes/_authenticated/admin/github'
+import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
+import { Route as AuthenticatedAdminCorpusAuditRouteImport } from './routes/_authenticated/admin/corpus-audit'
+import { Route as AuthenticatedAdminBrainRouteImport } from './routes/_authenticated/admin/brain'
+import { Route as AuthenticatedAdminActivityRouteImport } from './routes/_authenticated/admin/activity'
 import { Route as AuthenticatedNarrativeStrategyIndexRouteImport } from './routes/_authenticated/narrative/strategy.index'
-import { Route as AuthenticatedNarrativeStrategyIdRouteImport } from './routes/_authenticated/narrative/strategy.$id'
-import { Route as AuthenticatedNarrativeStrategyNewRouteImport } from './routes/_authenticated/narrative/strategy.new'
-import { Route as AuthenticatedNarrativeTraceIdRouteImport } from './routes/_authenticated/narrative/trace.$id'
-import { Route as ApiPublicDeckTokenRouteImport } from './routes/api/public/deck/$token'
-import { Route as ApiPublicDossierTokenRouteImport } from './routes/api/public/dossier/$token'
-import { Route as ApiPublicFieldTokenRouteImport } from './routes/api/public/field.$token'
-import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
-import { Route as ApiPublicHooksLedgerQaRouteImport } from './routes/api/public/hooks/ledger-qa'
-import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
-import { Route as ApiPublicHooksPeerAnalysisRouteImport } from './routes/api/public/hooks/peer-analysis'
-import { Route as ApiPublicHooksPressDiscoverRouteImport } from './routes/api/public/hooks/press-discover'
-import { Route as ApiPublicHooksPressTickRouteImport } from './routes/api/public/hooks/press-tick'
-import { Route as ApiPublicHooksSourceHealthRouteImport } from './routes/api/public/hooks/source-health'
-import { Route as ApiPublicV1HandshakeRouteImport } from './routes/api/public/v1/handshake'
+import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
+import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
+import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
+import { Route as AuthenticatedConsoleCodeIndexRouteImport } from './routes/_authenticated/console.$code.index'
+import { Route as AuthenticatedAdminCountriesIndexRouteImport } from './routes/_authenticated/admin/countries.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
-import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
-import { Route as AuthenticatedAdminCountriesCodeEgovRouteImport } from './routes/_authenticated/admin/countries.$code.egov'
-import { Route as AuthenticatedAdminCountriesCodeExecutiveRouteImport } from './routes/_authenticated/admin/countries.$code.executive'
-import { Route as AuthenticatedAdminCountriesCodeGlobalRouteImport } from './routes/_authenticated/admin/countries.$code.global'
-import { Route as AuthenticatedAdminCountriesCodeGodseyeRouteImport } from './routes/_authenticated/admin/countries.$code.godseye'
-import { Route as AuthenticatedAdminCountriesCodeGovernmentRouteImport } from './routes/_authenticated/admin/countries.$code.government'
-import { Route as AuthenticatedAdminCountriesCodeInvestmentsRouteImport } from './routes/_authenticated/admin/countries.$code.investments'
-import { Route as AuthenticatedAdminCountriesCodeInvestorsRouteImport } from './routes/_authenticated/admin/countries.$code.investors'
-import { Route as AuthenticatedAdminCountriesCodeLedgerRouteImport } from './routes/_authenticated/admin/countries.$code.ledger'
-import { Route as AuthenticatedAdminCountriesCodeMandateCompactRouteImport } from './routes/_authenticated/admin/countries.$code.mandate-compact'
-import { Route as AuthenticatedAdminCountriesCodeNarrativeRouteImport } from './routes/_authenticated/admin/countries.$code.narrative'
-import { Route as AuthenticatedAdminCountriesCodeOnboardRouteImport } from './routes/_authenticated/admin/countries.$code.onboard'
-import { Route as AuthenticatedAdminCountriesCodePersonasRouteImport } from './routes/_authenticated/admin/countries.$code.personas'
-import { Route as AuthenticatedAdminCountriesCodePortfolioRouteImport } from './routes/_authenticated/admin/countries.$code.portfolio'
-import { Route as AuthenticatedAdminCountriesCodeScenariosRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios'
-import { Route as AuthenticatedAdminCountriesCodeSectorRouteImport } from './routes/_authenticated/admin/countries.$code.sector'
-import { Route as AuthenticatedAdminCountriesCodeStandardsRouteImport } from './routes/_authenticated/admin/countries.$code.standards'
-import { Route as AuthenticatedAdminCountriesCodeStudioRouteImport } from './routes/_authenticated/admin/countries.$code.studio'
-import { Route as AuthenticatedAdminCountriesCodeVizRouteImport } from './routes/_authenticated/admin/countries.$code.viz'
-import { Route as AuthenticatedConsoleCodeChamberChamberRouteImport } from './routes/_authenticated/console.$code.chamber.$chamber'
-import { Route as AuthenticatedConsoleCodeRequestNewRouteImport } from './routes/_authenticated/console.$code.request.new'
+import { Route as ApiPublicV1HandshakeRouteImport } from './routes/api/public/v1/handshake'
+import { Route as ApiPublicHooksSourceHealthRouteImport } from './routes/api/public/hooks/source-health'
+import { Route as ApiPublicHooksPressTickRouteImport } from './routes/api/public/hooks/press-tick'
+import { Route as ApiPublicHooksPressDiscoverRouteImport } from './routes/api/public/hooks/press-discover'
+import { Route as ApiPublicHooksPeerAnalysisRouteImport } from './routes/api/public/hooks/peer-analysis'
+import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
+import { Route as ApiPublicHooksLedgerQaRouteImport } from './routes/api/public/hooks/ledger-qa'
+import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
+import { Route as ApiPublicFieldTokenRouteImport } from './routes/api/public/field.$token'
+import { Route as ApiPublicDossierTokenRouteImport } from './routes/api/public/dossier/$token'
+import { Route as ApiPublicDeckTokenRouteImport } from './routes/api/public/deck/$token'
+import { Route as AuthenticatedNarrativeTraceIdRouteImport } from './routes/_authenticated/narrative/trace.$id'
+import { Route as AuthenticatedNarrativeStrategyNewRouteImport } from './routes/_authenticated/narrative/strategy.new'
+import { Route as AuthenticatedNarrativeStrategyIdRouteImport } from './routes/_authenticated/narrative/strategy.$id'
+import { Route as AuthenticatedNarrativeSignalIdRouteImport } from './routes/_authenticated/narrative/signal.$id'
+import { Route as AuthenticatedNarrativeCommsNewRouteImport } from './routes/_authenticated/narrative/comms.new'
+import { Route as AuthenticatedNarrativeCommsIdRouteImport } from './routes/_authenticated/narrative/comms.$id'
+import { Route as AuthenticatedInstrumentStudioPackagesRouteImport } from './routes/_authenticated/instrument/studio.packages'
+import { Route as AuthenticatedInstrumentStudioGapRouteImport } from './routes/_authenticated/instrument/studio.gap'
+import { Route as AuthenticatedInstrumentSectorCodeRouteImport } from './routes/_authenticated/instrument/sector.$code'
+import { Route as AuthenticatedInstrumentScenariosNewRouteImport } from './routes/_authenticated/instrument/scenarios.new'
+import { Route as AuthenticatedInstrumentScenariosCompareRouteImport } from './routes/_authenticated/instrument/scenarios.compare'
+import { Route as AuthenticatedInstrumentScenariosIdRouteImport } from './routes/_authenticated/instrument/scenarios.$id'
+import { Route as AuthenticatedInstrumentPortfolioMinistryRouteImport } from './routes/_authenticated/instrument/portfolio.$ministry'
+import { Route as AuthenticatedInstrumentMandateStudioRouteImport } from './routes/_authenticated/instrument/mandate.studio'
+import { Route as AuthenticatedInstrumentMandateScorecardRouteImport } from './routes/_authenticated/instrument/mandate.scorecard'
+import { Route as AuthenticatedInstrumentCabinetSessionRouteImport } from './routes/_authenticated/instrument/cabinet.session'
+import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './routes/_authenticated/instrument/cabinet.decisions'
+import { Route as AuthenticatedConsoleCodeStudyRouteImport } from './routes/_authenticated/console.$code.study'
+import { Route as AuthenticatedConsoleCodeMandateRouteImport } from './routes/_authenticated/console.$code.mandate'
+import { Route as AuthenticatedConsoleCodeBriefRouteImport } from './routes/_authenticated/console.$code.brief'
+import { Route as AuthenticatedConsoleCodeAskRouteImport } from './routes/_authenticated/console.$code.ask'
+import { Route as AuthenticatedAdminCountryCodeRouteImport } from './routes/_authenticated/admin/country.$code'
+import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
+import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
 import { Route as AuthenticatedConsoleCodeRequestsIndexRouteImport } from './routes/_authenticated/console.$code.requests.index'
 import { Route as AuthenticatedConsoleCodeRequestsIdRouteImport } from './routes/_authenticated/console.$code.requests.$id'
-import { Route as AuthenticatedAdminCountriesCodeCabinetIndexRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.index'
-import { Route as AuthenticatedAdminCountriesCodeEgovPrdIdRouteImport } from './routes/_authenticated/admin/countries.$code.egov_.$prdId'
-import { Route as AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport } from './routes/_authenticated/admin/countries.$code.investments.$id'
-import { Route as AuthenticatedAdminCountriesCodeNarrativeIndexRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.index'
-import { Route as AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.library'
-import { Route as AuthenticatedAdminCountriesCodePersonasIndexRouteImport } from './routes/_authenticated/admin/countries.$code.personas.index'
-import { Route as AuthenticatedAdminCountriesCodePersonasIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.$id'
-import { Route as AuthenticatedAdminCountriesCodePersonasBlueprintRouteImport } from './routes/_authenticated/admin/countries.$code.personas.blueprint'
-import { Route as AuthenticatedAdminCountriesCodePersonasSegmentsRouteImport } from './routes/_authenticated/admin/countries.$code.personas.segments'
-import { Route as AuthenticatedAdminCountriesCodePersonasStudiesRouteImport } from './routes/_authenticated/admin/countries.$code.personas.studies'
-import { Route as AuthenticatedAdminCountriesCodePortfolioIndexRouteImport } from './routes/_authenticated/admin/countries.$code.portfolio.index'
-import { Route as AuthenticatedAdminCountriesCodePortfolioMinistryRouteImport } from './routes/_authenticated/admin/countries.$code.portfolio.$ministry'
-import { Route as AuthenticatedAdminCountriesCodeScenariosIndexRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.index'
-import { Route as AuthenticatedAdminCountriesCodeScenariosIdRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.$id'
-import { Route as AuthenticatedAdminCountriesCodeScenariosCompareRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.compare'
-import { Route as AuthenticatedAdminCountriesCodeScenariosNewRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.new'
-import { Route as AuthenticatedAdminCountriesCodeSectorPlanIdRouteImport } from './routes/_authenticated/admin/countries.$code.sector_.$planId'
+import { Route as AuthenticatedConsoleCodeRequestNewRouteImport } from './routes/_authenticated/console.$code.request.new'
+import { Route as AuthenticatedConsoleCodeChamberChamberRouteImport } from './routes/_authenticated/console.$code.chamber.$chamber'
+import { Route as AuthenticatedAdminCountriesCodeVizRouteImport } from './routes/_authenticated/admin/countries.$code.viz'
+import { Route as AuthenticatedAdminCountriesCodeStudioRouteImport } from './routes/_authenticated/admin/countries.$code.studio'
+import { Route as AuthenticatedAdminCountriesCodeStandardsRouteImport } from './routes/_authenticated/admin/countries.$code.standards'
+import { Route as AuthenticatedAdminCountriesCodeSectorRouteImport } from './routes/_authenticated/admin/countries.$code.sector'
+import { Route as AuthenticatedAdminCountriesCodeScenariosRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios'
+import { Route as AuthenticatedAdminCountriesCodePortfolioRouteImport } from './routes/_authenticated/admin/countries.$code.portfolio'
+import { Route as AuthenticatedAdminCountriesCodePersonasRouteImport } from './routes/_authenticated/admin/countries.$code.personas'
+import { Route as AuthenticatedAdminCountriesCodeOnboardRouteImport } from './routes/_authenticated/admin/countries.$code.onboard'
+import { Route as AuthenticatedAdminCountriesCodeNarrativeRouteImport } from './routes/_authenticated/admin/countries.$code.narrative'
+import { Route as AuthenticatedAdminCountriesCodeMandateCompactRouteImport } from './routes/_authenticated/admin/countries.$code.mandate-compact'
+import { Route as AuthenticatedAdminCountriesCodeLedgerRouteImport } from './routes/_authenticated/admin/countries.$code.ledger'
+import { Route as AuthenticatedAdminCountriesCodeInvestorsRouteImport } from './routes/_authenticated/admin/countries.$code.investors'
+import { Route as AuthenticatedAdminCountriesCodeInvestmentsRouteImport } from './routes/_authenticated/admin/countries.$code.investments'
+import { Route as AuthenticatedAdminCountriesCodeGovernmentRouteImport } from './routes/_authenticated/admin/countries.$code.government'
+import { Route as AuthenticatedAdminCountriesCodeGodseyeRouteImport } from './routes/_authenticated/admin/countries.$code.godseye'
+import { Route as AuthenticatedAdminCountriesCodeGlobalRouteImport } from './routes/_authenticated/admin/countries.$code.global'
+import { Route as AuthenticatedAdminCountriesCodeExecutiveRouteImport } from './routes/_authenticated/admin/countries.$code.executive'
+import { Route as AuthenticatedAdminCountriesCodeEgovRouteImport } from './routes/_authenticated/admin/countries.$code.egov'
+import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
 import { Route as AuthenticatedAdminCountriesCodeStudioIndexRouteImport } from './routes/_authenticated/admin/countries.$code.studio.index'
+import { Route as AuthenticatedAdminCountriesCodeScenariosIndexRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.index'
+import { Route as AuthenticatedAdminCountriesCodePortfolioIndexRouteImport } from './routes/_authenticated/admin/countries.$code.portfolio.index'
+import { Route as AuthenticatedAdminCountriesCodePersonasIndexRouteImport } from './routes/_authenticated/admin/countries.$code.personas.index'
+import { Route as AuthenticatedAdminCountriesCodeNarrativeIndexRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.index'
+import { Route as AuthenticatedAdminCountriesCodeCabinetIndexRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.index'
 import { Route as ApiPublicV1CountriesCodeResourceRouteImport } from './routes/api/public/v1/countries.$code.$resource'
-import { Route as AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.agenda.$sid'
-import { Route as AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.minutes.$sid'
-import { Route as AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.session.$sid'
-import { Route as AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRouteImport } from './routes/_authenticated/admin/countries.$code.egov_.$prdId_.document'
-import { Route as AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImport } from './routes/_authenticated/admin/countries.$code.executive.chamber.$chamber'
-import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.index'
-import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.$id'
-import { Route as AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.signal.$id'
-import { Route as AuthenticatedAdminCountriesCodePersonasFieldStepRouteImport } from './routes/_authenticated/admin/countries.$code.personas.field.$step'
+import { Route as AuthenticatedAdminCountriesCodeSectorPlanIdRouteImport } from './routes/_authenticated/admin/countries.$code.sector_.$planId'
+import { Route as AuthenticatedAdminCountriesCodeScenariosNewRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.new'
+import { Route as AuthenticatedAdminCountriesCodeScenariosCompareRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.compare'
+import { Route as AuthenticatedAdminCountriesCodeScenariosIdRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.$id'
+import { Route as AuthenticatedAdminCountriesCodePortfolioMinistryRouteImport } from './routes/_authenticated/admin/countries.$code.portfolio.$ministry'
+import { Route as AuthenticatedAdminCountriesCodePersonasStudiesRouteImport } from './routes/_authenticated/admin/countries.$code.personas.studies'
+import { Route as AuthenticatedAdminCountriesCodePersonasSegmentsRouteImport } from './routes/_authenticated/admin/countries.$code.personas.segments'
+import { Route as AuthenticatedAdminCountriesCodePersonasBlueprintRouteImport } from './routes/_authenticated/admin/countries.$code.personas.blueprint'
+import { Route as AuthenticatedAdminCountriesCodePersonasIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.$id'
+import { Route as AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.library'
+import { Route as AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport } from './routes/_authenticated/admin/countries.$code.investments.$id'
+import { Route as AuthenticatedAdminCountriesCodeEgovPrdIdRouteImport } from './routes/_authenticated/admin/countries.$code.egov_.$prdId'
 import { Route as AuthenticatedAdminCountriesCodePersonasPortfoliosIndexRouteImport } from './routes/_authenticated/admin/countries.$code.personas.portfolios.index'
-import { Route as AuthenticatedAdminCountriesCodePersonasPortfoliosSetIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.portfolios.$setId'
-import { Route as AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.studies.$id'
-import { Route as AuthenticatedAdminCountriesCodeSectorPlanIdDocumentRouteImport } from './routes/_authenticated/admin/countries.$code.sector_.$planId_.document'
-import { Route as AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRouteImport } from './routes/_authenticated/admin/countries.$code.studio.sectors.$sectorCode'
-import { Route as AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.$id'
+import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.index'
 import { Route as AuthenticatedAdminCountriesCodeStudioThreatsNewRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.new'
+import { Route as AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.$id'
+import { Route as AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRouteImport } from './routes/_authenticated/admin/countries.$code.studio.sectors.$sectorCode'
+import { Route as AuthenticatedAdminCountriesCodeSectorPlanIdDocumentRouteImport } from './routes/_authenticated/admin/countries.$code.sector_.$planId_.document'
+import { Route as AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.studies.$id'
+import { Route as AuthenticatedAdminCountriesCodePersonasPortfoliosSetIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.portfolios.$setId'
+import { Route as AuthenticatedAdminCountriesCodePersonasFieldStepRouteImport } from './routes/_authenticated/admin/countries.$code.personas.field.$step'
+import { Route as AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.signal.$id'
+import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.$id'
+import { Route as AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImport } from './routes/_authenticated/admin/countries.$code.executive.chamber.$chamber'
+import { Route as AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRouteImport } from './routes/_authenticated/admin/countries.$code.egov_.$prdId_.document'
+import { Route as AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.session.$sid'
+import { Route as AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.minutes.$sid'
+import { Route as AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.agenda.$sid'
 import { Route as AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRouteImport } from './routes/_authenticated/admin/countries.$code.investments.$id.package.$packageId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BusinessCaseRoute = BusinessCaseRouteImport.update({
-  id: '/business-case',
-  path: '/business-case',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const KioskRoute = KioskRouteImport.update({
-  id: '/kiosk',
-  path: '/kiosk',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RecordRoute = RecordRouteImport.update({
-  id: '/record',
-  path: '/record',
+const VaultRoute = VaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -203,71 +179,38 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VaultRoute = VaultRouteImport.update({
-  id: '/vault',
-  path: '/vault',
+const RecordRoute = RecordRouteImport.update({
+  id: '/record',
+  path: '/record',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedConsoleRoute = AuthenticatedConsoleRouteImport.update({
-  id: '/console',
-  path: '/console',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
-  id: '/home',
-  path: '/home',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedInstrumentRouteRoute =
-  AuthenticatedInstrumentRouteRouteImport.update({
-    id: '/instrument',
-    path: '/instrument',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedNarrativeRouteRoute =
-  AuthenticatedNarrativeRouteRouteImport.update({
-    id: '/narrative',
-    path: '/narrative',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthInviteRoute = AuthInviteRouteImport.update({
-  id: '/invite',
-  path: '/invite',
-  getParentRoute: () => AuthRoute,
-} as any)
-const BusinessCaseBriefRoute = BusinessCaseBriefRouteImport.update({
-  id: '/business-case_/brief',
-  path: '/business-case/brief',
+const KioskRoute = KioskRouteImport.update({
+  id: '/kiosk',
+  path: '/kiosk',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BusinessCaseCalculatorRoute = BusinessCaseCalculatorRouteImport.update({
-  id: '/business-case_/calculator',
-  path: '/business-case/calculator',
+const BusinessCaseRoute = BusinessCaseRouteImport.update({
+  id: '/business-case',
+  path: '/business-case',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DTokenRoute = DTokenRouteImport.update({
-  id: '/d/$token',
-  path: '/d/$token',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ETokenRoute = ETokenRouteImport.update({
-  id: '/e/$token',
-  path: '/e/$token',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FTokenRoute = FTokenRouteImport.update({
-  id: '/f/$token',
-  path: '/f/$token',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ITokenRoute = ITokenRouteImport.update({
-  id: '/i/$token',
-  path: '/i/$token',
+const OpEdsIndexRoute = OpEdsIndexRouteImport.update({
+  id: '/op-eds/',
+  path: '/op-eds/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KioskIndexRoute = KioskIndexRouteImport.update({
@@ -275,19 +218,9 @@ const KioskIndexRoute = KioskIndexRouteImport.update({
   path: '/',
   getParentRoute: () => KioskRoute,
 } as any)
-const KioskAdminRoute = KioskAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => KioskRoute,
-} as any)
-const OpEdsIndexRoute = OpEdsIndexRouteImport.update({
-  id: '/op-eds/',
-  path: '/op-eds/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OpEdsSlugRoute = OpEdsSlugRouteImport.update({
-  id: '/op-eds/$slug',
-  path: '/op-eds/$slug',
+const STokenRoute = STokenRouteImport.update({
+  id: '/s/$token',
+  path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PTokenRoute = PTokenRouteImport.update({
@@ -295,96 +228,94 @@ const PTokenRoute = PTokenRouteImport.update({
   path: '/p/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const STokenRoute = STokenRouteImport.update({
-  id: '/s/$token',
-  path: '/s/$token',
+const OpEdsSlugRoute = OpEdsSlugRouteImport.update({
+  id: '/op-eds/$slug',
+  path: '/op-eds/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
+const KioskAdminRoute = KioskAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => KioskRoute,
 } as any)
-const AuthenticatedAdminActivityRoute =
-  AuthenticatedAdminActivityRouteImport.update({
-    id: '/activity',
-    path: '/activity',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminBrainRoute = AuthenticatedAdminBrainRouteImport.update({
-  id: '/brain',
-  path: '/brain',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
+const ITokenRoute = ITokenRouteImport.update({
+  id: '/i/$token',
+  path: '/i/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminCorpusAuditRoute =
-  AuthenticatedAdminCorpusAuditRouteImport.update({
-    id: '/corpus-audit',
-    path: '/corpus-audit',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminDocumentsRoute =
-  AuthenticatedAdminDocumentsRouteImport.update({
-    id: '/documents',
-    path: '/documents',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminGithubRoute =
-  AuthenticatedAdminGithubRouteImport.update({
-    id: '/github',
-    path: '/github',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminInvitationsRoute =
-  AuthenticatedAdminInvitationsRouteImport.update({
-    id: '/invitations',
-    path: '/invitations',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminLedgerQaRoute =
-  AuthenticatedAdminLedgerQaRouteImport.update({
-    id: '/ledger-qa',
-    path: '/ledger-qa',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminProformaRoute =
-  AuthenticatedAdminProformaRouteImport.update({
-    id: '/proforma',
-    path: '/proforma',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminScorecardsRoute =
-  AuthenticatedAdminScorecardsRouteImport.update({
-    id: '/scorecards',
-    path: '/scorecards',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAgencyIndexRoute =
-  AuthenticatedAgencyIndexRouteImport.update({
-    id: '/agency/',
-    path: '/agency/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedCodexIndexRoute = AuthenticatedCodexIndexRouteImport.update({
-  id: '/codex/',
-  path: '/codex/',
+const FTokenRoute = FTokenRouteImport.update({
+  id: '/f/$token',
+  path: '/f/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ETokenRoute = ETokenRouteImport.update({
+  id: '/e/$token',
+  path: '/e/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DTokenRoute = DTokenRouteImport.update({
+  id: '/d/$token',
+  path: '/d/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessCaseCalculatorRoute = BusinessCaseCalculatorRouteImport.update({
+  id: '/business-case_/calculator',
+  path: '/business-case/calculator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessCaseBriefRoute = BusinessCaseBriefRouteImport.update({
+  id: '/business-case_/brief',
+  path: '/business-case/brief',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthInviteRoute = AuthInviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedConciergeIndexRoute =
-  AuthenticatedConciergeIndexRouteImport.update({
-    id: '/concierge/',
-    path: '/concierge/',
+const AuthenticatedConsoleRoute = AuthenticatedConsoleRouteImport.update({
+  id: '/console',
+  path: '/console',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedNarrativeRouteRoute =
+  AuthenticatedNarrativeRouteRouteImport.update({
+    id: '/narrative',
+    path: '/narrative',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedConciergeIdRoute =
-  AuthenticatedConciergeIdRouteImport.update({
-    id: '/concierge/$id',
-    path: '/concierge/$id',
+const AuthenticatedInstrumentRouteRoute =
+  AuthenticatedInstrumentRouteRouteImport.update({
+    id: '/instrument',
+    path: '/instrument',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedConciergeNewRoute =
-  AuthenticatedConciergeNewRouteImport.update({
-    id: '/concierge/new',
-    path: '/concierge/new',
+const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedNarrativeIndexRoute =
+  AuthenticatedNarrativeIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
+  } as any)
+const AuthenticatedInstrumentIndexRoute =
+  AuthenticatedInstrumentIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
+const AuthenticatedCounselIndexRoute =
+  AuthenticatedCounselIndexRouteImport.update({
+    id: '/counsel/',
+    path: '/counsel/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedConfigIndexRoute =
@@ -393,64 +324,54 @@ const AuthenticatedConfigIndexRoute =
     path: '/config/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedCounselIndexRoute =
-  AuthenticatedCounselIndexRouteImport.update({
-    id: '/counsel/',
-    path: '/counsel/',
+const AuthenticatedConciergeIndexRoute =
+  AuthenticatedConciergeIndexRouteImport.update({
+    id: '/concierge/',
+    path: '/concierge/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedCounselArchiveRoute =
-  AuthenticatedCounselArchiveRouteImport.update({
-    id: '/counsel/archive',
-    path: '/counsel/archive',
+const AuthenticatedCodexIndexRoute = AuthenticatedCodexIndexRouteImport.update({
+  id: '/codex/',
+  path: '/codex/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAgencyIndexRoute =
+  AuthenticatedAgencyIndexRouteImport.update({
+    id: '/agency/',
+    path: '/agency/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedCounselMobileRoute =
-  AuthenticatedCounselMobileRouteImport.update({
-    id: '/counsel/mobile',
-    path: '/counsel/mobile',
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
+const KioskApiUploadPresentationRoute =
+  KioskApiUploadPresentationRouteImport.update({
+    id: '/api/upload-presentation',
+    path: '/api/upload-presentation',
+    getParentRoute: () => KioskRoute,
+  } as any)
+const KioskApiUploadMediaRoute = KioskApiUploadMediaRouteImport.update({
+  id: '/api/upload-media',
+  path: '/api/upload-media',
+  getParentRoute: () => KioskRoute,
+} as any)
+const KioskApiKioskDataRoute = KioskApiKioskDataRouteImport.update({
+  id: '/api/kiosk-data',
+  path: '/api/kiosk-data',
+  getParentRoute: () => KioskRoute,
+} as any)
+const AuthenticatedOnboardingCountryRoute =
+  AuthenticatedOnboardingCountryRouteImport.update({
+    id: '/onboarding/country',
+    path: '/onboarding/country',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedInstrumentIndexRoute =
-  AuthenticatedInstrumentIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
-  } as any)
-const AuthenticatedInstrumentExposureRoute =
-  AuthenticatedInstrumentExposureRouteImport.update({
-    id: '/exposure',
-    path: '/exposure',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
-  } as any)
-const AuthenticatedInstrumentStewardshipRoute =
-  AuthenticatedInstrumentStewardshipRouteImport.update({
-    id: '/stewardship',
-    path: '/stewardship',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
-  } as any)
-const AuthenticatedNarrativeIndexRoute =
-  AuthenticatedNarrativeIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
-  } as any)
-const AuthenticatedNarrativeBrainRoute =
-  AuthenticatedNarrativeBrainRouteImport.update({
-    id: '/brain',
-    path: '/brain',
-    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
-  } as any)
-const AuthenticatedNarrativeCommsRoute =
-  AuthenticatedNarrativeCommsRouteImport.update({
-    id: '/comms',
-    path: '/comms',
-    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
-  } as any)
-const AuthenticatedNarrativeCoverageRoute =
-  AuthenticatedNarrativeCoverageRouteImport.update({
-    id: '/coverage',
-    path: '/coverage',
+const AuthenticatedNarrativeQueueRoute =
+  AuthenticatedNarrativeQueueRouteImport.update({
+    id: '/queue',
+    path: '/queue',
     getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
 const AuthenticatedNarrativeIngestRoute =
@@ -459,116 +380,123 @@ const AuthenticatedNarrativeIngestRoute =
     path: '/ingest',
     getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
-const AuthenticatedNarrativeQueueRoute =
-  AuthenticatedNarrativeQueueRouteImport.update({
-    id: '/queue',
-    path: '/queue',
+const AuthenticatedNarrativeCoverageRoute =
+  AuthenticatedNarrativeCoverageRouteImport.update({
+    id: '/coverage',
+    path: '/coverage',
     getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
-const AuthenticatedOnboardingCountryRoute =
-  AuthenticatedOnboardingCountryRouteImport.update({
-    id: '/onboarding/country',
-    path: '/onboarding/country',
+const AuthenticatedNarrativeCommsRoute =
+  AuthenticatedNarrativeCommsRouteImport.update({
+    id: '/comms',
+    path: '/comms',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
+  } as any)
+const AuthenticatedNarrativeBrainRoute =
+  AuthenticatedNarrativeBrainRouteImport.update({
+    id: '/brain',
+    path: '/brain',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
+  } as any)
+const AuthenticatedInstrumentStewardshipRoute =
+  AuthenticatedInstrumentStewardshipRouteImport.update({
+    id: '/stewardship',
+    path: '/stewardship',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
+const AuthenticatedInstrumentExposureRoute =
+  AuthenticatedInstrumentExposureRouteImport.update({
+    id: '/exposure',
+    path: '/exposure',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
+const AuthenticatedCounselMobileRoute =
+  AuthenticatedCounselMobileRouteImport.update({
+    id: '/counsel/mobile',
+    path: '/counsel/mobile',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const KioskApiKioskDataRoute = KioskApiKioskDataRouteImport.update({
-  id: '/api/kiosk-data',
-  path: '/api/kiosk-data',
-  getParentRoute: () => KioskRoute,
+const AuthenticatedCounselArchiveRoute =
+  AuthenticatedCounselArchiveRouteImport.update({
+    id: '/counsel/archive',
+    path: '/counsel/archive',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConciergeNewRoute =
+  AuthenticatedConciergeNewRouteImport.update({
+    id: '/concierge/new',
+    path: '/concierge/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConciergeIdRoute =
+  AuthenticatedConciergeIdRouteImport.update({
+    id: '/concierge/$id',
+    path: '/concierge/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminScorecardsRoute =
+  AuthenticatedAdminScorecardsRouteImport.update({
+    id: '/scorecards',
+    path: '/scorecards',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminProformaRoute =
+  AuthenticatedAdminProformaRouteImport.update({
+    id: '/proforma',
+    path: '/proforma',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminLedgerQaRoute =
+  AuthenticatedAdminLedgerQaRouteImport.update({
+    id: '/ledger-qa',
+    path: '/ledger-qa',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminInvitationsRoute =
+  AuthenticatedAdminInvitationsRouteImport.update({
+    id: '/invitations',
+    path: '/invitations',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminGithubRoute =
+  AuthenticatedAdminGithubRouteImport.update({
+    id: '/github',
+    path: '/github',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminDocumentsRoute =
+  AuthenticatedAdminDocumentsRouteImport.update({
+    id: '/documents',
+    path: '/documents',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminCorpusAuditRoute =
+  AuthenticatedAdminCorpusAuditRouteImport.update({
+    id: '/corpus-audit',
+    path: '/corpus-audit',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminBrainRoute = AuthenticatedAdminBrainRouteImport.update({
+  id: '/brain',
+  path: '/brain',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
-const KioskApiUploadMediaRoute = KioskApiUploadMediaRouteImport.update({
-  id: '/api/upload-media',
-  path: '/api/upload-media',
-  getParentRoute: () => KioskRoute,
-} as any)
-const KioskApiUploadPresentationRoute =
-  KioskApiUploadPresentationRouteImport.update({
-    id: '/api/upload-presentation',
-    path: '/api/upload-presentation',
-    getParentRoute: () => KioskRoute,
-  } as any)
-const AuthenticatedAdminAuditsKeyingRoute =
-  AuthenticatedAdminAuditsKeyingRouteImport.update({
-    id: '/audits/keying',
-    path: '/audits/keying',
+const AuthenticatedAdminActivityRoute =
+  AuthenticatedAdminActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminAuditsLogRoute =
-  AuthenticatedAdminAuditsLogRouteImport.update({
-    id: '/audits/log',
-    path: '/audits/log',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedNarrativeStrategyIndexRoute =
+  AuthenticatedNarrativeStrategyIndexRouteImport.update({
+    id: '/strategy/',
+    path: '/strategy/',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesIndexRoute =
-  AuthenticatedAdminCountriesIndexRouteImport.update({
-    id: '/countries/',
-    path: '/countries/',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminCountryCodeRoute =
-  AuthenticatedAdminCountryCodeRouteImport.update({
-    id: '/country/$code',
-    path: '/country/$code',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedConsoleCodeIndexRoute =
-  AuthenticatedConsoleCodeIndexRouteImport.update({
-    id: '/$code/',
-    path: '/$code/',
-    getParentRoute: () => AuthenticatedConsoleRoute,
-  } as any)
-const AuthenticatedConsoleCodeAskRoute =
-  AuthenticatedConsoleCodeAskRouteImport.update({
-    id: '/$code/ask',
-    path: '/$code/ask',
-    getParentRoute: () => AuthenticatedConsoleRoute,
-  } as any)
-const AuthenticatedConsoleCodeBriefRoute =
-  AuthenticatedConsoleCodeBriefRouteImport.update({
-    id: '/$code/brief',
-    path: '/$code/brief',
-    getParentRoute: () => AuthenticatedConsoleRoute,
-  } as any)
-const AuthenticatedConsoleCodeMandateRoute =
-  AuthenticatedConsoleCodeMandateRouteImport.update({
-    id: '/$code/mandate',
-    path: '/$code/mandate',
-    getParentRoute: () => AuthenticatedConsoleRoute,
-  } as any)
-const AuthenticatedConsoleCodeStudyRoute =
-  AuthenticatedConsoleCodeStudyRouteImport.update({
-    id: '/$code/study',
-    path: '/$code/study',
-    getParentRoute: () => AuthenticatedConsoleRoute,
-  } as any)
-const AuthenticatedInstrumentCabinetIndexRoute =
-  AuthenticatedInstrumentCabinetIndexRouteImport.update({
-    id: '/cabinet/',
-    path: '/cabinet/',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
-  } as any)
-const AuthenticatedInstrumentCabinetDecisionsRoute =
-  AuthenticatedInstrumentCabinetDecisionsRouteImport.update({
-    id: '/cabinet/decisions',
-    path: '/cabinet/decisions',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
-  } as any)
-const AuthenticatedInstrumentCabinetSessionRoute =
-  AuthenticatedInstrumentCabinetSessionRouteImport.update({
-    id: '/cabinet/session',
-    path: '/cabinet/session',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
-  } as any)
-const AuthenticatedInstrumentMandateScorecardRoute =
-  AuthenticatedInstrumentMandateScorecardRouteImport.update({
-    id: '/mandate/scorecard',
-    path: '/mandate/scorecard',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
-  } as any)
-const AuthenticatedInstrumentMandateStudioRoute =
-  AuthenticatedInstrumentMandateStudioRouteImport.update({
-    id: '/mandate/studio',
-    path: '/mandate/studio',
+const AuthenticatedInstrumentScenariosIndexRoute =
+  AuthenticatedInstrumentScenariosIndexRouteImport.update({
+    id: '/scenarios/',
+    path: '/scenarios/',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
 const AuthenticatedInstrumentPortfolioIndexRoute =
@@ -577,143 +505,33 @@ const AuthenticatedInstrumentPortfolioIndexRoute =
     path: '/portfolio/',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedInstrumentPortfolioMinistryRoute =
-  AuthenticatedInstrumentPortfolioMinistryRouteImport.update({
-    id: '/portfolio/$ministry',
-    path: '/portfolio/$ministry',
+const AuthenticatedInstrumentCabinetIndexRoute =
+  AuthenticatedInstrumentCabinetIndexRouteImport.update({
+    id: '/cabinet/',
+    path: '/cabinet/',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedInstrumentScenariosIndexRoute =
-  AuthenticatedInstrumentScenariosIndexRouteImport.update({
-    id: '/scenarios/',
-    path: '/scenarios/',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+const AuthenticatedConsoleCodeIndexRoute =
+  AuthenticatedConsoleCodeIndexRouteImport.update({
+    id: '/$code/',
+    path: '/$code/',
+    getParentRoute: () => AuthenticatedConsoleRoute,
   } as any)
-const AuthenticatedInstrumentScenariosIdRoute =
-  AuthenticatedInstrumentScenariosIdRouteImport.update({
-    id: '/scenarios/$id',
-    path: '/scenarios/$id',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+const AuthenticatedAdminCountriesIndexRoute =
+  AuthenticatedAdminCountriesIndexRouteImport.update({
+    id: '/countries/',
+    path: '/countries/',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedInstrumentScenariosCompareRoute =
-  AuthenticatedInstrumentScenariosCompareRouteImport.update({
-    id: '/scenarios/compare',
-    path: '/scenarios/compare',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+const KioskApiPublicPresentationPdfRoute =
+  KioskApiPublicPresentationPdfRouteImport.update({
+    id: '/api/public/presentation-pdf',
+    path: '/api/public/presentation-pdf',
+    getParentRoute: () => KioskRoute,
   } as any)
-const AuthenticatedInstrumentScenariosNewRoute =
-  AuthenticatedInstrumentScenariosNewRouteImport.update({
-    id: '/scenarios/new',
-    path: '/scenarios/new',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
-  } as any)
-const AuthenticatedInstrumentSectorCodeRoute =
-  AuthenticatedInstrumentSectorCodeRouteImport.update({
-    id: '/sector/$code',
-    path: '/sector/$code',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
-  } as any)
-const AuthenticatedInstrumentStudioGapRoute =
-  AuthenticatedInstrumentStudioGapRouteImport.update({
-    id: '/studio/gap',
-    path: '/studio/gap',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
-  } as any)
-const AuthenticatedInstrumentStudioPackagesRoute =
-  AuthenticatedInstrumentStudioPackagesRouteImport.update({
-    id: '/studio/packages',
-    path: '/studio/packages',
-    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
-  } as any)
-const AuthenticatedNarrativeCommsIdRoute =
-  AuthenticatedNarrativeCommsIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedNarrativeCommsRoute,
-  } as any)
-const AuthenticatedNarrativeCommsNewRoute =
-  AuthenticatedNarrativeCommsNewRouteImport.update({
-    id: '/new',
-    path: '/new',
-    getParentRoute: () => AuthenticatedNarrativeCommsRoute,
-  } as any)
-const AuthenticatedNarrativeSignalIdRoute =
-  AuthenticatedNarrativeSignalIdRouteImport.update({
-    id: '/signal/$id',
-    path: '/signal/$id',
-    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
-  } as any)
-const AuthenticatedNarrativeStrategyIndexRoute =
-  AuthenticatedNarrativeStrategyIndexRouteImport.update({
-    id: '/strategy/',
-    path: '/strategy/',
-    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
-  } as any)
-const AuthenticatedNarrativeStrategyIdRoute =
-  AuthenticatedNarrativeStrategyIdRouteImport.update({
-    id: '/strategy/$id',
-    path: '/strategy/$id',
-    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
-  } as any)
-const AuthenticatedNarrativeStrategyNewRoute =
-  AuthenticatedNarrativeStrategyNewRouteImport.update({
-    id: '/strategy/new',
-    path: '/strategy/new',
-    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
-  } as any)
-const AuthenticatedNarrativeTraceIdRoute =
-  AuthenticatedNarrativeTraceIdRouteImport.update({
-    id: '/trace/$id',
-    path: '/trace/$id',
-    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
-  } as any)
-const ApiPublicDeckTokenRoute = ApiPublicDeckTokenRouteImport.update({
-  id: '/api/public/deck/$token',
-  path: '/api/public/deck/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicDossierTokenRoute = ApiPublicDossierTokenRouteImport.update({
-  id: '/api/public/dossier/$token',
-  path: '/api/public/dossier/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicFieldTokenRoute = ApiPublicFieldTokenRouteImport.update({
-  id: '/api/public/field/$token',
-  path: '/api/public/field/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicHooksCadenceDailyRoute =
-  ApiPublicHooksCadenceDailyRouteImport.update({
-    id: '/api/public/hooks/cadence-daily',
-    path: '/api/public/hooks/cadence-daily',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksLedgerQaRoute = ApiPublicHooksLedgerQaRouteImport.update({
-  id: '/api/public/hooks/ledger-qa',
-  path: '/api/public/hooks/ledger-qa',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicHooksNarrativeHarvestRoute =
-  ApiPublicHooksNarrativeHarvestRouteImport.update({
-    id: '/api/public/hooks/narrative-harvest',
-    path: '/api/public/hooks/narrative-harvest',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksPeerAnalysisRoute =
-  ApiPublicHooksPeerAnalysisRouteImport.update({
-    id: '/api/public/hooks/peer-analysis',
-    path: '/api/public/hooks/peer-analysis',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksPressDiscoverRoute =
-  ApiPublicHooksPressDiscoverRouteImport.update({
-    id: '/api/public/hooks/press-discover',
-    path: '/api/public/hooks/press-discover',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksPressTickRoute = ApiPublicHooksPressTickRouteImport.update({
-  id: '/api/public/hooks/press-tick',
-  path: '/api/public/hooks/press-tick',
+const ApiPublicV1HandshakeRoute = ApiPublicV1HandshakeRouteImport.update({
+  id: '/api/public/v1/handshake',
+  path: '/api/public/v1/handshake',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicHooksSourceHealthRoute =
@@ -722,142 +540,198 @@ const ApiPublicHooksSourceHealthRoute =
     path: '/api/public/hooks/source-health',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicV1HandshakeRoute = ApiPublicV1HandshakeRouteImport.update({
-  id: '/api/public/v1/handshake',
-  path: '/api/public/v1/handshake',
+const ApiPublicHooksPressTickRoute = ApiPublicHooksPressTickRouteImport.update({
+  id: '/api/public/hooks/press-tick',
+  path: '/api/public/hooks/press-tick',
   getParentRoute: () => rootRouteImport,
 } as any)
-const KioskApiPublicPresentationPdfRoute =
-  KioskApiPublicPresentationPdfRouteImport.update({
-    id: '/api/public/presentation-pdf',
-    path: '/api/public/presentation-pdf',
-    getParentRoute: () => KioskRoute,
+const ApiPublicHooksPressDiscoverRoute =
+  ApiPublicHooksPressDiscoverRouteImport.update({
+    id: '/api/public/hooks/press-discover',
+    path: '/api/public/hooks/press-discover',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedAdminCountriesCodeDataRoute =
-  AuthenticatedAdminCountriesCodeDataRouteImport.update({
-    id: '/countries/$code/data',
-    path: '/countries/$code/data',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const ApiPublicHooksPeerAnalysisRoute =
+  ApiPublicHooksPeerAnalysisRouteImport.update({
+    id: '/api/public/hooks/peer-analysis',
+    path: '/api/public/hooks/peer-analysis',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedAdminCountriesCodeEgovRoute =
-  AuthenticatedAdminCountriesCodeEgovRouteImport.update({
-    id: '/countries/$code/egov',
-    path: '/countries/$code/egov',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const ApiPublicHooksNarrativeHarvestRoute =
+  ApiPublicHooksNarrativeHarvestRouteImport.update({
+    id: '/api/public/hooks/narrative-harvest',
+    path: '/api/public/hooks/narrative-harvest',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedAdminCountriesCodeExecutiveRoute =
-  AuthenticatedAdminCountriesCodeExecutiveRouteImport.update({
-    id: '/countries/$code/executive',
-    path: '/countries/$code/executive',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const ApiPublicHooksLedgerQaRoute = ApiPublicHooksLedgerQaRouteImport.update({
+  id: '/api/public/hooks/ledger-qa',
+  path: '/api/public/hooks/ledger-qa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHooksCadenceDailyRoute =
+  ApiPublicHooksCadenceDailyRouteImport.update({
+    id: '/api/public/hooks/cadence-daily',
+    path: '/api/public/hooks/cadence-daily',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedAdminCountriesCodeGlobalRoute =
-  AuthenticatedAdminCountriesCodeGlobalRouteImport.update({
-    id: '/countries/$code/global',
-    path: '/countries/$code/global',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const ApiPublicFieldTokenRoute = ApiPublicFieldTokenRouteImport.update({
+  id: '/api/public/field/$token',
+  path: '/api/public/field/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicDossierTokenRoute = ApiPublicDossierTokenRouteImport.update({
+  id: '/api/public/dossier/$token',
+  path: '/api/public/dossier/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicDeckTokenRoute = ApiPublicDeckTokenRouteImport.update({
+  id: '/api/public/deck/$token',
+  path: '/api/public/deck/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedNarrativeTraceIdRoute =
+  AuthenticatedNarrativeTraceIdRouteImport.update({
+    id: '/trace/$id',
+    path: '/trace/$id',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeGodseyeRoute =
-  AuthenticatedAdminCountriesCodeGodseyeRouteImport.update({
-    id: '/countries/$code/godseye',
-    path: '/countries/$code/godseye',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedNarrativeStrategyNewRoute =
+  AuthenticatedNarrativeStrategyNewRouteImport.update({
+    id: '/strategy/new',
+    path: '/strategy/new',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeGovernmentRoute =
-  AuthenticatedAdminCountriesCodeGovernmentRouteImport.update({
-    id: '/countries/$code/government',
-    path: '/countries/$code/government',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedNarrativeStrategyIdRoute =
+  AuthenticatedNarrativeStrategyIdRouteImport.update({
+    id: '/strategy/$id',
+    path: '/strategy/$id',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeInvestmentsRoute =
-  AuthenticatedAdminCountriesCodeInvestmentsRouteImport.update({
-    id: '/countries/$code/investments',
-    path: '/countries/$code/investments',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedNarrativeSignalIdRoute =
+  AuthenticatedNarrativeSignalIdRouteImport.update({
+    id: '/signal/$id',
+    path: '/signal/$id',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeInvestorsRoute =
-  AuthenticatedAdminCountriesCodeInvestorsRouteImport.update({
-    id: '/countries/$code/investors',
-    path: '/countries/$code/investors',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedNarrativeCommsNewRoute =
+  AuthenticatedNarrativeCommsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedNarrativeCommsRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeLedgerRoute =
-  AuthenticatedAdminCountriesCodeLedgerRouteImport.update({
-    id: '/countries/$code/ledger',
-    path: '/countries/$code/ledger',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedNarrativeCommsIdRoute =
+  AuthenticatedNarrativeCommsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedNarrativeCommsRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeMandateCompactRoute =
-  AuthenticatedAdminCountriesCodeMandateCompactRouteImport.update({
-    id: '/countries/$code/mandate-compact',
-    path: '/countries/$code/mandate-compact',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedInstrumentStudioPackagesRoute =
+  AuthenticatedInstrumentStudioPackagesRouteImport.update({
+    id: '/studio/packages',
+    path: '/studio/packages',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeNarrativeRoute =
-  AuthenticatedAdminCountriesCodeNarrativeRouteImport.update({
-    id: '/countries/$code/narrative',
-    path: '/countries/$code/narrative',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedInstrumentStudioGapRoute =
+  AuthenticatedInstrumentStudioGapRouteImport.update({
+    id: '/studio/gap',
+    path: '/studio/gap',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeOnboardRoute =
-  AuthenticatedAdminCountriesCodeOnboardRouteImport.update({
-    id: '/countries/$code/onboard',
-    path: '/countries/$code/onboard',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedInstrumentSectorCodeRoute =
+  AuthenticatedInstrumentSectorCodeRouteImport.update({
+    id: '/sector/$code',
+    path: '/sector/$code',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodePersonasRoute =
-  AuthenticatedAdminCountriesCodePersonasRouteImport.update({
-    id: '/countries/$code/personas',
-    path: '/countries/$code/personas',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedInstrumentScenariosNewRoute =
+  AuthenticatedInstrumentScenariosNewRouteImport.update({
+    id: '/scenarios/new',
+    path: '/scenarios/new',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodePortfolioRoute =
-  AuthenticatedAdminCountriesCodePortfolioRouteImport.update({
-    id: '/countries/$code/portfolio',
-    path: '/countries/$code/portfolio',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedInstrumentScenariosCompareRoute =
+  AuthenticatedInstrumentScenariosCompareRouteImport.update({
+    id: '/scenarios/compare',
+    path: '/scenarios/compare',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeScenariosRoute =
-  AuthenticatedAdminCountriesCodeScenariosRouteImport.update({
-    id: '/countries/$code/scenarios',
-    path: '/countries/$code/scenarios',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedInstrumentScenariosIdRoute =
+  AuthenticatedInstrumentScenariosIdRouteImport.update({
+    id: '/scenarios/$id',
+    path: '/scenarios/$id',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeSectorRoute =
-  AuthenticatedAdminCountriesCodeSectorRouteImport.update({
-    id: '/countries/$code/sector',
-    path: '/countries/$code/sector',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedInstrumentPortfolioMinistryRoute =
+  AuthenticatedInstrumentPortfolioMinistryRouteImport.update({
+    id: '/portfolio/$ministry',
+    path: '/portfolio/$ministry',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeStandardsRoute =
-  AuthenticatedAdminCountriesCodeStandardsRouteImport.update({
-    id: '/countries/$code/standards',
-    path: '/countries/$code/standards',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedInstrumentMandateStudioRoute =
+  AuthenticatedInstrumentMandateStudioRouteImport.update({
+    id: '/mandate/studio',
+    path: '/mandate/studio',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeStudioRoute =
-  AuthenticatedAdminCountriesCodeStudioRouteImport.update({
-    id: '/countries/$code/studio',
-    path: '/countries/$code/studio',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedInstrumentMandateScorecardRoute =
+  AuthenticatedInstrumentMandateScorecardRouteImport.update({
+    id: '/mandate/scorecard',
+    path: '/mandate/scorecard',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeVizRoute =
-  AuthenticatedAdminCountriesCodeVizRouteImport.update({
-    id: '/countries/$code/viz',
-    path: '/countries/$code/viz',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedInstrumentCabinetSessionRoute =
+  AuthenticatedInstrumentCabinetSessionRouteImport.update({
+    id: '/cabinet/session',
+    path: '/cabinet/session',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
-const AuthenticatedConsoleCodeChamberChamberRoute =
-  AuthenticatedConsoleCodeChamberChamberRouteImport.update({
-    id: '/$code/chamber/$chamber',
-    path: '/$code/chamber/$chamber',
+const AuthenticatedInstrumentCabinetDecisionsRoute =
+  AuthenticatedInstrumentCabinetDecisionsRouteImport.update({
+    id: '/cabinet/decisions',
+    path: '/cabinet/decisions',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
+const AuthenticatedConsoleCodeStudyRoute =
+  AuthenticatedConsoleCodeStudyRouteImport.update({
+    id: '/$code/study',
+    path: '/$code/study',
     getParentRoute: () => AuthenticatedConsoleRoute,
   } as any)
-const AuthenticatedConsoleCodeRequestNewRoute =
-  AuthenticatedConsoleCodeRequestNewRouteImport.update({
-    id: '/$code/request/new',
-    path: '/$code/request/new',
+const AuthenticatedConsoleCodeMandateRoute =
+  AuthenticatedConsoleCodeMandateRouteImport.update({
+    id: '/$code/mandate',
+    path: '/$code/mandate',
     getParentRoute: () => AuthenticatedConsoleRoute,
+  } as any)
+const AuthenticatedConsoleCodeBriefRoute =
+  AuthenticatedConsoleCodeBriefRouteImport.update({
+    id: '/$code/brief',
+    path: '/$code/brief',
+    getParentRoute: () => AuthenticatedConsoleRoute,
+  } as any)
+const AuthenticatedConsoleCodeAskRoute =
+  AuthenticatedConsoleCodeAskRouteImport.update({
+    id: '/$code/ask',
+    path: '/$code/ask',
+    getParentRoute: () => AuthenticatedConsoleRoute,
+  } as any)
+const AuthenticatedAdminCountryCodeRoute =
+  AuthenticatedAdminCountryCodeRouteImport.update({
+    id: '/country/$code',
+    path: '/country/$code',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAuditsLogRoute =
+  AuthenticatedAdminAuditsLogRouteImport.update({
+    id: '/audits/log',
+    path: '/audits/log',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAuditsKeyingRoute =
+  AuthenticatedAdminAuditsKeyingRouteImport.update({
+    id: '/audits/keying',
+    path: '/audits/keying',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedConsoleCodeRequestsIndexRoute =
   AuthenticatedConsoleCodeRequestsIndexRouteImport.update({
@@ -871,106 +745,130 @@ const AuthenticatedConsoleCodeRequestsIdRoute =
     path: '/$code/requests/$id',
     getParentRoute: () => AuthenticatedConsoleRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeCabinetIndexRoute =
-  AuthenticatedAdminCountriesCodeCabinetIndexRouteImport.update({
-    id: '/countries/$code/cabinet/',
-    path: '/countries/$code/cabinet/',
+const AuthenticatedConsoleCodeRequestNewRoute =
+  AuthenticatedConsoleCodeRequestNewRouteImport.update({
+    id: '/$code/request/new',
+    path: '/$code/request/new',
+    getParentRoute: () => AuthenticatedConsoleRoute,
+  } as any)
+const AuthenticatedConsoleCodeChamberChamberRoute =
+  AuthenticatedConsoleCodeChamberChamberRouteImport.update({
+    id: '/$code/chamber/$chamber',
+    path: '/$code/chamber/$chamber',
+    getParentRoute: () => AuthenticatedConsoleRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeVizRoute =
+  AuthenticatedAdminCountriesCodeVizRouteImport.update({
+    id: '/countries/$code/viz',
+    path: '/countries/$code/viz',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeEgovPrdIdRoute =
-  AuthenticatedAdminCountriesCodeEgovPrdIdRouteImport.update({
-    id: '/countries/$code/egov_/$prdId',
-    path: '/countries/$code/egov/$prdId',
+const AuthenticatedAdminCountriesCodeStudioRoute =
+  AuthenticatedAdminCountriesCodeStudioRouteImport.update({
+    id: '/countries/$code/studio',
+    path: '/countries/$code/studio',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeInvestmentsIdRoute =
-  AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedAdminCountriesCodeInvestmentsRoute,
+const AuthenticatedAdminCountriesCodeStandardsRoute =
+  AuthenticatedAdminCountriesCodeStandardsRouteImport.update({
+    id: '/countries/$code/standards',
+    path: '/countries/$code/standards',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeNarrativeIndexRoute =
-  AuthenticatedAdminCountriesCodeNarrativeIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
+const AuthenticatedAdminCountriesCodeSectorRoute =
+  AuthenticatedAdminCountriesCodeSectorRouteImport.update({
+    id: '/countries/$code/sector',
+    path: '/countries/$code/sector',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeNarrativeLibraryRoute =
-  AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport.update({
-    id: '/library',
-    path: '/library',
-    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
+const AuthenticatedAdminCountriesCodeScenariosRoute =
+  AuthenticatedAdminCountriesCodeScenariosRouteImport.update({
+    id: '/countries/$code/scenarios',
+    path: '/countries/$code/scenarios',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodePersonasIndexRoute =
-  AuthenticatedAdminCountriesCodePersonasIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+const AuthenticatedAdminCountriesCodePortfolioRoute =
+  AuthenticatedAdminCountriesCodePortfolioRouteImport.update({
+    id: '/countries/$code/portfolio',
+    path: '/countries/$code/portfolio',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodePersonasIdRoute =
-  AuthenticatedAdminCountriesCodePersonasIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+const AuthenticatedAdminCountriesCodePersonasRoute =
+  AuthenticatedAdminCountriesCodePersonasRouteImport.update({
+    id: '/countries/$code/personas',
+    path: '/countries/$code/personas',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodePersonasBlueprintRoute =
-  AuthenticatedAdminCountriesCodePersonasBlueprintRouteImport.update({
-    id: '/blueprint',
-    path: '/blueprint',
-    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+const AuthenticatedAdminCountriesCodeOnboardRoute =
+  AuthenticatedAdminCountriesCodeOnboardRouteImport.update({
+    id: '/countries/$code/onboard',
+    path: '/countries/$code/onboard',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodePersonasSegmentsRoute =
-  AuthenticatedAdminCountriesCodePersonasSegmentsRouteImport.update({
-    id: '/segments',
-    path: '/segments',
-    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+const AuthenticatedAdminCountriesCodeNarrativeRoute =
+  AuthenticatedAdminCountriesCodeNarrativeRouteImport.update({
+    id: '/countries/$code/narrative',
+    path: '/countries/$code/narrative',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodePersonasStudiesRoute =
-  AuthenticatedAdminCountriesCodePersonasStudiesRouteImport.update({
-    id: '/studies',
-    path: '/studies',
-    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+const AuthenticatedAdminCountriesCodeMandateCompactRoute =
+  AuthenticatedAdminCountriesCodeMandateCompactRouteImport.update({
+    id: '/countries/$code/mandate-compact',
+    path: '/countries/$code/mandate-compact',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodePortfolioIndexRoute =
-  AuthenticatedAdminCountriesCodePortfolioIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAdminCountriesCodePortfolioRoute,
+const AuthenticatedAdminCountriesCodeLedgerRoute =
+  AuthenticatedAdminCountriesCodeLedgerRouteImport.update({
+    id: '/countries/$code/ledger',
+    path: '/countries/$code/ledger',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodePortfolioMinistryRoute =
-  AuthenticatedAdminCountriesCodePortfolioMinistryRouteImport.update({
-    id: '/$ministry',
-    path: '/$ministry',
-    getParentRoute: () => AuthenticatedAdminCountriesCodePortfolioRoute,
+const AuthenticatedAdminCountriesCodeInvestorsRoute =
+  AuthenticatedAdminCountriesCodeInvestorsRouteImport.update({
+    id: '/countries/$code/investors',
+    path: '/countries/$code/investors',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeScenariosIndexRoute =
-  AuthenticatedAdminCountriesCodeScenariosIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAdminCountriesCodeScenariosRoute,
+const AuthenticatedAdminCountriesCodeInvestmentsRoute =
+  AuthenticatedAdminCountriesCodeInvestmentsRouteImport.update({
+    id: '/countries/$code/investments',
+    path: '/countries/$code/investments',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeScenariosIdRoute =
-  AuthenticatedAdminCountriesCodeScenariosIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedAdminCountriesCodeScenariosRoute,
+const AuthenticatedAdminCountriesCodeGovernmentRoute =
+  AuthenticatedAdminCountriesCodeGovernmentRouteImport.update({
+    id: '/countries/$code/government',
+    path: '/countries/$code/government',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeScenariosCompareRoute =
-  AuthenticatedAdminCountriesCodeScenariosCompareRouteImport.update({
-    id: '/compare',
-    path: '/compare',
-    getParentRoute: () => AuthenticatedAdminCountriesCodeScenariosRoute,
+const AuthenticatedAdminCountriesCodeGodseyeRoute =
+  AuthenticatedAdminCountriesCodeGodseyeRouteImport.update({
+    id: '/countries/$code/godseye',
+    path: '/countries/$code/godseye',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeScenariosNewRoute =
-  AuthenticatedAdminCountriesCodeScenariosNewRouteImport.update({
-    id: '/new',
-    path: '/new',
-    getParentRoute: () => AuthenticatedAdminCountriesCodeScenariosRoute,
+const AuthenticatedAdminCountriesCodeGlobalRoute =
+  AuthenticatedAdminCountriesCodeGlobalRouteImport.update({
+    id: '/countries/$code/global',
+    path: '/countries/$code/global',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeSectorPlanIdRoute =
-  AuthenticatedAdminCountriesCodeSectorPlanIdRouteImport.update({
-    id: '/countries/$code/sector_/$planId',
-    path: '/countries/$code/sector/$planId',
+const AuthenticatedAdminCountriesCodeExecutiveRoute =
+  AuthenticatedAdminCountriesCodeExecutiveRouteImport.update({
+    id: '/countries/$code/executive',
+    path: '/countries/$code/executive',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeEgovRoute =
+  AuthenticatedAdminCountriesCodeEgovRouteImport.update({
+    id: '/countries/$code/egov',
+    path: '/countries/$code/egov',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeDataRoute =
+  AuthenticatedAdminCountriesCodeDataRouteImport.update({
+    id: '/countries/$code/data',
+    path: '/countries/$code/data',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminCountriesCodeStudioIndexRoute =
@@ -979,65 +877,113 @@ const AuthenticatedAdminCountriesCodeStudioIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminCountriesCodeStudioRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeScenariosIndexRoute =
+  AuthenticatedAdminCountriesCodeScenariosIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeScenariosRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodePortfolioIndexRoute =
+  AuthenticatedAdminCountriesCodePortfolioIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePortfolioRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodePersonasIndexRoute =
+  AuthenticatedAdminCountriesCodePersonasIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeNarrativeIndexRoute =
+  AuthenticatedAdminCountriesCodeNarrativeIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeCabinetIndexRoute =
+  AuthenticatedAdminCountriesCodeCabinetIndexRouteImport.update({
+    id: '/countries/$code/cabinet/',
+    path: '/countries/$code/cabinet/',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const ApiPublicV1CountriesCodeResourceRoute =
   ApiPublicV1CountriesCodeResourceRouteImport.update({
     id: '/api/public/v1/countries/$code/$resource',
     path: '/api/public/v1/countries/$code/$resource',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute =
-  AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport.update({
-    id: '/countries/$code/cabinet/agenda/$sid',
-    path: '/countries/$code/cabinet/agenda/$sid',
+const AuthenticatedAdminCountriesCodeSectorPlanIdRoute =
+  AuthenticatedAdminCountriesCodeSectorPlanIdRouteImport.update({
+    id: '/countries/$code/sector_/$planId',
+    path: '/countries/$code/sector/$planId',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute =
-  AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport.update({
-    id: '/countries/$code/cabinet/minutes/$sid',
-    path: '/countries/$code/cabinet/minutes/$sid',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedAdminCountriesCodeScenariosNewRoute =
+  AuthenticatedAdminCountriesCodeScenariosNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeScenariosRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeCabinetSessionSidRoute =
-  AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport.update({
-    id: '/countries/$code/cabinet/session/$sid',
-    path: '/countries/$code/cabinet/session/$sid',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedAdminCountriesCodeScenariosCompareRoute =
+  AuthenticatedAdminCountriesCodeScenariosCompareRouteImport.update({
+    id: '/compare',
+    path: '/compare',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeScenariosRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRoute =
-  AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRouteImport.update({
-    id: '/countries/$code/egov_/$prdId_/document',
-    path: '/countries/$code/egov/$prdId/document',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedAdminCountriesCodeScenariosIdRoute =
+  AuthenticatedAdminCountriesCodeScenariosIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeScenariosRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute =
-  AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImport.update({
-    id: '/chamber/$chamber',
-    path: '/chamber/$chamber',
-    getParentRoute: () => AuthenticatedAdminCountriesCodeExecutiveRoute,
+const AuthenticatedAdminCountriesCodePortfolioMinistryRoute =
+  AuthenticatedAdminCountriesCodePortfolioMinistryRouteImport.update({
+    id: '/$ministry',
+    path: '/$ministry',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePortfolioRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute =
-  AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport.update({
-    id: '/opposition/',
-    path: '/opposition/',
-    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
-  } as any)
-const AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute =
-  AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport.update({
-    id: '/opposition/$id',
-    path: '/opposition/$id',
-    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
-  } as any)
-const AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute =
-  AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport.update({
-    id: '/signal/$id',
-    path: '/signal/$id',
-    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
-  } as any)
-const AuthenticatedAdminCountriesCodePersonasFieldStepRoute =
-  AuthenticatedAdminCountriesCodePersonasFieldStepRouteImport.update({
-    id: '/field/$step',
-    path: '/field/$step',
+const AuthenticatedAdminCountriesCodePersonasStudiesRoute =
+  AuthenticatedAdminCountriesCodePersonasStudiesRouteImport.update({
+    id: '/studies',
+    path: '/studies',
     getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodePersonasSegmentsRoute =
+  AuthenticatedAdminCountriesCodePersonasSegmentsRouteImport.update({
+    id: '/segments',
+    path: '/segments',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodePersonasBlueprintRoute =
+  AuthenticatedAdminCountriesCodePersonasBlueprintRouteImport.update({
+    id: '/blueprint',
+    path: '/blueprint',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodePersonasIdRoute =
+  AuthenticatedAdminCountriesCodePersonasIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeNarrativeLibraryRoute =
+  AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport.update({
+    id: '/library',
+    path: '/library',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeInvestmentsIdRoute =
+  AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeInvestmentsRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeEgovPrdIdRoute =
+  AuthenticatedAdminCountriesCodeEgovPrdIdRouteImport.update({
+    id: '/countries/$code/egov_/$prdId',
+    path: '/countries/$code/egov/$prdId',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminCountriesCodePersonasPortfoliosIndexRoute =
   AuthenticatedAdminCountriesCodePersonasPortfoliosIndexRouteImport.update({
@@ -1045,28 +991,16 @@ const AuthenticatedAdminCountriesCodePersonasPortfoliosIndexRoute =
     path: '/portfolios/',
     getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
   } as any)
-const AuthenticatedAdminCountriesCodePersonasPortfoliosSetIdRoute =
-  AuthenticatedAdminCountriesCodePersonasPortfoliosSetIdRouteImport.update({
-    id: '/portfolios/$setId',
-    path: '/portfolios/$setId',
-    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+const AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute =
+  AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport.update({
+    id: '/opposition/',
+    path: '/opposition/',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
   } as any)
-const AuthenticatedAdminCountriesCodePersonasStudiesIdRoute =
-  AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasStudiesRoute,
-  } as any)
-const AuthenticatedAdminCountriesCodeSectorPlanIdDocumentRoute =
-  AuthenticatedAdminCountriesCodeSectorPlanIdDocumentRouteImport.update({
-    id: '/countries/$code/sector_/$planId_/document',
-    path: '/countries/$code/sector/$planId/document',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
-const AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRoute =
-  AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRouteImport.update({
-    id: '/sectors/$sectorCode',
-    path: '/sectors/$sectorCode',
+const AuthenticatedAdminCountriesCodeStudioThreatsNewRoute =
+  AuthenticatedAdminCountriesCodeStudioThreatsNewRouteImport.update({
+    id: '/threats/new',
+    path: '/threats/new',
     getParentRoute: () => AuthenticatedAdminCountriesCodeStudioRoute,
   } as any)
 const AuthenticatedAdminCountriesCodeStudioThreatsIdRoute =
@@ -1075,11 +1009,77 @@ const AuthenticatedAdminCountriesCodeStudioThreatsIdRoute =
     path: '/threats/$id',
     getParentRoute: () => AuthenticatedAdminCountriesCodeStudioRoute,
   } as any)
-const AuthenticatedAdminCountriesCodeStudioThreatsNewRoute =
-  AuthenticatedAdminCountriesCodeStudioThreatsNewRouteImport.update({
-    id: '/threats/new',
-    path: '/threats/new',
+const AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRoute =
+  AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRouteImport.update({
+    id: '/sectors/$sectorCode',
+    path: '/sectors/$sectorCode',
     getParentRoute: () => AuthenticatedAdminCountriesCodeStudioRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeSectorPlanIdDocumentRoute =
+  AuthenticatedAdminCountriesCodeSectorPlanIdDocumentRouteImport.update({
+    id: '/countries/$code/sector_/$planId_/document',
+    path: '/countries/$code/sector/$planId/document',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodePersonasStudiesIdRoute =
+  AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasStudiesRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodePersonasPortfoliosSetIdRoute =
+  AuthenticatedAdminCountriesCodePersonasPortfoliosSetIdRouteImport.update({
+    id: '/portfolios/$setId',
+    path: '/portfolios/$setId',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodePersonasFieldStepRoute =
+  AuthenticatedAdminCountriesCodePersonasFieldStepRouteImport.update({
+    id: '/field/$step',
+    path: '/field/$step',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute =
+  AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport.update({
+    id: '/signal/$id',
+    path: '/signal/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute =
+  AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport.update({
+    id: '/opposition/$id',
+    path: '/opposition/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute =
+  AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImport.update({
+    id: '/chamber/$chamber',
+    path: '/chamber/$chamber',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeExecutiveRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRoute =
+  AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRouteImport.update({
+    id: '/countries/$code/egov_/$prdId_/document',
+    path: '/countries/$code/egov/$prdId/document',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeCabinetSessionSidRoute =
+  AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport.update({
+    id: '/countries/$code/cabinet/session/$sid',
+    path: '/countries/$code/cabinet/session/$sid',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute =
+  AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport.update({
+    id: '/countries/$code/cabinet/minutes/$sid',
+    path: '/countries/$code/cabinet/minutes/$sid',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute =
+  AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport.update({
+    id: '/countries/$code/cabinet/agenda/$sid',
+    path: '/countries/$code/cabinet/agenda/$sid',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRoute =
   AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRouteImport.update(
@@ -2073,46 +2073,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/business-case': {
-      id: '/business-case'
-      path: '/business-case'
-      fullPath: '/business-case'
-      preLoaderRoute: typeof BusinessCaseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/kiosk': {
-      id: '/kiosk'
-      path: '/kiosk'
-      fullPath: '/kiosk'
-      preLoaderRoute: typeof KioskRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/record': {
-      id: '/record'
-      path: '/record'
-      fullPath: '/record'
-      preLoaderRoute: typeof RecordRouteImport
+    '/vault': {
+      id: '/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof VaultRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -2122,95 +2087,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/vault': {
-      id: '/vault'
-      path: '/vault'
-      fullPath: '/vault'
-      preLoaderRoute: typeof VaultRouteImport
+    '/record': {
+      id: '/record'
+      path: '/record'
+      fullPath: '/record'
+      preLoaderRoute: typeof RecordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/console': {
-      id: '/_authenticated/console'
-      path: '/console'
-      fullPath: '/console'
-      preLoaderRoute: typeof AuthenticatedConsoleRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/home': {
-      id: '/_authenticated/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof AuthenticatedHomeRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/instrument': {
-      id: '/_authenticated/instrument'
-      path: '/instrument'
-      fullPath: '/instrument'
-      preLoaderRoute: typeof AuthenticatedInstrumentRouteRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/narrative': {
-      id: '/_authenticated/narrative'
-      path: '/narrative'
-      fullPath: '/narrative'
-      preLoaderRoute: typeof AuthenticatedNarrativeRouteRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/auth/invite': {
-      id: '/auth/invite'
-      path: '/invite'
-      fullPath: '/auth/invite'
-      preLoaderRoute: typeof AuthInviteRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/business-case_/brief': {
-      id: '/business-case_/brief'
-      path: '/business-case/brief'
-      fullPath: '/business-case/brief'
-      preLoaderRoute: typeof BusinessCaseBriefRouteImport
+    '/kiosk': {
+      id: '/kiosk'
+      path: '/kiosk'
+      fullPath: '/kiosk'
+      preLoaderRoute: typeof KioskRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/business-case_/calculator': {
-      id: '/business-case_/calculator'
-      path: '/business-case/calculator'
-      fullPath: '/business-case/calculator'
-      preLoaderRoute: typeof BusinessCaseCalculatorRouteImport
+    '/business-case': {
+      id: '/business-case'
+      path: '/business-case'
+      fullPath: '/business-case'
+      preLoaderRoute: typeof BusinessCaseRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/d/$token': {
-      id: '/d/$token'
-      path: '/d/$token'
-      fullPath: '/d/$token'
-      preLoaderRoute: typeof DTokenRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/e/$token': {
-      id: '/e/$token'
-      path: '/e/$token'
-      fullPath: '/e/$token'
-      preLoaderRoute: typeof ETokenRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/f/$token': {
-      id: '/f/$token'
-      path: '/f/$token'
-      fullPath: '/f/$token'
-      preLoaderRoute: typeof FTokenRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/i/$token': {
-      id: '/i/$token'
-      path: '/i/$token'
-      fullPath: '/i/$token'
-      preLoaderRoute: typeof ITokenRouteImport
+    '/op-eds/': {
+      id: '/op-eds/'
+      path: '/op-eds'
+      fullPath: '/op-eds/'
+      preLoaderRoute: typeof OpEdsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kiosk/': {
@@ -2220,25 +2143,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskIndexRouteImport
       parentRoute: typeof KioskRoute
     }
-    '/kiosk/admin': {
-      id: '/kiosk/admin'
-      path: '/admin'
-      fullPath: '/kiosk/admin'
-      preLoaderRoute: typeof KioskAdminRouteImport
-      parentRoute: typeof KioskRoute
-    }
-    '/op-eds/': {
-      id: '/op-eds/'
-      path: '/op-eds'
-      fullPath: '/op-eds/'
-      preLoaderRoute: typeof OpEdsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/op-eds/$slug': {
-      id: '/op-eds/$slug'
-      path: '/op-eds/$slug'
-      fullPath: '/op-eds/$slug'
-      preLoaderRoute: typeof OpEdsSlugRouteImport
+    '/s/$token': {
+      id: '/s/$token'
+      path: '/s/$token'
+      fullPath: '/s/$token'
+      preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$token': {
@@ -2248,116 +2157,123 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/s/$token': {
-      id: '/s/$token'
-      path: '/s/$token'
-      fullPath: '/s/$token'
-      preLoaderRoute: typeof STokenRouteImport
+    '/op-eds/$slug': {
+      id: '/op-eds/$slug'
+      path: '/op-eds/$slug'
+      fullPath: '/op-eds/$slug'
+      preLoaderRoute: typeof OpEdsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/': {
-      id: '/_authenticated/admin/'
+    '/kiosk/admin': {
+      id: '/kiosk/admin'
+      path: '/admin'
+      fullPath: '/kiosk/admin'
+      preLoaderRoute: typeof KioskAdminRouteImport
+      parentRoute: typeof KioskRoute
+    }
+    '/i/$token': {
+      id: '/i/$token'
+      path: '/i/$token'
+      fullPath: '/i/$token'
+      preLoaderRoute: typeof ITokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/f/$token': {
+      id: '/f/$token'
+      path: '/f/$token'
+      fullPath: '/f/$token'
+      preLoaderRoute: typeof FTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/e/$token': {
+      id: '/e/$token'
+      path: '/e/$token'
+      fullPath: '/e/$token'
+      preLoaderRoute: typeof ETokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/d/$token': {
+      id: '/d/$token'
+      path: '/d/$token'
+      fullPath: '/d/$token'
+      preLoaderRoute: typeof DTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business-case_/calculator': {
+      id: '/business-case_/calculator'
+      path: '/business-case/calculator'
+      fullPath: '/business-case/calculator'
+      preLoaderRoute: typeof BusinessCaseCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business-case_/brief': {
+      id: '/business-case_/brief'
+      path: '/business-case/brief'
+      fullPath: '/business-case/brief'
+      preLoaderRoute: typeof BusinessCaseBriefRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/invite': {
+      id: '/auth/invite'
+      path: '/invite'
+      fullPath: '/auth/invite'
+      preLoaderRoute: typeof AuthInviteRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/console': {
+      id: '/_authenticated/console'
+      path: '/console'
+      fullPath: '/console'
+      preLoaderRoute: typeof AuthenticatedConsoleRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/narrative': {
+      id: '/_authenticated/narrative'
+      path: '/narrative'
+      fullPath: '/narrative'
+      preLoaderRoute: typeof AuthenticatedNarrativeRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/instrument': {
+      id: '/_authenticated/instrument'
+      path: '/instrument'
+      fullPath: '/instrument'
+      preLoaderRoute: typeof AuthenticatedInstrumentRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/narrative/': {
+      id: '/_authenticated/narrative/'
       path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+      fullPath: '/narrative/'
+      preLoaderRoute: typeof AuthenticatedNarrativeIndexRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
-    '/_authenticated/admin/activity': {
-      id: '/_authenticated/admin/activity'
-      path: '/activity'
-      fullPath: '/admin/activity'
-      preLoaderRoute: typeof AuthenticatedAdminActivityRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/instrument/': {
+      id: '/_authenticated/instrument/'
+      path: '/'
+      fullPath: '/instrument/'
+      preLoaderRoute: typeof AuthenticatedInstrumentIndexRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
-    '/_authenticated/admin/brain': {
-      id: '/_authenticated/admin/brain'
-      path: '/brain'
-      fullPath: '/admin/brain'
-      preLoaderRoute: typeof AuthenticatedAdminBrainRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/corpus-audit': {
-      id: '/_authenticated/admin/corpus-audit'
-      path: '/corpus-audit'
-      fullPath: '/admin/corpus-audit'
-      preLoaderRoute: typeof AuthenticatedAdminCorpusAuditRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/documents': {
-      id: '/_authenticated/admin/documents'
-      path: '/documents'
-      fullPath: '/admin/documents'
-      preLoaderRoute: typeof AuthenticatedAdminDocumentsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/github': {
-      id: '/_authenticated/admin/github'
-      path: '/github'
-      fullPath: '/admin/github'
-      preLoaderRoute: typeof AuthenticatedAdminGithubRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/invitations': {
-      id: '/_authenticated/admin/invitations'
-      path: '/invitations'
-      fullPath: '/admin/invitations'
-      preLoaderRoute: typeof AuthenticatedAdminInvitationsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/ledger-qa': {
-      id: '/_authenticated/admin/ledger-qa'
-      path: '/ledger-qa'
-      fullPath: '/admin/ledger-qa'
-      preLoaderRoute: typeof AuthenticatedAdminLedgerQaRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/proforma': {
-      id: '/_authenticated/admin/proforma'
-      path: '/proforma'
-      fullPath: '/admin/proforma'
-      preLoaderRoute: typeof AuthenticatedAdminProformaRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/scorecards': {
-      id: '/_authenticated/admin/scorecards'
-      path: '/scorecards'
-      fullPath: '/admin/scorecards'
-      preLoaderRoute: typeof AuthenticatedAdminScorecardsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/agency/': {
-      id: '/_authenticated/agency/'
-      path: '/agency'
-      fullPath: '/agency/'
-      preLoaderRoute: typeof AuthenticatedAgencyIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/codex/': {
-      id: '/_authenticated/codex/'
-      path: '/codex'
-      fullPath: '/codex/'
-      preLoaderRoute: typeof AuthenticatedCodexIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/concierge/': {
-      id: '/_authenticated/concierge/'
-      path: '/concierge'
-      fullPath: '/concierge/'
-      preLoaderRoute: typeof AuthenticatedConciergeIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/concierge/$id': {
-      id: '/_authenticated/concierge/$id'
-      path: '/concierge/$id'
-      fullPath: '/concierge/$id'
-      preLoaderRoute: typeof AuthenticatedConciergeIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/concierge/new': {
-      id: '/_authenticated/concierge/new'
-      path: '/concierge/new'
-      fullPath: '/concierge/new'
-      preLoaderRoute: typeof AuthenticatedConciergeNewRouteImport
+    '/_authenticated/counsel/': {
+      id: '/_authenticated/counsel/'
+      path: '/counsel'
+      fullPath: '/counsel/'
+      preLoaderRoute: typeof AuthenticatedCounselIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/config/': {
@@ -2367,102 +2283,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfigIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/counsel/': {
-      id: '/_authenticated/counsel/'
-      path: '/counsel'
-      fullPath: '/counsel/'
-      preLoaderRoute: typeof AuthenticatedCounselIndexRouteImport
+    '/_authenticated/concierge/': {
+      id: '/_authenticated/concierge/'
+      path: '/concierge'
+      fullPath: '/concierge/'
+      preLoaderRoute: typeof AuthenticatedConciergeIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/counsel/archive': {
-      id: '/_authenticated/counsel/archive'
-      path: '/counsel/archive'
-      fullPath: '/counsel/archive'
-      preLoaderRoute: typeof AuthenticatedCounselArchiveRouteImport
+    '/_authenticated/codex/': {
+      id: '/_authenticated/codex/'
+      path: '/codex'
+      fullPath: '/codex/'
+      preLoaderRoute: typeof AuthenticatedCodexIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/counsel/mobile': {
-      id: '/_authenticated/counsel/mobile'
-      path: '/counsel/mobile'
-      fullPath: '/counsel/mobile'
-      preLoaderRoute: typeof AuthenticatedCounselMobileRouteImport
+    '/_authenticated/agency/': {
+      id: '/_authenticated/agency/'
+      path: '/agency'
+      fullPath: '/agency/'
+      preLoaderRoute: typeof AuthenticatedAgencyIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/instrument/': {
-      id: '/_authenticated/instrument/'
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
       path: '/'
-      fullPath: '/instrument/'
-      preLoaderRoute: typeof AuthenticatedInstrumentIndexRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/instrument/exposure': {
-      id: '/_authenticated/instrument/exposure'
-      path: '/exposure'
-      fullPath: '/instrument/exposure'
-      preLoaderRoute: typeof AuthenticatedInstrumentExposureRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
-    }
-    '/_authenticated/instrument/stewardship': {
-      id: '/_authenticated/instrument/stewardship'
-      path: '/stewardship'
-      fullPath: '/instrument/stewardship'
-      preLoaderRoute: typeof AuthenticatedInstrumentStewardshipRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
-    }
-    '/_authenticated/narrative/': {
-      id: '/_authenticated/narrative/'
-      path: '/'
-      fullPath: '/narrative/'
-      preLoaderRoute: typeof AuthenticatedNarrativeIndexRouteImport
-      parentRoute: typeof AuthenticatedNarrativeRouteRoute
-    }
-    '/_authenticated/narrative/brain': {
-      id: '/_authenticated/narrative/brain'
-      path: '/brain'
-      fullPath: '/narrative/brain'
-      preLoaderRoute: typeof AuthenticatedNarrativeBrainRouteImport
-      parentRoute: typeof AuthenticatedNarrativeRouteRoute
-    }
-    '/_authenticated/narrative/comms': {
-      id: '/_authenticated/narrative/comms'
-      path: '/comms'
-      fullPath: '/narrative/comms'
-      preLoaderRoute: typeof AuthenticatedNarrativeCommsRouteImport
-      parentRoute: typeof AuthenticatedNarrativeRouteRoute
-    }
-    '/_authenticated/narrative/coverage': {
-      id: '/_authenticated/narrative/coverage'
-      path: '/coverage'
-      fullPath: '/narrative/coverage'
-      preLoaderRoute: typeof AuthenticatedNarrativeCoverageRouteImport
-      parentRoute: typeof AuthenticatedNarrativeRouteRoute
-    }
-    '/_authenticated/narrative/ingest': {
-      id: '/_authenticated/narrative/ingest'
-      path: '/ingest'
-      fullPath: '/narrative/ingest'
-      preLoaderRoute: typeof AuthenticatedNarrativeIngestRouteImport
-      parentRoute: typeof AuthenticatedNarrativeRouteRoute
-    }
-    '/_authenticated/narrative/queue': {
-      id: '/_authenticated/narrative/queue'
-      path: '/queue'
-      fullPath: '/narrative/queue'
-      preLoaderRoute: typeof AuthenticatedNarrativeQueueRouteImport
-      parentRoute: typeof AuthenticatedNarrativeRouteRoute
-    }
-    '/_authenticated/onboarding/country': {
-      id: '/_authenticated/onboarding/country'
-      path: '/onboarding/country'
-      fullPath: '/onboarding/country'
-      preLoaderRoute: typeof AuthenticatedOnboardingCountryRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/kiosk/api/kiosk-data': {
-      id: '/kiosk/api/kiosk-data'
-      path: '/api/kiosk-data'
-      fullPath: '/kiosk/api/kiosk-data'
-      preLoaderRoute: typeof KioskApiKioskDataRouteImport
+    '/kiosk/api/upload-presentation': {
+      id: '/kiosk/api/upload-presentation'
+      path: '/api/upload-presentation'
+      fullPath: '/kiosk/api/upload-presentation'
+      preLoaderRoute: typeof KioskApiUploadPresentationRouteImport
       parentRoute: typeof KioskRoute
     }
     '/kiosk/api/upload-media': {
@@ -2472,109 +2325,172 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskApiUploadMediaRouteImport
       parentRoute: typeof KioskRoute
     }
-    '/kiosk/api/upload-presentation': {
-      id: '/kiosk/api/upload-presentation'
-      path: '/api/upload-presentation'
-      fullPath: '/kiosk/api/upload-presentation'
-      preLoaderRoute: typeof KioskApiUploadPresentationRouteImport
+    '/kiosk/api/kiosk-data': {
+      id: '/kiosk/api/kiosk-data'
+      path: '/api/kiosk-data'
+      fullPath: '/kiosk/api/kiosk-data'
+      preLoaderRoute: typeof KioskApiKioskDataRouteImport
       parentRoute: typeof KioskRoute
     }
-    '/_authenticated/admin/audits/keying': {
-      id: '/_authenticated/admin/audits/keying'
-      path: '/audits/keying'
-      fullPath: '/admin/audits/keying'
-      preLoaderRoute: typeof AuthenticatedAdminAuditsKeyingRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/onboarding/country': {
+      id: '/_authenticated/onboarding/country'
+      path: '/onboarding/country'
+      fullPath: '/onboarding/country'
+      preLoaderRoute: typeof AuthenticatedOnboardingCountryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/audits/log': {
-      id: '/_authenticated/admin/audits/log'
-      path: '/audits/log'
-      fullPath: '/admin/audits/log'
-      preLoaderRoute: typeof AuthenticatedAdminAuditsLogRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/narrative/queue': {
+      id: '/_authenticated/narrative/queue'
+      path: '/queue'
+      fullPath: '/narrative/queue'
+      preLoaderRoute: typeof AuthenticatedNarrativeQueueRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
-    '/_authenticated/admin/countries/': {
-      id: '/_authenticated/admin/countries/'
-      path: '/countries'
-      fullPath: '/admin/countries/'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/narrative/ingest': {
+      id: '/_authenticated/narrative/ingest'
+      path: '/ingest'
+      fullPath: '/narrative/ingest'
+      preLoaderRoute: typeof AuthenticatedNarrativeIngestRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
-    '/_authenticated/admin/country/$code': {
-      id: '/_authenticated/admin/country/$code'
-      path: '/country/$code'
-      fullPath: '/admin/country/$code'
-      preLoaderRoute: typeof AuthenticatedAdminCountryCodeRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/narrative/coverage': {
+      id: '/_authenticated/narrative/coverage'
+      path: '/coverage'
+      fullPath: '/narrative/coverage'
+      preLoaderRoute: typeof AuthenticatedNarrativeCoverageRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
-    '/_authenticated/console/$code/': {
-      id: '/_authenticated/console/$code/'
-      path: '/$code'
-      fullPath: '/console/$code/'
-      preLoaderRoute: typeof AuthenticatedConsoleCodeIndexRouteImport
-      parentRoute: typeof AuthenticatedConsoleRoute
+    '/_authenticated/narrative/comms': {
+      id: '/_authenticated/narrative/comms'
+      path: '/comms'
+      fullPath: '/narrative/comms'
+      preLoaderRoute: typeof AuthenticatedNarrativeCommsRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
-    '/_authenticated/console/$code/ask': {
-      id: '/_authenticated/console/$code/ask'
-      path: '/$code/ask'
-      fullPath: '/console/$code/ask'
-      preLoaderRoute: typeof AuthenticatedConsoleCodeAskRouteImport
-      parentRoute: typeof AuthenticatedConsoleRoute
+    '/_authenticated/narrative/brain': {
+      id: '/_authenticated/narrative/brain'
+      path: '/brain'
+      fullPath: '/narrative/brain'
+      preLoaderRoute: typeof AuthenticatedNarrativeBrainRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
-    '/_authenticated/console/$code/brief': {
-      id: '/_authenticated/console/$code/brief'
-      path: '/$code/brief'
-      fullPath: '/console/$code/brief'
-      preLoaderRoute: typeof AuthenticatedConsoleCodeBriefRouteImport
-      parentRoute: typeof AuthenticatedConsoleRoute
-    }
-    '/_authenticated/console/$code/mandate': {
-      id: '/_authenticated/console/$code/mandate'
-      path: '/$code/mandate'
-      fullPath: '/console/$code/mandate'
-      preLoaderRoute: typeof AuthenticatedConsoleCodeMandateRouteImport
-      parentRoute: typeof AuthenticatedConsoleRoute
-    }
-    '/_authenticated/console/$code/study': {
-      id: '/_authenticated/console/$code/study'
-      path: '/$code/study'
-      fullPath: '/console/$code/study'
-      preLoaderRoute: typeof AuthenticatedConsoleCodeStudyRouteImport
-      parentRoute: typeof AuthenticatedConsoleRoute
-    }
-    '/_authenticated/instrument/cabinet/': {
-      id: '/_authenticated/instrument/cabinet/'
-      path: '/cabinet'
-      fullPath: '/instrument/cabinet/'
-      preLoaderRoute: typeof AuthenticatedInstrumentCabinetIndexRouteImport
+    '/_authenticated/instrument/stewardship': {
+      id: '/_authenticated/instrument/stewardship'
+      path: '/stewardship'
+      fullPath: '/instrument/stewardship'
+      preLoaderRoute: typeof AuthenticatedInstrumentStewardshipRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
-    '/_authenticated/instrument/cabinet/decisions': {
-      id: '/_authenticated/instrument/cabinet/decisions'
-      path: '/cabinet/decisions'
-      fullPath: '/instrument/cabinet/decisions'
-      preLoaderRoute: typeof AuthenticatedInstrumentCabinetDecisionsRouteImport
+    '/_authenticated/instrument/exposure': {
+      id: '/_authenticated/instrument/exposure'
+      path: '/exposure'
+      fullPath: '/instrument/exposure'
+      preLoaderRoute: typeof AuthenticatedInstrumentExposureRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
-    '/_authenticated/instrument/cabinet/session': {
-      id: '/_authenticated/instrument/cabinet/session'
-      path: '/cabinet/session'
-      fullPath: '/instrument/cabinet/session'
-      preLoaderRoute: typeof AuthenticatedInstrumentCabinetSessionRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    '/_authenticated/counsel/mobile': {
+      id: '/_authenticated/counsel/mobile'
+      path: '/counsel/mobile'
+      fullPath: '/counsel/mobile'
+      preLoaderRoute: typeof AuthenticatedCounselMobileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/instrument/mandate/scorecard': {
-      id: '/_authenticated/instrument/mandate/scorecard'
-      path: '/mandate/scorecard'
-      fullPath: '/instrument/mandate/scorecard'
-      preLoaderRoute: typeof AuthenticatedInstrumentMandateScorecardRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    '/_authenticated/counsel/archive': {
+      id: '/_authenticated/counsel/archive'
+      path: '/counsel/archive'
+      fullPath: '/counsel/archive'
+      preLoaderRoute: typeof AuthenticatedCounselArchiveRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/instrument/mandate/studio': {
-      id: '/_authenticated/instrument/mandate/studio'
-      path: '/mandate/studio'
-      fullPath: '/instrument/mandate/studio'
-      preLoaderRoute: typeof AuthenticatedInstrumentMandateStudioRouteImport
+    '/_authenticated/concierge/new': {
+      id: '/_authenticated/concierge/new'
+      path: '/concierge/new'
+      fullPath: '/concierge/new'
+      preLoaderRoute: typeof AuthenticatedConciergeNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/concierge/$id': {
+      id: '/_authenticated/concierge/$id'
+      path: '/concierge/$id'
+      fullPath: '/concierge/$id'
+      preLoaderRoute: typeof AuthenticatedConciergeIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/scorecards': {
+      id: '/_authenticated/admin/scorecards'
+      path: '/scorecards'
+      fullPath: '/admin/scorecards'
+      preLoaderRoute: typeof AuthenticatedAdminScorecardsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/proforma': {
+      id: '/_authenticated/admin/proforma'
+      path: '/proforma'
+      fullPath: '/admin/proforma'
+      preLoaderRoute: typeof AuthenticatedAdminProformaRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/ledger-qa': {
+      id: '/_authenticated/admin/ledger-qa'
+      path: '/ledger-qa'
+      fullPath: '/admin/ledger-qa'
+      preLoaderRoute: typeof AuthenticatedAdminLedgerQaRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/invitations': {
+      id: '/_authenticated/admin/invitations'
+      path: '/invitations'
+      fullPath: '/admin/invitations'
+      preLoaderRoute: typeof AuthenticatedAdminInvitationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/github': {
+      id: '/_authenticated/admin/github'
+      path: '/github'
+      fullPath: '/admin/github'
+      preLoaderRoute: typeof AuthenticatedAdminGithubRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/documents': {
+      id: '/_authenticated/admin/documents'
+      path: '/documents'
+      fullPath: '/admin/documents'
+      preLoaderRoute: typeof AuthenticatedAdminDocumentsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/corpus-audit': {
+      id: '/_authenticated/admin/corpus-audit'
+      path: '/corpus-audit'
+      fullPath: '/admin/corpus-audit'
+      preLoaderRoute: typeof AuthenticatedAdminCorpusAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/brain': {
+      id: '/_authenticated/admin/brain'
+      path: '/brain'
+      fullPath: '/admin/brain'
+      preLoaderRoute: typeof AuthenticatedAdminBrainRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/activity': {
+      id: '/_authenticated/admin/activity'
+      path: '/activity'
+      fullPath: '/admin/activity'
+      preLoaderRoute: typeof AuthenticatedAdminActivityRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/narrative/strategy/': {
+      id: '/_authenticated/narrative/strategy/'
+      path: '/strategy'
+      fullPath: '/narrative/strategy/'
+      preLoaderRoute: typeof AuthenticatedNarrativeStrategyIndexRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
+    }
+    '/_authenticated/instrument/scenarios/': {
+      id: '/_authenticated/instrument/scenarios/'
+      path: '/scenarios'
+      fullPath: '/instrument/scenarios/'
+      preLoaderRoute: typeof AuthenticatedInstrumentScenariosIndexRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
     '/_authenticated/instrument/portfolio/': {
@@ -2584,172 +2500,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentPortfolioIndexRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
-    '/_authenticated/instrument/portfolio/$ministry': {
-      id: '/_authenticated/instrument/portfolio/$ministry'
-      path: '/portfolio/$ministry'
-      fullPath: '/instrument/portfolio/$ministry'
-      preLoaderRoute: typeof AuthenticatedInstrumentPortfolioMinistryRouteImport
+    '/_authenticated/instrument/cabinet/': {
+      id: '/_authenticated/instrument/cabinet/'
+      path: '/cabinet'
+      fullPath: '/instrument/cabinet/'
+      preLoaderRoute: typeof AuthenticatedInstrumentCabinetIndexRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
-    '/_authenticated/instrument/scenarios/': {
-      id: '/_authenticated/instrument/scenarios/'
-      path: '/scenarios'
-      fullPath: '/instrument/scenarios/'
-      preLoaderRoute: typeof AuthenticatedInstrumentScenariosIndexRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    '/_authenticated/console/$code/': {
+      id: '/_authenticated/console/$code/'
+      path: '/$code'
+      fullPath: '/console/$code/'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeIndexRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
     }
-    '/_authenticated/instrument/scenarios/$id': {
-      id: '/_authenticated/instrument/scenarios/$id'
-      path: '/scenarios/$id'
-      fullPath: '/instrument/scenarios/$id'
-      preLoaderRoute: typeof AuthenticatedInstrumentScenariosIdRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    '/_authenticated/admin/countries/': {
+      id: '/_authenticated/admin/countries/'
+      path: '/countries'
+      fullPath: '/admin/countries/'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/instrument/scenarios/compare': {
-      id: '/_authenticated/instrument/scenarios/compare'
-      path: '/scenarios/compare'
-      fullPath: '/instrument/scenarios/compare'
-      preLoaderRoute: typeof AuthenticatedInstrumentScenariosCompareRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    '/kiosk/api/public/presentation-pdf': {
+      id: '/kiosk/api/public/presentation-pdf'
+      path: '/api/public/presentation-pdf'
+      fullPath: '/kiosk/api/public/presentation-pdf'
+      preLoaderRoute: typeof KioskApiPublicPresentationPdfRouteImport
+      parentRoute: typeof KioskRoute
     }
-    '/_authenticated/instrument/scenarios/new': {
-      id: '/_authenticated/instrument/scenarios/new'
-      path: '/scenarios/new'
-      fullPath: '/instrument/scenarios/new'
-      preLoaderRoute: typeof AuthenticatedInstrumentScenariosNewRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
-    }
-    '/_authenticated/instrument/sector/$code': {
-      id: '/_authenticated/instrument/sector/$code'
-      path: '/sector/$code'
-      fullPath: '/instrument/sector/$code'
-      preLoaderRoute: typeof AuthenticatedInstrumentSectorCodeRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
-    }
-    '/_authenticated/instrument/studio/gap': {
-      id: '/_authenticated/instrument/studio/gap'
-      path: '/studio/gap'
-      fullPath: '/instrument/studio/gap'
-      preLoaderRoute: typeof AuthenticatedInstrumentStudioGapRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
-    }
-    '/_authenticated/instrument/studio/packages': {
-      id: '/_authenticated/instrument/studio/packages'
-      path: '/studio/packages'
-      fullPath: '/instrument/studio/packages'
-      preLoaderRoute: typeof AuthenticatedInstrumentStudioPackagesRouteImport
-      parentRoute: typeof AuthenticatedInstrumentRouteRoute
-    }
-    '/_authenticated/narrative/comms/$id': {
-      id: '/_authenticated/narrative/comms/$id'
-      path: '/$id'
-      fullPath: '/narrative/comms/$id'
-      preLoaderRoute: typeof AuthenticatedNarrativeCommsIdRouteImport
-      parentRoute: typeof AuthenticatedNarrativeCommsRoute
-    }
-    '/_authenticated/narrative/comms/new': {
-      id: '/_authenticated/narrative/comms/new'
-      path: '/new'
-      fullPath: '/narrative/comms/new'
-      preLoaderRoute: typeof AuthenticatedNarrativeCommsNewRouteImport
-      parentRoute: typeof AuthenticatedNarrativeCommsRoute
-    }
-    '/_authenticated/narrative/signal/$id': {
-      id: '/_authenticated/narrative/signal/$id'
-      path: '/signal/$id'
-      fullPath: '/narrative/signal/$id'
-      preLoaderRoute: typeof AuthenticatedNarrativeSignalIdRouteImport
-      parentRoute: typeof AuthenticatedNarrativeRouteRoute
-    }
-    '/_authenticated/narrative/strategy/': {
-      id: '/_authenticated/narrative/strategy/'
-      path: '/strategy'
-      fullPath: '/narrative/strategy/'
-      preLoaderRoute: typeof AuthenticatedNarrativeStrategyIndexRouteImport
-      parentRoute: typeof AuthenticatedNarrativeRouteRoute
-    }
-    '/_authenticated/narrative/strategy/$id': {
-      id: '/_authenticated/narrative/strategy/$id'
-      path: '/strategy/$id'
-      fullPath: '/narrative/strategy/$id'
-      preLoaderRoute: typeof AuthenticatedNarrativeStrategyIdRouteImport
-      parentRoute: typeof AuthenticatedNarrativeRouteRoute
-    }
-    '/_authenticated/narrative/strategy/new': {
-      id: '/_authenticated/narrative/strategy/new'
-      path: '/strategy/new'
-      fullPath: '/narrative/strategy/new'
-      preLoaderRoute: typeof AuthenticatedNarrativeStrategyNewRouteImport
-      parentRoute: typeof AuthenticatedNarrativeRouteRoute
-    }
-    '/_authenticated/narrative/trace/$id': {
-      id: '/_authenticated/narrative/trace/$id'
-      path: '/trace/$id'
-      fullPath: '/narrative/trace/$id'
-      preLoaderRoute: typeof AuthenticatedNarrativeTraceIdRouteImport
-      parentRoute: typeof AuthenticatedNarrativeRouteRoute
-    }
-    '/api/public/deck/$token': {
-      id: '/api/public/deck/$token'
-      path: '/api/public/deck/$token'
-      fullPath: '/api/public/deck/$token'
-      preLoaderRoute: typeof ApiPublicDeckTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/dossier/$token': {
-      id: '/api/public/dossier/$token'
-      path: '/api/public/dossier/$token'
-      fullPath: '/api/public/dossier/$token'
-      preLoaderRoute: typeof ApiPublicDossierTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/field/$token': {
-      id: '/api/public/field/$token'
-      path: '/api/public/field/$token'
-      fullPath: '/api/public/field/$token'
-      preLoaderRoute: typeof ApiPublicFieldTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/cadence-daily': {
-      id: '/api/public/hooks/cadence-daily'
-      path: '/api/public/hooks/cadence-daily'
-      fullPath: '/api/public/hooks/cadence-daily'
-      preLoaderRoute: typeof ApiPublicHooksCadenceDailyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/ledger-qa': {
-      id: '/api/public/hooks/ledger-qa'
-      path: '/api/public/hooks/ledger-qa'
-      fullPath: '/api/public/hooks/ledger-qa'
-      preLoaderRoute: typeof ApiPublicHooksLedgerQaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/narrative-harvest': {
-      id: '/api/public/hooks/narrative-harvest'
-      path: '/api/public/hooks/narrative-harvest'
-      fullPath: '/api/public/hooks/narrative-harvest'
-      preLoaderRoute: typeof ApiPublicHooksNarrativeHarvestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/peer-analysis': {
-      id: '/api/public/hooks/peer-analysis'
-      path: '/api/public/hooks/peer-analysis'
-      fullPath: '/api/public/hooks/peer-analysis'
-      preLoaderRoute: typeof ApiPublicHooksPeerAnalysisRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/press-discover': {
-      id: '/api/public/hooks/press-discover'
-      path: '/api/public/hooks/press-discover'
-      fullPath: '/api/public/hooks/press-discover'
-      preLoaderRoute: typeof ApiPublicHooksPressDiscoverRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/press-tick': {
-      id: '/api/public/hooks/press-tick'
-      path: '/api/public/hooks/press-tick'
-      fullPath: '/api/public/hooks/press-tick'
-      preLoaderRoute: typeof ApiPublicHooksPressTickRouteImport
+    '/api/public/v1/handshake': {
+      id: '/api/public/v1/handshake'
+      path: '/api/public/v1/handshake'
+      fullPath: '/api/public/v1/handshake'
+      preLoaderRoute: typeof ApiPublicV1HandshakeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/source-health': {
@@ -2759,166 +2542,236 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSourceHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/v1/handshake': {
-      id: '/api/public/v1/handshake'
-      path: '/api/public/v1/handshake'
-      fullPath: '/api/public/v1/handshake'
-      preLoaderRoute: typeof ApiPublicV1HandshakeRouteImport
+    '/api/public/hooks/press-tick': {
+      id: '/api/public/hooks/press-tick'
+      path: '/api/public/hooks/press-tick'
+      fullPath: '/api/public/hooks/press-tick'
+      preLoaderRoute: typeof ApiPublicHooksPressTickRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/kiosk/api/public/presentation-pdf': {
-      id: '/kiosk/api/public/presentation-pdf'
-      path: '/api/public/presentation-pdf'
-      fullPath: '/kiosk/api/public/presentation-pdf'
-      preLoaderRoute: typeof KioskApiPublicPresentationPdfRouteImport
-      parentRoute: typeof KioskRoute
+    '/api/public/hooks/press-discover': {
+      id: '/api/public/hooks/press-discover'
+      path: '/api/public/hooks/press-discover'
+      fullPath: '/api/public/hooks/press-discover'
+      preLoaderRoute: typeof ApiPublicHooksPressDiscoverRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/countries/$code/data': {
-      id: '/_authenticated/admin/countries/$code/data'
-      path: '/countries/$code/data'
-      fullPath: '/admin/countries/$code/data'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeDataRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/api/public/hooks/peer-analysis': {
+      id: '/api/public/hooks/peer-analysis'
+      path: '/api/public/hooks/peer-analysis'
+      fullPath: '/api/public/hooks/peer-analysis'
+      preLoaderRoute: typeof ApiPublicHooksPeerAnalysisRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/countries/$code/egov': {
-      id: '/_authenticated/admin/countries/$code/egov'
-      path: '/countries/$code/egov'
-      fullPath: '/admin/countries/$code/egov'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeEgovRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/api/public/hooks/narrative-harvest': {
+      id: '/api/public/hooks/narrative-harvest'
+      path: '/api/public/hooks/narrative-harvest'
+      fullPath: '/api/public/hooks/narrative-harvest'
+      preLoaderRoute: typeof ApiPublicHooksNarrativeHarvestRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/countries/$code/executive': {
-      id: '/_authenticated/admin/countries/$code/executive'
-      path: '/countries/$code/executive'
-      fullPath: '/admin/countries/$code/executive'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/api/public/hooks/ledger-qa': {
+      id: '/api/public/hooks/ledger-qa'
+      path: '/api/public/hooks/ledger-qa'
+      fullPath: '/api/public/hooks/ledger-qa'
+      preLoaderRoute: typeof ApiPublicHooksLedgerQaRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/countries/$code/global': {
-      id: '/_authenticated/admin/countries/$code/global'
-      path: '/countries/$code/global'
-      fullPath: '/admin/countries/$code/global'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeGlobalRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/api/public/hooks/cadence-daily': {
+      id: '/api/public/hooks/cadence-daily'
+      path: '/api/public/hooks/cadence-daily'
+      fullPath: '/api/public/hooks/cadence-daily'
+      preLoaderRoute: typeof ApiPublicHooksCadenceDailyRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/countries/$code/godseye': {
-      id: '/_authenticated/admin/countries/$code/godseye'
-      path: '/countries/$code/godseye'
-      fullPath: '/admin/countries/$code/godseye'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeGodseyeRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/api/public/field/$token': {
+      id: '/api/public/field/$token'
+      path: '/api/public/field/$token'
+      fullPath: '/api/public/field/$token'
+      preLoaderRoute: typeof ApiPublicFieldTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/countries/$code/government': {
-      id: '/_authenticated/admin/countries/$code/government'
-      path: '/countries/$code/government'
-      fullPath: '/admin/countries/$code/government'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeGovernmentRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/api/public/dossier/$token': {
+      id: '/api/public/dossier/$token'
+      path: '/api/public/dossier/$token'
+      fullPath: '/api/public/dossier/$token'
+      preLoaderRoute: typeof ApiPublicDossierTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/countries/$code/investments': {
-      id: '/_authenticated/admin/countries/$code/investments'
-      path: '/countries/$code/investments'
-      fullPath: '/admin/countries/$code/investments'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/api/public/deck/$token': {
+      id: '/api/public/deck/$token'
+      path: '/api/public/deck/$token'
+      fullPath: '/api/public/deck/$token'
+      preLoaderRoute: typeof ApiPublicDeckTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/countries/$code/investors': {
-      id: '/_authenticated/admin/countries/$code/investors'
-      path: '/countries/$code/investors'
-      fullPath: '/admin/countries/$code/investors'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestorsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/narrative/trace/$id': {
+      id: '/_authenticated/narrative/trace/$id'
+      path: '/trace/$id'
+      fullPath: '/narrative/trace/$id'
+      preLoaderRoute: typeof AuthenticatedNarrativeTraceIdRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
-    '/_authenticated/admin/countries/$code/ledger': {
-      id: '/_authenticated/admin/countries/$code/ledger'
-      path: '/countries/$code/ledger'
-      fullPath: '/admin/countries/$code/ledger'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeLedgerRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/narrative/strategy/new': {
+      id: '/_authenticated/narrative/strategy/new'
+      path: '/strategy/new'
+      fullPath: '/narrative/strategy/new'
+      preLoaderRoute: typeof AuthenticatedNarrativeStrategyNewRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
-    '/_authenticated/admin/countries/$code/mandate-compact': {
-      id: '/_authenticated/admin/countries/$code/mandate-compact'
-      path: '/countries/$code/mandate-compact'
-      fullPath: '/admin/countries/$code/mandate-compact'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeMandateCompactRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/narrative/strategy/$id': {
+      id: '/_authenticated/narrative/strategy/$id'
+      path: '/strategy/$id'
+      fullPath: '/narrative/strategy/$id'
+      preLoaderRoute: typeof AuthenticatedNarrativeStrategyIdRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
-    '/_authenticated/admin/countries/$code/narrative': {
-      id: '/_authenticated/admin/countries/$code/narrative'
-      path: '/countries/$code/narrative'
-      fullPath: '/admin/countries/$code/narrative'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/narrative/signal/$id': {
+      id: '/_authenticated/narrative/signal/$id'
+      path: '/signal/$id'
+      fullPath: '/narrative/signal/$id'
+      preLoaderRoute: typeof AuthenticatedNarrativeSignalIdRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
-    '/_authenticated/admin/countries/$code/onboard': {
-      id: '/_authenticated/admin/countries/$code/onboard'
-      path: '/countries/$code/onboard'
-      fullPath: '/admin/countries/$code/onboard'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeOnboardRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/narrative/comms/new': {
+      id: '/_authenticated/narrative/comms/new'
+      path: '/new'
+      fullPath: '/narrative/comms/new'
+      preLoaderRoute: typeof AuthenticatedNarrativeCommsNewRouteImport
+      parentRoute: typeof AuthenticatedNarrativeCommsRoute
     }
-    '/_authenticated/admin/countries/$code/personas': {
-      id: '/_authenticated/admin/countries/$code/personas'
-      path: '/countries/$code/personas'
-      fullPath: '/admin/countries/$code/personas'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/narrative/comms/$id': {
+      id: '/_authenticated/narrative/comms/$id'
+      path: '/$id'
+      fullPath: '/narrative/comms/$id'
+      preLoaderRoute: typeof AuthenticatedNarrativeCommsIdRouteImport
+      parentRoute: typeof AuthenticatedNarrativeCommsRoute
     }
-    '/_authenticated/admin/countries/$code/portfolio': {
-      id: '/_authenticated/admin/countries/$code/portfolio'
-      path: '/countries/$code/portfolio'
-      fullPath: '/admin/countries/$code/portfolio'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePortfolioRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/instrument/studio/packages': {
+      id: '/_authenticated/instrument/studio/packages'
+      path: '/studio/packages'
+      fullPath: '/instrument/studio/packages'
+      preLoaderRoute: typeof AuthenticatedInstrumentStudioPackagesRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
-    '/_authenticated/admin/countries/$code/scenarios': {
-      id: '/_authenticated/admin/countries/$code/scenarios'
-      path: '/countries/$code/scenarios'
-      fullPath: '/admin/countries/$code/scenarios'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeScenariosRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/instrument/studio/gap': {
+      id: '/_authenticated/instrument/studio/gap'
+      path: '/studio/gap'
+      fullPath: '/instrument/studio/gap'
+      preLoaderRoute: typeof AuthenticatedInstrumentStudioGapRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
-    '/_authenticated/admin/countries/$code/sector': {
-      id: '/_authenticated/admin/countries/$code/sector'
-      path: '/countries/$code/sector'
-      fullPath: '/admin/countries/$code/sector'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeSectorRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/instrument/sector/$code': {
+      id: '/_authenticated/instrument/sector/$code'
+      path: '/sector/$code'
+      fullPath: '/instrument/sector/$code'
+      preLoaderRoute: typeof AuthenticatedInstrumentSectorCodeRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
-    '/_authenticated/admin/countries/$code/standards': {
-      id: '/_authenticated/admin/countries/$code/standards'
-      path: '/countries/$code/standards'
-      fullPath: '/admin/countries/$code/standards'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStandardsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/instrument/scenarios/new': {
+      id: '/_authenticated/instrument/scenarios/new'
+      path: '/scenarios/new'
+      fullPath: '/instrument/scenarios/new'
+      preLoaderRoute: typeof AuthenticatedInstrumentScenariosNewRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
-    '/_authenticated/admin/countries/$code/studio': {
-      id: '/_authenticated/admin/countries/$code/studio'
-      path: '/countries/$code/studio'
-      fullPath: '/admin/countries/$code/studio'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/instrument/scenarios/compare': {
+      id: '/_authenticated/instrument/scenarios/compare'
+      path: '/scenarios/compare'
+      fullPath: '/instrument/scenarios/compare'
+      preLoaderRoute: typeof AuthenticatedInstrumentScenariosCompareRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
-    '/_authenticated/admin/countries/$code/viz': {
-      id: '/_authenticated/admin/countries/$code/viz'
-      path: '/countries/$code/viz'
-      fullPath: '/admin/countries/$code/viz'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeVizRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/instrument/scenarios/$id': {
+      id: '/_authenticated/instrument/scenarios/$id'
+      path: '/scenarios/$id'
+      fullPath: '/instrument/scenarios/$id'
+      preLoaderRoute: typeof AuthenticatedInstrumentScenariosIdRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
-    '/_authenticated/console/$code/chamber/$chamber': {
-      id: '/_authenticated/console/$code/chamber/$chamber'
-      path: '/$code/chamber/$chamber'
-      fullPath: '/console/$code/chamber/$chamber'
-      preLoaderRoute: typeof AuthenticatedConsoleCodeChamberChamberRouteImport
+    '/_authenticated/instrument/portfolio/$ministry': {
+      id: '/_authenticated/instrument/portfolio/$ministry'
+      path: '/portfolio/$ministry'
+      fullPath: '/instrument/portfolio/$ministry'
+      preLoaderRoute: typeof AuthenticatedInstrumentPortfolioMinistryRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/instrument/mandate/studio': {
+      id: '/_authenticated/instrument/mandate/studio'
+      path: '/mandate/studio'
+      fullPath: '/instrument/mandate/studio'
+      preLoaderRoute: typeof AuthenticatedInstrumentMandateStudioRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/instrument/mandate/scorecard': {
+      id: '/_authenticated/instrument/mandate/scorecard'
+      path: '/mandate/scorecard'
+      fullPath: '/instrument/mandate/scorecard'
+      preLoaderRoute: typeof AuthenticatedInstrumentMandateScorecardRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/instrument/cabinet/session': {
+      id: '/_authenticated/instrument/cabinet/session'
+      path: '/cabinet/session'
+      fullPath: '/instrument/cabinet/session'
+      preLoaderRoute: typeof AuthenticatedInstrumentCabinetSessionRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/instrument/cabinet/decisions': {
+      id: '/_authenticated/instrument/cabinet/decisions'
+      path: '/cabinet/decisions'
+      fullPath: '/instrument/cabinet/decisions'
+      preLoaderRoute: typeof AuthenticatedInstrumentCabinetDecisionsRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/console/$code/study': {
+      id: '/_authenticated/console/$code/study'
+      path: '/$code/study'
+      fullPath: '/console/$code/study'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeStudyRouteImport
       parentRoute: typeof AuthenticatedConsoleRoute
     }
-    '/_authenticated/console/$code/request/new': {
-      id: '/_authenticated/console/$code/request/new'
-      path: '/$code/request/new'
-      fullPath: '/console/$code/request/new'
-      preLoaderRoute: typeof AuthenticatedConsoleCodeRequestNewRouteImport
+    '/_authenticated/console/$code/mandate': {
+      id: '/_authenticated/console/$code/mandate'
+      path: '/$code/mandate'
+      fullPath: '/console/$code/mandate'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeMandateRouteImport
       parentRoute: typeof AuthenticatedConsoleRoute
+    }
+    '/_authenticated/console/$code/brief': {
+      id: '/_authenticated/console/$code/brief'
+      path: '/$code/brief'
+      fullPath: '/console/$code/brief'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeBriefRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
+    }
+    '/_authenticated/console/$code/ask': {
+      id: '/_authenticated/console/$code/ask'
+      path: '/$code/ask'
+      fullPath: '/console/$code/ask'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeAskRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
+    }
+    '/_authenticated/admin/country/$code': {
+      id: '/_authenticated/admin/country/$code'
+      path: '/country/$code'
+      fullPath: '/admin/country/$code'
+      preLoaderRoute: typeof AuthenticatedAdminCountryCodeRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/audits/log': {
+      id: '/_authenticated/admin/audits/log'
+      path: '/audits/log'
+      fullPath: '/admin/audits/log'
+      preLoaderRoute: typeof AuthenticatedAdminAuditsLogRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/audits/keying': {
+      id: '/_authenticated/admin/audits/keying'
+      path: '/audits/keying'
+      fullPath: '/admin/audits/keying'
+      preLoaderRoute: typeof AuthenticatedAdminAuditsKeyingRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/console/$code/requests/': {
       id: '/_authenticated/console/$code/requests/'
@@ -2934,123 +2787,151 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConsoleCodeRequestsIdRouteImport
       parentRoute: typeof AuthenticatedConsoleRoute
     }
-    '/_authenticated/admin/countries/$code/cabinet/': {
-      id: '/_authenticated/admin/countries/$code/cabinet/'
-      path: '/countries/$code/cabinet'
-      fullPath: '/admin/countries/$code/cabinet/'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeCabinetIndexRouteImport
+    '/_authenticated/console/$code/request/new': {
+      id: '/_authenticated/console/$code/request/new'
+      path: '/$code/request/new'
+      fullPath: '/console/$code/request/new'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeRequestNewRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
+    }
+    '/_authenticated/console/$code/chamber/$chamber': {
+      id: '/_authenticated/console/$code/chamber/$chamber'
+      path: '/$code/chamber/$chamber'
+      fullPath: '/console/$code/chamber/$chamber'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeChamberChamberRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
+    }
+    '/_authenticated/admin/countries/$code/viz': {
+      id: '/_authenticated/admin/countries/$code/viz'
+      path: '/countries/$code/viz'
+      fullPath: '/admin/countries/$code/viz'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeVizRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/egov_/$prdId': {
-      id: '/_authenticated/admin/countries/$code/egov_/$prdId'
-      path: '/countries/$code/egov/$prdId'
-      fullPath: '/admin/countries/$code/egov/$prdId'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeEgovPrdIdRouteImport
+    '/_authenticated/admin/countries/$code/studio': {
+      id: '/_authenticated/admin/countries/$code/studio'
+      path: '/countries/$code/studio'
+      fullPath: '/admin/countries/$code/studio'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/investments/$id': {
-      id: '/_authenticated/admin/countries/$code/investments/$id'
-      path: '/$id'
-      fullPath: '/admin/countries/$code/investments/$id'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
+    '/_authenticated/admin/countries/$code/standards': {
+      id: '/_authenticated/admin/countries/$code/standards'
+      path: '/countries/$code/standards'
+      fullPath: '/admin/countries/$code/standards'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStandardsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/narrative/': {
-      id: '/_authenticated/admin/countries/$code/narrative/'
-      path: '/'
-      fullPath: '/admin/countries/$code/narrative/'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
+    '/_authenticated/admin/countries/$code/sector': {
+      id: '/_authenticated/admin/countries/$code/sector'
+      path: '/countries/$code/sector'
+      fullPath: '/admin/countries/$code/sector'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeSectorRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/narrative/library': {
-      id: '/_authenticated/admin/countries/$code/narrative/library'
-      path: '/library'
-      fullPath: '/admin/countries/$code/narrative/library'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
+    '/_authenticated/admin/countries/$code/scenarios': {
+      id: '/_authenticated/admin/countries/$code/scenarios'
+      path: '/countries/$code/scenarios'
+      fullPath: '/admin/countries/$code/scenarios'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeScenariosRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/personas/': {
-      id: '/_authenticated/admin/countries/$code/personas/'
-      path: '/'
-      fullPath: '/admin/countries/$code/personas/'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    '/_authenticated/admin/countries/$code/portfolio': {
+      id: '/_authenticated/admin/countries/$code/portfolio'
+      path: '/countries/$code/portfolio'
+      fullPath: '/admin/countries/$code/portfolio'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePortfolioRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/personas/$id': {
-      id: '/_authenticated/admin/countries/$code/personas/$id'
-      path: '/$id'
-      fullPath: '/admin/countries/$code/personas/$id'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasIdRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    '/_authenticated/admin/countries/$code/personas': {
+      id: '/_authenticated/admin/countries/$code/personas'
+      path: '/countries/$code/personas'
+      fullPath: '/admin/countries/$code/personas'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/personas/blueprint': {
-      id: '/_authenticated/admin/countries/$code/personas/blueprint'
-      path: '/blueprint'
-      fullPath: '/admin/countries/$code/personas/blueprint'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasBlueprintRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    '/_authenticated/admin/countries/$code/onboard': {
+      id: '/_authenticated/admin/countries/$code/onboard'
+      path: '/countries/$code/onboard'
+      fullPath: '/admin/countries/$code/onboard'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeOnboardRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/personas/segments': {
-      id: '/_authenticated/admin/countries/$code/personas/segments'
-      path: '/segments'
-      fullPath: '/admin/countries/$code/personas/segments'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasSegmentsRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    '/_authenticated/admin/countries/$code/narrative': {
+      id: '/_authenticated/admin/countries/$code/narrative'
+      path: '/countries/$code/narrative'
+      fullPath: '/admin/countries/$code/narrative'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/personas/studies': {
-      id: '/_authenticated/admin/countries/$code/personas/studies'
-      path: '/studies'
-      fullPath: '/admin/countries/$code/personas/studies'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasStudiesRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    '/_authenticated/admin/countries/$code/mandate-compact': {
+      id: '/_authenticated/admin/countries/$code/mandate-compact'
+      path: '/countries/$code/mandate-compact'
+      fullPath: '/admin/countries/$code/mandate-compact'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeMandateCompactRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/portfolio/': {
-      id: '/_authenticated/admin/countries/$code/portfolio/'
-      path: '/'
-      fullPath: '/admin/countries/$code/portfolio/'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePortfolioIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodePortfolioRoute
+    '/_authenticated/admin/countries/$code/ledger': {
+      id: '/_authenticated/admin/countries/$code/ledger'
+      path: '/countries/$code/ledger'
+      fullPath: '/admin/countries/$code/ledger'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeLedgerRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/portfolio/$ministry': {
-      id: '/_authenticated/admin/countries/$code/portfolio/$ministry'
-      path: '/$ministry'
-      fullPath: '/admin/countries/$code/portfolio/$ministry'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePortfolioMinistryRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodePortfolioRoute
+    '/_authenticated/admin/countries/$code/investors': {
+      id: '/_authenticated/admin/countries/$code/investors'
+      path: '/countries/$code/investors'
+      fullPath: '/admin/countries/$code/investors'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestorsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/scenarios/': {
-      id: '/_authenticated/admin/countries/$code/scenarios/'
-      path: '/'
-      fullPath: '/admin/countries/$code/scenarios/'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeScenariosIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodeScenariosRoute
+    '/_authenticated/admin/countries/$code/investments': {
+      id: '/_authenticated/admin/countries/$code/investments'
+      path: '/countries/$code/investments'
+      fullPath: '/admin/countries/$code/investments'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/scenarios/$id': {
-      id: '/_authenticated/admin/countries/$code/scenarios/$id'
-      path: '/$id'
-      fullPath: '/admin/countries/$code/scenarios/$id'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeScenariosIdRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodeScenariosRoute
+    '/_authenticated/admin/countries/$code/government': {
+      id: '/_authenticated/admin/countries/$code/government'
+      path: '/countries/$code/government'
+      fullPath: '/admin/countries/$code/government'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeGovernmentRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/scenarios/compare': {
-      id: '/_authenticated/admin/countries/$code/scenarios/compare'
-      path: '/compare'
-      fullPath: '/admin/countries/$code/scenarios/compare'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeScenariosCompareRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodeScenariosRoute
+    '/_authenticated/admin/countries/$code/godseye': {
+      id: '/_authenticated/admin/countries/$code/godseye'
+      path: '/countries/$code/godseye'
+      fullPath: '/admin/countries/$code/godseye'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeGodseyeRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/scenarios/new': {
-      id: '/_authenticated/admin/countries/$code/scenarios/new'
-      path: '/new'
-      fullPath: '/admin/countries/$code/scenarios/new'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeScenariosNewRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodeScenariosRoute
+    '/_authenticated/admin/countries/$code/global': {
+      id: '/_authenticated/admin/countries/$code/global'
+      path: '/countries/$code/global'
+      fullPath: '/admin/countries/$code/global'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeGlobalRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/sector_/$planId': {
-      id: '/_authenticated/admin/countries/$code/sector_/$planId'
-      path: '/countries/$code/sector/$planId'
-      fullPath: '/admin/countries/$code/sector/$planId'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeSectorPlanIdRouteImport
+    '/_authenticated/admin/countries/$code/executive': {
+      id: '/_authenticated/admin/countries/$code/executive'
+      path: '/countries/$code/executive'
+      fullPath: '/admin/countries/$code/executive'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/countries/$code/egov': {
+      id: '/_authenticated/admin/countries/$code/egov'
+      path: '/countries/$code/egov'
+      fullPath: '/admin/countries/$code/egov'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeEgovRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/countries/$code/data': {
+      id: '/_authenticated/admin/countries/$code/data'
+      path: '/countries/$code/data'
+      fullPath: '/admin/countries/$code/data'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeDataRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/countries/$code/studio/': {
@@ -3060,6 +2941,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioIndexRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeStudioRoute
     }
+    '/_authenticated/admin/countries/$code/scenarios/': {
+      id: '/_authenticated/admin/countries/$code/scenarios/'
+      path: '/'
+      fullPath: '/admin/countries/$code/scenarios/'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeScenariosIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeScenariosRoute
+    }
+    '/_authenticated/admin/countries/$code/portfolio/': {
+      id: '/_authenticated/admin/countries/$code/portfolio/'
+      path: '/'
+      fullPath: '/admin/countries/$code/portfolio/'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePortfolioIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePortfolioRoute
+    }
+    '/_authenticated/admin/countries/$code/personas/': {
+      id: '/_authenticated/admin/countries/$code/personas/'
+      path: '/'
+      fullPath: '/admin/countries/$code/personas/'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    }
+    '/_authenticated/admin/countries/$code/narrative/': {
+      id: '/_authenticated/admin/countries/$code/narrative/'
+      path: '/'
+      fullPath: '/admin/countries/$code/narrative/'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
+    }
+    '/_authenticated/admin/countries/$code/cabinet/': {
+      id: '/_authenticated/admin/countries/$code/cabinet/'
+      path: '/countries/$code/cabinet'
+      fullPath: '/admin/countries/$code/cabinet/'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeCabinetIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/api/public/v1/countries/$code/$resource': {
       id: '/api/public/v1/countries/$code/$resource'
       path: '/api/public/v1/countries/$code/$resource'
@@ -3067,68 +2983,89 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1CountriesCodeResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/countries/$code/cabinet/agenda/$sid': {
-      id: '/_authenticated/admin/countries/$code/cabinet/agenda/$sid'
-      path: '/countries/$code/cabinet/agenda/$sid'
-      fullPath: '/admin/countries/$code/cabinet/agenda/$sid'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport
+    '/_authenticated/admin/countries/$code/sector_/$planId': {
+      id: '/_authenticated/admin/countries/$code/sector_/$planId'
+      path: '/countries/$code/sector/$planId'
+      fullPath: '/admin/countries/$code/sector/$planId'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeSectorPlanIdRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/countries/$code/cabinet/minutes/$sid': {
-      id: '/_authenticated/admin/countries/$code/cabinet/minutes/$sid'
-      path: '/countries/$code/cabinet/minutes/$sid'
-      fullPath: '/admin/countries/$code/cabinet/minutes/$sid'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/admin/countries/$code/scenarios/new': {
+      id: '/_authenticated/admin/countries/$code/scenarios/new'
+      path: '/new'
+      fullPath: '/admin/countries/$code/scenarios/new'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeScenariosNewRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeScenariosRoute
     }
-    '/_authenticated/admin/countries/$code/cabinet/session/$sid': {
-      id: '/_authenticated/admin/countries/$code/cabinet/session/$sid'
-      path: '/countries/$code/cabinet/session/$sid'
-      fullPath: '/admin/countries/$code/cabinet/session/$sid'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/admin/countries/$code/scenarios/compare': {
+      id: '/_authenticated/admin/countries/$code/scenarios/compare'
+      path: '/compare'
+      fullPath: '/admin/countries/$code/scenarios/compare'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeScenariosCompareRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeScenariosRoute
     }
-    '/_authenticated/admin/countries/$code/egov_/$prdId_/document': {
-      id: '/_authenticated/admin/countries/$code/egov_/$prdId_/document'
-      path: '/countries/$code/egov/$prdId/document'
-      fullPath: '/admin/countries/$code/egov/$prdId/document'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/admin/countries/$code/scenarios/$id': {
+      id: '/_authenticated/admin/countries/$code/scenarios/$id'
+      path: '/$id'
+      fullPath: '/admin/countries/$code/scenarios/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeScenariosIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeScenariosRoute
     }
-    '/_authenticated/admin/countries/$code/executive/chamber/$chamber': {
-      id: '/_authenticated/admin/countries/$code/executive/chamber/$chamber'
-      path: '/chamber/$chamber'
-      fullPath: '/admin/countries/$code/executive/chamber/$chamber'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRoute
+    '/_authenticated/admin/countries/$code/portfolio/$ministry': {
+      id: '/_authenticated/admin/countries/$code/portfolio/$ministry'
+      path: '/$ministry'
+      fullPath: '/admin/countries/$code/portfolio/$ministry'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePortfolioMinistryRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePortfolioRoute
     }
-    '/_authenticated/admin/countries/$code/narrative/opposition/': {
-      id: '/_authenticated/admin/countries/$code/narrative/opposition/'
-      path: '/opposition'
-      fullPath: '/admin/countries/$code/narrative/opposition/'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
-    }
-    '/_authenticated/admin/countries/$code/narrative/opposition/$id': {
-      id: '/_authenticated/admin/countries/$code/narrative/opposition/$id'
-      path: '/opposition/$id'
-      fullPath: '/admin/countries/$code/narrative/opposition/$id'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
-    }
-    '/_authenticated/admin/countries/$code/narrative/signal/$id': {
-      id: '/_authenticated/admin/countries/$code/narrative/signal/$id'
-      path: '/signal/$id'
-      fullPath: '/admin/countries/$code/narrative/signal/$id'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
-    }
-    '/_authenticated/admin/countries/$code/personas/field/$step': {
-      id: '/_authenticated/admin/countries/$code/personas/field/$step'
-      path: '/field/$step'
-      fullPath: '/admin/countries/$code/personas/field/$step'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasFieldStepRouteImport
+    '/_authenticated/admin/countries/$code/personas/studies': {
+      id: '/_authenticated/admin/countries/$code/personas/studies'
+      path: '/studies'
+      fullPath: '/admin/countries/$code/personas/studies'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasStudiesRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    }
+    '/_authenticated/admin/countries/$code/personas/segments': {
+      id: '/_authenticated/admin/countries/$code/personas/segments'
+      path: '/segments'
+      fullPath: '/admin/countries/$code/personas/segments'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasSegmentsRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    }
+    '/_authenticated/admin/countries/$code/personas/blueprint': {
+      id: '/_authenticated/admin/countries/$code/personas/blueprint'
+      path: '/blueprint'
+      fullPath: '/admin/countries/$code/personas/blueprint'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasBlueprintRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    }
+    '/_authenticated/admin/countries/$code/personas/$id': {
+      id: '/_authenticated/admin/countries/$code/personas/$id'
+      path: '/$id'
+      fullPath: '/admin/countries/$code/personas/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    }
+    '/_authenticated/admin/countries/$code/narrative/library': {
+      id: '/_authenticated/admin/countries/$code/narrative/library'
+      path: '/library'
+      fullPath: '/admin/countries/$code/narrative/library'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
+    }
+    '/_authenticated/admin/countries/$code/investments/$id': {
+      id: '/_authenticated/admin/countries/$code/investments/$id'
+      path: '/$id'
+      fullPath: '/admin/countries/$code/investments/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
+    }
+    '/_authenticated/admin/countries/$code/egov_/$prdId': {
+      id: '/_authenticated/admin/countries/$code/egov_/$prdId'
+      path: '/countries/$code/egov/$prdId'
+      fullPath: '/admin/countries/$code/egov/$prdId'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeEgovPrdIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/countries/$code/personas/portfolios/': {
       id: '/_authenticated/admin/countries/$code/personas/portfolios/'
@@ -3137,32 +3074,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasPortfoliosIndexRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
     }
-    '/_authenticated/admin/countries/$code/personas/portfolios/$setId': {
-      id: '/_authenticated/admin/countries/$code/personas/portfolios/$setId'
-      path: '/portfolios/$setId'
-      fullPath: '/admin/countries/$code/personas/portfolios/$setId'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasPortfoliosSetIdRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    '/_authenticated/admin/countries/$code/narrative/opposition/': {
+      id: '/_authenticated/admin/countries/$code/narrative/opposition/'
+      path: '/opposition'
+      fullPath: '/admin/countries/$code/narrative/opposition/'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
     }
-    '/_authenticated/admin/countries/$code/personas/studies/$id': {
-      id: '/_authenticated/admin/countries/$code/personas/studies/$id'
-      path: '/$id'
-      fullPath: '/admin/countries/$code/personas/studies/$id'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport
-      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasStudiesRoute
-    }
-    '/_authenticated/admin/countries/$code/sector_/$planId_/document': {
-      id: '/_authenticated/admin/countries/$code/sector_/$planId_/document'
-      path: '/countries/$code/sector/$planId/document'
-      fullPath: '/admin/countries/$code/sector/$planId/document'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeSectorPlanIdDocumentRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
-    '/_authenticated/admin/countries/$code/studio/sectors/$sectorCode': {
-      id: '/_authenticated/admin/countries/$code/studio/sectors/$sectorCode'
-      path: '/sectors/$sectorCode'
-      fullPath: '/admin/countries/$code/studio/sectors/$sectorCode'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRouteImport
+    '/_authenticated/admin/countries/$code/studio/threats/new': {
+      id: '/_authenticated/admin/countries/$code/studio/threats/new'
+      path: '/threats/new'
+      fullPath: '/admin/countries/$code/studio/threats/new'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioThreatsNewRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeStudioRoute
     }
     '/_authenticated/admin/countries/$code/studio/threats/$id': {
@@ -3172,12 +3095,89 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeStudioRoute
     }
-    '/_authenticated/admin/countries/$code/studio/threats/new': {
-      id: '/_authenticated/admin/countries/$code/studio/threats/new'
-      path: '/threats/new'
-      fullPath: '/admin/countries/$code/studio/threats/new'
-      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioThreatsNewRouteImport
+    '/_authenticated/admin/countries/$code/studio/sectors/$sectorCode': {
+      id: '/_authenticated/admin/countries/$code/studio/sectors/$sectorCode'
+      path: '/sectors/$sectorCode'
+      fullPath: '/admin/countries/$code/studio/sectors/$sectorCode'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeStudioRoute
+    }
+    '/_authenticated/admin/countries/$code/sector_/$planId_/document': {
+      id: '/_authenticated/admin/countries/$code/sector_/$planId_/document'
+      path: '/countries/$code/sector/$planId/document'
+      fullPath: '/admin/countries/$code/sector/$planId/document'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeSectorPlanIdDocumentRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/countries/$code/personas/studies/$id': {
+      id: '/_authenticated/admin/countries/$code/personas/studies/$id'
+      path: '/$id'
+      fullPath: '/admin/countries/$code/personas/studies/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasStudiesRoute
+    }
+    '/_authenticated/admin/countries/$code/personas/portfolios/$setId': {
+      id: '/_authenticated/admin/countries/$code/personas/portfolios/$setId'
+      path: '/portfolios/$setId'
+      fullPath: '/admin/countries/$code/personas/portfolios/$setId'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasPortfoliosSetIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    }
+    '/_authenticated/admin/countries/$code/personas/field/$step': {
+      id: '/_authenticated/admin/countries/$code/personas/field/$step'
+      path: '/field/$step'
+      fullPath: '/admin/countries/$code/personas/field/$step'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasFieldStepRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    }
+    '/_authenticated/admin/countries/$code/narrative/signal/$id': {
+      id: '/_authenticated/admin/countries/$code/narrative/signal/$id'
+      path: '/signal/$id'
+      fullPath: '/admin/countries/$code/narrative/signal/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
+    }
+    '/_authenticated/admin/countries/$code/narrative/opposition/$id': {
+      id: '/_authenticated/admin/countries/$code/narrative/opposition/$id'
+      path: '/opposition/$id'
+      fullPath: '/admin/countries/$code/narrative/opposition/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
+    }
+    '/_authenticated/admin/countries/$code/executive/chamber/$chamber': {
+      id: '/_authenticated/admin/countries/$code/executive/chamber/$chamber'
+      path: '/chamber/$chamber'
+      fullPath: '/admin/countries/$code/executive/chamber/$chamber'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRoute
+    }
+    '/_authenticated/admin/countries/$code/egov_/$prdId_/document': {
+      id: '/_authenticated/admin/countries/$code/egov_/$prdId_/document'
+      path: '/countries/$code/egov/$prdId/document'
+      fullPath: '/admin/countries/$code/egov/$prdId/document'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/countries/$code/cabinet/session/$sid': {
+      id: '/_authenticated/admin/countries/$code/cabinet/session/$sid'
+      path: '/countries/$code/cabinet/session/$sid'
+      fullPath: '/admin/countries/$code/cabinet/session/$sid'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/countries/$code/cabinet/minutes/$sid': {
+      id: '/_authenticated/admin/countries/$code/cabinet/minutes/$sid'
+      path: '/countries/$code/cabinet/minutes/$sid'
+      fullPath: '/admin/countries/$code/cabinet/minutes/$sid'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/countries/$code/cabinet/agenda/$sid': {
+      id: '/_authenticated/admin/countries/$code/cabinet/agenda/$sid'
+      path: '/countries/$code/cabinet/agenda/$sid'
+      fullPath: '/admin/countries/$code/cabinet/agenda/$sid'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/countries/$code/investments/$id/package/$packageId': {
       id: '/_authenticated/admin/countries/$code/investments/$id/package/$packageId'

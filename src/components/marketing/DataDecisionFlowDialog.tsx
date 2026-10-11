@@ -1,6 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useState, type ButtonHTMLAttributes } from "react";
+import { forwardRef, useState, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 import { ChamberDecisionJourneys } from "./ChamberDecisionJourneys";
 import { DataDecisionFlow } from "./DataDecisionFlow";
@@ -12,30 +12,33 @@ type FlowMode = "national" | "chamber";
  * Two variants share one plate contract (`btn-flow-lens`): the lens emblem for
  * the national map, the ten-cell grid for the Chamber journeys.
  */
-function FlowLensPlate({
-  mode,
-  headline,
-  caption,
-  emblem,
-  onPick,
-  ...rest
-}: {
-  mode: FlowMode;
-  headline: string;
-  caption: string;
-  emblem: "lens" | "grid";
-  onPick: () => void;
-} & ButtonHTMLAttributes<HTMLButtonElement>) {
+const FlowLensPlate = forwardRef<
+  HTMLButtonElement,
+  {
+    mode: FlowMode;
+    headline: string;
+    caption: string;
+    emblem: "lens" | "grid";
+    onPick: () => void;
+  } & ButtonHTMLAttributes<HTMLButtonElement>
+>(function FlowLensPlate(
+  { mode, headline, caption, emblem, onPick, className, onClick, ...rest },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       type="button"
       {...rest}
       onClick={(event) => {
         onPick();
-        rest.onClick?.(event);
+        onClick?.(event);
       }}
       data-mode={mode}
-      className="btn-flow-lens relative z-10 w-full flex-row items-center gap-3 px-4 py-4 text-left sm:px-5"
+      className={cn(
+        "btn-flow-lens relative z-10 w-full flex-row items-center gap-3 px-4 py-4 text-left sm:px-5",
+        className,
+      )}
     >
       {/* Internal gold frame of the etched plate */}
       <span
@@ -111,7 +114,7 @@ function FlowLensPlate({
       </span>
     </button>
   );
-}
+});
 
 export function DataDecisionFlowDialog() {
   const [mode, setMode] = useState<FlowMode>("national");

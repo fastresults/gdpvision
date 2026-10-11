@@ -70,11 +70,7 @@ function FlowLensPlate({
             aria-hidden="true"
             className="absolute inset-1 rounded-full border border-dashed border-ink-950/50 animate-[spin_14s_linear_infinite] motion-reduce:animate-none"
           />
-          <svg
-            viewBox="0 0 24 24"
-            className="relative h-4 w-4 fill-gold-500"
-            aria-hidden="true"
-          >
+          <svg viewBox="0 0 24 24" className="relative h-4 w-4 fill-gold-500" aria-hidden="true">
             <path d="M12 2l2.1 7.9L22 12l-7.9 2.1L12 22l-2.1-7.9L2 12l7.9-2.1z" />
           </svg>
         </span>

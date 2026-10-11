@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Put a "By Chamber" entry plate beside "Data & Decision Flow" on the homepage hero, above the fold
+
 - [x] Add Chamber Decision Journeys: a Federal Reserve-ready scenario presentation with all ten Chambers, six-act flows and Prime Minister benefits
 
 - [x] Replace the homepage Sovereignty engraving with the animated Sovereign Custody Seal

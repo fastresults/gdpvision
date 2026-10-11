@@ -1,8 +1,12 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { ChamberDecisionJourneys } from "./ChamberDecisionJourneys";
 import { DataDecisionFlow } from "./DataDecisionFlow";
 
 export function DataDecisionFlowDialog() {
+  const [mode, setMode] = useState<"national" | "chamber">("national");
   return (
     <div className="group relative flex flex-col items-center">
       {/* Faint engraved sketch rings — hint at the living diagram behind the plate */}
@@ -15,8 +19,24 @@ export function DataDecisionFlowDialog() {
           fill="none"
           className="h-full w-full animate-[spin_60s_linear_infinite] motion-reduce:animate-none"
         >
-          <circle cx="100" cy="100" r="78" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 4" className="text-ink-950" />
-          <circle cx="100" cy="100" r="94" stroke="currentColor" strokeWidth="0.3" strokeDasharray="1 8" className="text-ink-950" />
+          <circle
+            cx="100"
+            cy="100"
+            r="78"
+            stroke="currentColor"
+            strokeWidth="0.5"
+            strokeDasharray="2 4"
+            className="text-ink-950"
+          />
+          <circle
+            cx="100"
+            cy="100"
+            r="94"
+            stroke="currentColor"
+            strokeWidth="0.3"
+            strokeDasharray="1 8"
+            className="text-ink-950"
+          />
           <path
             d="M100 5v10M100 185v10M5 100h10M185 100h10"
             stroke="currentColor"
@@ -29,12 +49,27 @@ export function DataDecisionFlowDialog() {
         <DialogPrimitive.Trigger asChild>
           <button type="button" className="btn-flow-lens relative z-10 flex-col gap-2 px-10 py-5">
             {/* Internal gold frame of the etched plate */}
-            <span aria-hidden="true" className="pointer-events-none absolute inset-1.5 border border-gold-500/40" />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-1.5 border border-gold-500/40"
+            />
             {/* Corner etchings */}
-            <span aria-hidden="true" className="pointer-events-none absolute left-2.5 top-2.5 h-2 w-2 border-l border-t border-gold-500/70" />
-            <span aria-hidden="true" className="pointer-events-none absolute right-2.5 top-2.5 h-2 w-2 border-r border-t border-gold-500/70" />
-            <span aria-hidden="true" className="pointer-events-none absolute bottom-2.5 left-2.5 h-2 w-2 border-b border-l border-gold-500/70" />
-            <span aria-hidden="true" className="pointer-events-none absolute bottom-2.5 right-2.5 h-2 w-2 border-b border-r border-gold-500/70" />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-2.5 top-2.5 h-2 w-2 border-l border-t border-gold-500/70"
+            />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute right-2.5 top-2.5 h-2 w-2 border-r border-t border-gold-500/70"
+            />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute bottom-2.5 left-2.5 h-2 w-2 border-b border-l border-gold-500/70"
+            />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute bottom-2.5 right-2.5 h-2 w-2 border-b border-r border-gold-500/70"
+            />
 
             {/* The lens emblem */}
             <span className="relative flex h-9 w-9 items-center justify-center">
@@ -46,7 +81,11 @@ export function DataDecisionFlowDialog() {
                 aria-hidden="true"
                 className="absolute inset-1 rounded-full border border-dashed border-ink-950/50 animate-[spin_14s_linear_infinite] motion-reduce:animate-none"
               />
-              <svg viewBox="0 0 24 24" className="relative h-4 w-4 fill-gold-500" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                className="relative h-4 w-4 fill-gold-500"
+                aria-hidden="true"
+              >
                 <path d="M12 2l2.1 7.9L22 12l-7.9 2.1L12 22l-2.1-7.9L2 12l7.9-2.1z" />
               </svg>
             </span>
@@ -62,22 +101,52 @@ export function DataDecisionFlowDialog() {
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-paper-0" />
           <DialogPrimitive.Content className="fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-y-auto bg-paper-0 p-4 md:p-8">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
-                <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">The National Decision Engine</div>
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
+                  GDPVision Decision Engine
+                </div>
                 <DialogPrimitive.Title className="mt-1 font-display text-2xl text-ink-950 md:text-3xl">
-                  How a nation decides faster — and why that raises GDP
+                  {mode === "national"
+                    ? "How a nation decides faster — and why that raises GDP"
+                    : "Follow one decision through the Chamber built to handle it"}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="mt-1 max-w-2xl text-[14px] text-ink-700">
-                  One flow, five steps: evidence in, protected, worked, decided, GDP up.
+                  {mode === "national"
+                    ? "One flow, five steps: evidence in, protected, worked, decided, GDP up."
+                    : "Choose a real scenario, watch GDPVision select the Chamber, then open its method and executive value."}
                 </DialogPrimitive.Description>
+              </div>
+              <div
+                className="order-3 flex w-full justify-center gap-1 border-y border-line-200 py-2 md:order-none md:w-auto md:border-y-0 md:py-0"
+                role="tablist"
+                aria-label="Decision flow view"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === "national"}
+                  onClick={() => setMode("national")}
+                  className={cn("btn-ghost", mode === "national" && "btn-filter-active")}
+                >
+                  National system
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === "chamber"}
+                  onClick={() => setMode("chamber")}
+                  className={cn("btn-ghost", mode === "chamber" && "btn-filter-active")}
+                >
+                  By Chamber
+                </button>
               </div>
               <DialogPrimitive.Close className="btn-ghost shrink-0" aria-label="Close">
                 <X className="h-5 w-5" />
               </DialogPrimitive.Close>
             </div>
-            <div className="md:min-h-0 md:flex-1">
-              <DataDecisionFlow />
+            <div className="flex min-w-0 md:min-h-0 md:flex-1">
+              {mode === "national" ? <DataDecisionFlow /> : <ChamberDecisionJourneys />}
             </div>
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>

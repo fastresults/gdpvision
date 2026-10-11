@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useHoverIntent } from "@/hooks/useHoverIntent";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "@tanstack/react-router";
 import { CHAMBERS } from "@/lib/chambers";
 
@@ -63,6 +64,8 @@ export function CorpusChamberRing() {
   }, []);
 
   const [rot, setRot] = useState(0);
+  const releaseActive = useCallback(() => setActive(null), []);
+  const { hover } = useHoverIntent<number | "core">(setActive, releaseActive);
   const pausedRef = useRef(false);
   pausedRef.current = active !== null;
 
@@ -94,8 +97,22 @@ export function CorpusChamberRing() {
     >
       <svg viewBox="-120 -6 560 332" className="block h-auto w-full overflow-visible">
         <defs>
-          <pattern id="ccr-hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="4" stroke="var(--color-ink-700)" strokeWidth="0.5" opacity="0.35" />
+          <pattern
+            id="ccr-hatch"
+            width="4"
+            height="4"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <line
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="4"
+              stroke="var(--color-ink-700)"
+              strokeWidth="0.5"
+              opacity="0.35"
+            />
           </pattern>
         </defs>
 
@@ -108,24 +125,58 @@ export function CorpusChamberRing() {
             const [tx, ty] = pt(R_MID, mid);
             const dim = active !== null && active !== i;
             return (
-              <g key={c.index} className="ccr-piece" style={{ ["--i" as string]: i, ["--dx" as string]: `${ox}px`, ["--dy" as string]: `${oy}px`, transformOrigin: `${C}px ${C}px` }}>
+              <g
+                key={c.index}
+                className="ccr-piece"
+                style={{
+                  ["--i" as string]: i,
+                  ["--dx" as string]: `${ox}px`,
+                  ["--dy" as string]: `${oy}px`,
+                  transformOrigin: `${C}px ${C}px`,
+                }}
+              >
                 <Link
                   to="/"
                   hash="instrument"
                   aria-label={`Chamber ${c.index}: ${c.title}. ${c.outcome}`}
-                  onMouseEnter={() => setActive(i)}
-                  onMouseLeave={() => setActive(null)}
+                  {...hover(i)}
                   onFocus={() => setActive(i)}
                   onBlur={() => setActive(null)}
                   className="outline-none"
                 >
                   <g
-                    style={{ transform: active === i ? `translate(${lx}px, ${ly}px)` : undefined, opacity: dim ? 0.35 : 1, transition: "transform .3s ease, opacity .3s ease" }}
+                    style={{
+                      transform: active === i ? `translate(${lx}px, ${ly}px)` : undefined,
+                      opacity: dim ? 0.35 : 1,
+                      transition: "transform .3s ease, opacity .3s ease",
+                    }}
                   >
-                    <path d={piecePath(i)} fill="var(--color-paper-0)" stroke="var(--color-ink-700)" strokeWidth="0.9" />
+                    <path
+                      d={piecePath(i)}
+                      fill="var(--color-paper-0)"
+                      stroke="var(--color-ink-700)"
+                      strokeWidth="0.9"
+                    />
                     <path d={piecePath(i)} fill="url(#ccr-hatch)" />
-                    <path className="ccr-glow" style={{ ["--i" as string]: i }} d={piecePath(i)} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.4" />
-                    <text x={tx} y={ty} textAnchor="middle" dominantBaseline="central" transform={`rotate(${(((mid + rot) % 360) + 360) % 360 > 90 && (((mid + rot) % 360) + 360) % 360 < 270 ? mid + 180 : mid} ${tx} ${ty})`} className="font-mono" fontSize="10" fill="var(--color-ink-950)" style={{ letterSpacing: "0.08em" }}>
+                    <path
+                      className="ccr-glow"
+                      style={{ ["--i" as string]: i }}
+                      d={piecePath(i)}
+                      fill="none"
+                      stroke="var(--color-gold-500)"
+                      strokeWidth="1.4"
+                    />
+                    <text
+                      x={tx}
+                      y={ty}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      transform={`rotate(${(((mid + rot) % 360) + 360) % 360 > 90 && (((mid + rot) % 360) + 360) % 360 < 270 ? mid + 180 : mid} ${tx} ${ty})`}
+                      className="font-mono"
+                      fontSize="10"
+                      fill="var(--color-ink-950)"
+                      style={{ letterSpacing: "0.08em" }}
+                    >
                       {c.index}
                     </text>
                   </g>
@@ -133,43 +184,54 @@ export function CorpusChamberRing() {
               </g>
             );
           })}
-
         </g>
 
         {/* Chamber names (static, outside the ring) */}
         {CHAMBERS.map((c, i) => {
           const mid = (((i * STEP + STEP / 2 + rot) % 360) + 360) % 360;
           const [x, y] = pt(R_OUT + 12, mid);
-          const anchor = mid > 12 && mid < 168 ? "start" : mid > 192 && mid < 348 ? "end" : "middle";
+          const anchor =
+            mid > 12 && mid < 168 ? "start" : mid > 192 && mid < 348 ? "end" : "middle";
           const dim = active !== null && active !== i;
           return (
             <g key={`n-${c.index}`}>
-            <text
-              className="ccr-name font-mono"
-              x={x}
-              y={y}
-              textAnchor={anchor}
-              dominantBaseline="central"
-              fontSize="11"
-              fill={active === i ? "var(--color-ink-950)" : "var(--color-ink-700)"}
-              style={{ ["--i" as string]: i, letterSpacing: "0.06em", opacity: dim ? 0.35 : undefined, fontWeight: active === i ? 600 : 400 }}
-              aria-hidden
-            >
-              {c.title.replace(/^The /, "")}
-            </text>
+              <text
+                className="ccr-name font-mono"
+                x={x}
+                y={y}
+                textAnchor={anchor}
+                dominantBaseline="central"
+                fontSize="11"
+                fill={active === i ? "var(--color-ink-950)" : "var(--color-ink-700)"}
+                style={{
+                  ["--i" as string]: i,
+                  letterSpacing: "0.06em",
+                  opacity: dim ? 0.35 : undefined,
+                  fontWeight: active === i ? 600 : 400,
+                }}
+                aria-hidden
+              >
+                {c.title.replace(/^The /, "")}
+              </text>
             </g>
           );
         })}
         {/* Rising GDP line */}
-        <path className="ccr-rise" d={`M ${C} ${C - 30} C ${C + 6} 70, ${C - 4} 30, ${C + 10} 4`} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.2" pathLength={1} />
+        <path
+          className="ccr-rise"
+          d={`M ${C} ${C - 30} C ${C + 6} 70, ${C - 4} 30, ${C + 10} 4`}
+          fill="none"
+          stroke="var(--color-gold-500)"
+          strokeWidth="1.2"
+          pathLength={1}
+        />
 
         {/* Corpus core */}
         <g
           tabIndex={0}
           role="img"
           aria-label="The Corpus: graded, cited national evidence."
-          onMouseEnter={() => setActive("core")}
-          onMouseLeave={() => setActive(null)}
+          {...hover("core")}
           onFocus={() => setActive("core")}
           onBlur={() => setActive(null)}
           className="outline-none"
@@ -177,19 +239,55 @@ export function CorpusChamberRing() {
           <g className="ccr-core" style={{ transformOrigin: `${C}px ${C}px` }}>
             <circle cx={C} cy={C} r={70} fill="var(--color-paper-0)" />
             {[70, 58, 46].map((r) => (
-              <circle key={r} className="ccr-draw" cx={C} cy={C} r={r} fill="none" stroke="var(--color-ink-700)" strokeWidth={r === 70 ? 1 : 0.5} pathLength={1} />
+              <circle
+                key={r}
+                className="ccr-draw"
+                cx={C}
+                cy={C}
+                r={r}
+                fill="none"
+                stroke="var(--color-ink-700)"
+                strokeWidth={r === 70 ? 1 : 0.5}
+                pathLength={1}
+              />
             ))}
             <circle cx={C} cy={C} r={34} fill="url(#ccr-hatch)" />
           </g>
           <g transform={`translate(${C} ${C})`}>
             {FRAGMENTS.map((p, k) => (
-              <circle key={k} className="ccr-frag" r="1.6" fill="var(--color-ink-700)" style={{ ["--fx" as string]: `${p.x}px`, ["--fy" as string]: `${p.y}px`, animationDelay: `${p.d}s` }} />
+              <circle
+                key={k}
+                className="ccr-frag"
+                r="1.6"
+                fill="var(--color-ink-700)"
+                style={{
+                  ["--fx" as string]: `${p.x}px`,
+                  ["--fy" as string]: `${p.y}px`,
+                  animationDelay: `${p.d}s`,
+                }}
+              />
             ))}
           </g>
-          <text x={C} y={C - 3} textAnchor="middle" className="font-mono" fontSize="10" fill="var(--color-ink-950)" style={{ letterSpacing: "0.22em" }}>
+          <text
+            x={C}
+            y={C - 3}
+            textAnchor="middle"
+            className="font-mono"
+            fontSize="10"
+            fill="var(--color-ink-950)"
+            style={{ letterSpacing: "0.22em" }}
+          >
             CORPUS
           </text>
-          <text x={C} y={C + 11} textAnchor="middle" className="font-mono" fontSize="6.5" fill="var(--color-ink-500)" style={{ letterSpacing: "0.18em" }}>
+          <text
+            x={C}
+            y={C + 11}
+            textAnchor="middle"
+            className="font-mono"
+            fontSize="6.5"
+            fill="var(--color-ink-500)"
+            style={{ letterSpacing: "0.18em" }}
+          >
             GRADED · CITED
           </text>
         </g>
@@ -204,7 +302,9 @@ export function CorpusChamberRing() {
         <div className="mt-2 min-h-[34px] text-[12px] leading-snug text-ink-500" aria-live="polite">
           {ch ? (
             <>
-              <span className="font-mono text-ink-950">{ch.index} · {ch.title}</span>
+              <span className="font-mono text-ink-950">
+                {ch.index} · {ch.title}
+              </span>
               <br />
               {ch.outcome}
             </>

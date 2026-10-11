@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useHoverIntent } from "@/hooks/useHoverIntent";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CHAMBER_NAMES } from "./dataDecisionScenarios";
@@ -156,6 +157,11 @@ export function ChamberDecisionJourneys() {
   const [act, setAct] = useState(0);
   const [beat, setBeat] = useState(0);
   const [playing, setPlaying] = useState(true);
+  const [hoverHold, setHoverHold] = useState(false);
+  const { hover: holdHover } = useHoverIntent<true>(
+    useCallback(() => setHoverHold(true), []),
+    useCallback(() => setHoverHold(false), []),
+  );
   const [cycle, setCycle] = useState(0);
   const [reduce, setReduce] = useState(false);
   const journey = CHAMBER_JOURNEYS[journeyIndex];
@@ -166,7 +172,7 @@ export function ChamberDecisionJourneys() {
 
   useEffect(() => setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches), []);
   useEffect(() => {
-    if (!playing || reduce || act >= JOURNEY_ACTS.length - 1) return;
+    if (!playing || hoverHold || reduce || act >= JOURNEY_ACTS.length - 1) return;
     const beats = BEATS[act];
     const timer = window.setTimeout(
       () => {
@@ -179,7 +185,7 @@ export function ChamberDecisionJourneys() {
       beats ? beats.ms : ACT_MS,
     );
     return () => window.clearTimeout(timer);
-  }, [act, beat, playing, reduce, cycle]);
+  }, [act, beat, playing, hoverHold, reduce, cycle]);
 
   const chooseJourney = (next: ChamberJourney) => {
     const index = CHAMBER_JOURNEYS.findIndex((item) => item.id === next.id);
@@ -311,7 +317,9 @@ export function ChamberDecisionJourneys() {
 
         <div
           key={`${journey.id}-${act}-${cycle}`}
-          className="cjj mt-3 min-h-[430px] flex-1 overflow-hidden border border-line-200 bg-paper-50"
+          {...holdHover(true)}
+          data-held={hoverHold || undefined}
+          className="hover-intent cjj mt-3 min-h-[430px] flex-1 overflow-hidden border border-line-200 bg-paper-50"
         >
           <EvidencePlate journey={journey} act={act} beat={reduce ? 9 : beat} />
         </div>

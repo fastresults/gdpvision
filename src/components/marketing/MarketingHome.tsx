@@ -335,11 +335,14 @@ export function MarketingHome() {
             </div>
           </div>
           <div className="relative flex flex-col items-center justify-center md:self-start">
-            <DataDecisionFlowDialog />
-            <div className="mt-24 flex w-full justify-center md:mt-40">
+            <div className="flex w-full justify-center">
               <SignatureRing size={520} />
             </div>
+            <div className="mt-14 flex w-full justify-center md:mt-20">
+              <DataDecisionFlowDialog />
+            </div>
           </div>
+
         </div>
       </section>
 

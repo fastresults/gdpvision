@@ -5,11 +5,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent } from "rea
  * before `commit(value)` runs; leaving clears the timer and calls `release()`.
  * Touch/pen pointers are ignored (taps keep their existing click behaviour).
  */
-export function useHoverIntent<T>(
-  commit: (value: T) => void,
-  release: () => void,
-  delay = 1500,
-) {
+export function useHoverIntent<T>(commit: (value: T) => void, release: () => void, delay = 1500) {
   const timer = useRef<number | null>(null);
   const [pending, setPending] = useState<T | null>(null);
   const clear = () => {
@@ -38,7 +34,6 @@ export function useHoverIntent<T>(
         release();
       },
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [pending, delay, commit, release],
   );
 

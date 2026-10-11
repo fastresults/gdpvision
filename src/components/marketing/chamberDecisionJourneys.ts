@@ -324,10 +324,11 @@ function buildStages(scenario: Scenario, method: ChamberMethod): StageDetail[] {
   const steps = scenario.steps.map((step) => step.text);
   const details: StageDetail[] = [];
   method.stages.forEach((stage, index) => {
-    const step = steps[Math.min(steps.length - 1, Math.round((index * (steps.length - 1)) / 4))];
+    const step = steps[Math.min(index, steps.length - 1)];
     const [left, rest = left] = step.split("→").map((part) => part.trim());
     const colon = rest.indexOf(":");
-    const out = colon >= 0 ? rest.slice(colon + 1).trim() : `Passed to ${rest.replace(/\.$/, "")}.`;
+    const out =
+      colon >= 0 ? rest.slice(colon + 1).trim() : `Gathered into the ${rest.replace(/\.$/, "")}.`;
     details.push({
       stage,
       input: index === 0 ? left : details[index - 1].output,

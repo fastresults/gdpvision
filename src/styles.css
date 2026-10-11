@@ -1845,3 +1845,9 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* Hover intent: 1.5s rest pauses an animation; a gold edge fills while waiting. */
+@keyframes hover-intent-fill { from { box-shadow: inset 0 0 0 0 var(--color-gold-500); } to { box-shadow: inset 0 0 0 2px var(--color-gold-500); } }
+.hover-intent[data-intent="pending"] { animation: hover-intent-fill 1.5s linear both; }
+.hover-intent[data-held] { box-shadow: inset 0 0 0 2px var(--color-gold-500); }
+@media (prefers-reduced-motion: reduce) { .hover-intent[data-intent="pending"] { animation: none; } }

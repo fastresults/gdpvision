@@ -317,7 +317,9 @@ export function ChamberDecisionJourneys() {
 
         <div
           key={`${journey.id}-${act}-${cycle}`}
-          className="cjj mt-3 min-h-[430px] flex-1 overflow-hidden border border-line-200 bg-paper-50"
+          {...holdHover(true)}
+          data-held={hoverHold || undefined}
+          className="hover-intent cjj mt-3 min-h-[430px] flex-1 overflow-hidden border border-line-200 bg-paper-50"
         >
           <EvidencePlate journey={journey} act={act} beat={reduce ? 9 : beat} />
         </div>

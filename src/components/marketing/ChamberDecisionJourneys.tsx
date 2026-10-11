@@ -1,20 +1,22 @@
-import { useHoverIntent } from "@/hooks/useHoverIntent";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CHAMBER_NAMES } from "./dataDecisionScenarios";
 import { CHAMBER_JOURNEYS, JOURNEY_ACTS, type ChamberJourney } from "./chamberDecisionJourneys";
-import { BENEFIT_SLOTS } from "./chamberJourneyExtras";
 import { ChamberDossier } from "./journeys/ChamberDossier";
 import { ChamberRouter } from "./journeys/ChamberRouter";
+import { DecisionArrival } from "./journeys/DecisionArrival";
+import { EvidenceAssembly } from "./journeys/EvidenceAssembly";
+import { ExecutiveDividend } from "./journeys/ExecutiveDividend";
+import { InquiryDesk } from "./journeys/InquiryDesk";
+import { visualAudit } from "./journeys/journeyVisuals";
 
-const ACT_MS = 6000;
-/** Acts with internal beats: Select the Chamber (3 beats), Open the Chamber (5 stages). */
-const BEATS: Record<number, { count: number; ms: number }> = {
-  3: { count: 3, ms: 3200 },
-  4: { count: 5, ms: 3000 },
-};
+const BEAT_MS = [3600, 3000, 3300, 3200, 2500, 3200] as const;
 const CHAMBER_INDICES = Object.keys(CHAMBER_NAMES);
+
+function beatCount(act: number, journey: ChamberJourney) {
+  return [4, 6, 5, 5, journey.stageDetail.length * 6, 6][act] ?? 1;
+}
 
 function EvidencePlate({
   journey,
@@ -25,127 +27,14 @@ function EvidencePlate({
   act: number;
   beat: number;
 }) {
-  const evidence = ["Public evidence", "Sovereign records", "Citations & grades"];
-
-  if (act === 0) {
-    return (
-      <div className="cjj-question flex h-full flex-col justify-center px-6 md:px-14">
-        <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold-500">
-          A decision arrives
-        </div>
-        <blockquote className="mt-5 max-w-5xl font-display text-3xl leading-tight text-ink-950 md:text-5xl lg:text-6xl">
-          “{journey.question}”
-        </blockquote>
-        <p className="mt-7 max-w-2xl text-[15px] leading-relaxed text-ink-700">
-          The question is not sent to a generic chatbot. It enters a governed national decision
-          system built around the state’s evidence, authority and delivery machinery.
-        </p>
-      </div>
-    );
-  }
-
-  if (act === 1) {
-    return (
-      <div className="flex h-full items-center justify-center px-6">
-        <div className="cjj-inquiry relative w-full max-w-4xl border border-ink-950 bg-paper-0 px-8 py-10 text-center md:px-14 md:py-14">
-          <span className="absolute inset-2 border border-gold-500/40" aria-hidden="true" />
-          <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
-            Inquiry received · sovereign context opened
-          </div>
-          <div className="mx-auto my-7 h-px w-32 bg-gold-500" />
-          <p className="font-display text-2xl text-ink-950 md:text-4xl">
-            GDPVision frames the decision before it searches for an answer.
-          </p>
-          <p className="mx-auto mt-5 max-w-2xl text-[14px] leading-relaxed text-ink-700">
-            Country, time horizon, affected ministries, economic exposures, authority and evidence
-            requirements are made explicit.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (act === 2) {
-    return (
-      <div className="flex h-full flex-col justify-center px-5 md:px-10">
-        <div className="grid gap-5 md:grid-cols-3">
-          {evidence.map((label, index) => (
-            <div
-              key={label}
-              className="cjj-evidence relative min-h-44 border border-line-200 bg-paper-0 p-5"
-              style={{ animationDelay: `${index * 0.35}s` }}
-            >
-              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-500">
-                0{index + 1}
-              </div>
-              <h3 className="mt-5 font-display text-2xl text-ink-950">{label}</h3>
-              <p className="mt-3 text-[13px] leading-relaxed text-ink-700">
-                {index === 0 &&
-                  "Official figures, national accounts, ministries, KPIs, capital flows and peer comparisons."}
-                {index === 1 &&
-                  "Sensitive state records remain inside the Sovereign Vault; only approved findings move forward."}
-                {index === 2 &&
-                  "Every material figure carries its source, quality and explanation into the decision."}
-              </p>
-              <span
-                className="absolute bottom-0 left-0 h-0.5 bg-gold-500 cjj-rule"
-                aria-hidden="true"
-              />
-            </div>
-          ))}
-        </div>
-        <p className="mt-7 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
-          The system retrieves what this decision needs — not everything it can find
-        </p>
-      </div>
-    );
-  }
+  if (act === 0) return <DecisionArrival journey={journey} beat={beat} />;
+  if (act === 1) return <InquiryDesk journey={journey} beat={beat} />;
+  if (act === 2) return <EvidenceAssembly journey={journey} beat={beat} />;
 
   if (act === 3) return <ChamberRouter journey={journey} beat={beat} />;
   if (act === 4) return <ChamberDossier journey={journey} beat={beat} />;
 
-  const benefits = Object.values(journey.benefits);
-  return (
-    <div className="h-full overflow-auto px-5 py-6 md:px-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold-500">
-          Executive dividend register · {journey.title}
-        </div>
-        <h3 className="mt-2 font-display text-3xl text-ink-950 md:text-4xl">
-          What this changes for the Prime Minister
-        </h3>
-        <ol className="mt-6 grid gap-px border border-line-200 bg-line-200 md:grid-cols-5">
-          {benefits.map((benefit, index) => {
-            const slot = BENEFIT_SLOTS[index];
-            return (
-              <li
-                key={slot.label}
-                className="cjj-benefit flex min-h-56 flex-col bg-paper-0 p-4"
-                style={{ animationDelay: `${index * 0.45}s` }}
-              >
-                <span className="font-mono text-[11px] font-semibold text-gold-500">
-                  0{index + 1} · {slot.label}
-                </span>
-                <strong className="mt-3 block font-display text-lg leading-tight text-ink-950">
-                  {slot.headline}
-                </strong>
-                <p className="mt-2 text-[13px] leading-relaxed text-ink-700">{benefit}</p>
-                <p className="mt-auto border-t border-dashed border-line-200 pt-2 text-[11px] italic leading-snug text-ink-500">
-                  {slot.before}
-                </p>
-              </li>
-            );
-          })}
-        </ol>
-        <p
-          className="cjj-benefit mt-7 border-l-2 border-gold-500 pl-4 font-display text-xl italic text-ink-950 md:text-2xl"
-          style={{ animationDelay: "2.5s" }}
-        >
-          Faster, defensible decisions — protected growth. {journey.outcome}
-        </p>
-      </div>
-    </div>
-  );
+  return <ExecutiveDividend journey={journey} beat={beat} />;
 }
 
 export function ChamberDecisionJourneys() {
@@ -157,11 +46,6 @@ export function ChamberDecisionJourneys() {
   const [act, setAct] = useState(0);
   const [beat, setBeat] = useState(0);
   const [playing, setPlaying] = useState(true);
-  const [hoverHold, setHoverHold] = useState(false);
-  const { hover: holdHover } = useHoverIntent<true>(
-    useCallback(() => setHoverHold(true), []),
-    useCallback(() => setHoverHold(false), []),
-  );
   const [cycle, setCycle] = useState(0);
   const [reduce, setReduce] = useState(false);
   const journey = CHAMBER_JOURNEYS[journeyIndex];
@@ -169,23 +53,28 @@ export function ChamberDecisionJourneys() {
     () => CHAMBER_JOURNEYS.filter((item) => item.chamber === chamber),
     [chamber],
   );
+  const audit = useMemo(() => CHAMBER_JOURNEYS.every((item) => visualAudit(item).complete), []);
 
   useEffect(() => setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches), []);
   useEffect(() => {
-    if (!playing || hoverHold || reduce || act >= JOURNEY_ACTS.length - 1) return;
-    const beats = BEATS[act];
+    if (!playing || reduce) return;
+    const count = beatCount(act, journey);
     const timer = window.setTimeout(
       () => {
-        if (beats && beat < beats.count - 1) setBeat((b) => b + 1);
-        else {
+        if (beat < count - 1) setBeat((b) => b + 1);
+        else if (act < JOURNEY_ACTS.length - 1) {
           setBeat(0);
           setAct((current) => current + 1);
         }
+        else {
+          setBeat(0);
+          setAct(0);
+        }
       },
-      beats ? beats.ms : ACT_MS,
+      BEAT_MS[act],
     );
     return () => window.clearTimeout(timer);
-  }, [act, beat, playing, hoverHold, reduce, cycle]);
+  }, [act, beat, playing, reduce, cycle, journey]);
 
   const chooseJourney = (next: ChamberJourney) => {
     const index = CHAMBER_JOURNEYS.findIndex((item) => item.id === next.id);
@@ -202,14 +91,14 @@ export function ChamberDecisionJourneys() {
     setBeat(nextBeat);
     setCycle((value) => value + 1);
   };
-  const beatsHere = reduce ? 1 : (BEATS[act]?.count ?? 1);
+  const beatsHere = beatCount(act, journey);
   const stepForward = () => {
     if (beat < beatsHere - 1) setBeat((b) => b + 1);
     else goToAct(act + 1);
   };
   const stepBack = () => {
     if (beat > 0) setBeat((b) => b - 1);
-    else goToAct(act - 1, reduce ? 0 : Math.max(0, (BEATS[act - 1]?.count ?? 1) - 1));
+    else goToAct(act - 1, Math.max(0, beatCount(act - 1, journey) - 1));
   };
 
   return (
@@ -317,11 +206,21 @@ export function ChamberDecisionJourneys() {
 
         <div
           key={`${journey.id}-${act}-${cycle}`}
-          {...holdHover(true)}
-          data-held={hoverHold || undefined}
-          className="hover-intent cjj mt-3 min-h-[430px] flex-1 overflow-hidden border border-line-200 bg-paper-50"
+          data-held={!playing || undefined}
+          onClick={() => !reduce && setPlaying((value) => !value)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              if (!reduce) setPlaying((value) => !value);
+            }
+          }}
+          aria-label={playing ? "Pause decision theatre" : "Resume decision theatre"}
+          className="hover-intent cjj relative mt-3 min-h-[430px] flex-1 cursor-pointer overflow-hidden border border-line-200 bg-paper-50"
         >
-          <EvidencePlate journey={journey} act={act} beat={reduce ? 9 : beat} />
+          <EvidencePlate journey={journey} act={act} beat={reduce ? beatCount(act, journey) - 1 : beat} />
+          {!playing && !reduce && <span className="pointer-events-none absolute right-3 top-3 border border-gold-500 bg-ink-950 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.16em] text-gold-300">Paused · click to resume</span>}
         </div>
 
         <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
@@ -359,7 +258,7 @@ export function ChamberDecisionJourneys() {
               type="button"
               className="btn-secondary"
               onClick={() => setPlaying((value) => !value)}
-              disabled={reduce || act === JOURNEY_ACTS.length - 1}
+              disabled={reduce}
             >
               {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               {playing ? "Pause" : "Play"}
@@ -381,6 +280,7 @@ export function ChamberDecisionJourneys() {
               ? Object.values(journey.benefits).join(" ")
               : journey.question}
         </p>
+        {!audit && <p className="sr-only">One or more journeys has incomplete visual content.</p>}
       </section>
     </div>
   );

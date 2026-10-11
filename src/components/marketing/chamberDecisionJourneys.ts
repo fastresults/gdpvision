@@ -1,5 +1,6 @@
 import { CHAMBER_NAMES, SCENARIOS, type Scenario } from "./dataDecisionScenarios";
 import { MORE_BENEFITS, PROFILES, type JourneyProfile } from "./chamberJourneyExtras";
+import { visualAudit } from "./journeys/journeyVisuals";
 
 export const JOURNEY_ACTS = [
   "The question",
@@ -387,7 +388,8 @@ if (import.meta.env.DEV) {
       !journey.method ||
       !journey.benefits ||
       !journey.profile ||
-      journey.method.stages.length !== 5
+      journey.method.stages.length !== 5 ||
+      !visualAudit(journey).complete
     ) {
       console.error(`[ChamberDecisionJourneys] incomplete journey: ${journey.title}`);
     }

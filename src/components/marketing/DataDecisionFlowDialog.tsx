@@ -1,6 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useState, type ButtonHTMLAttributes } from "react";
+import { forwardRef, useState, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 import { ChamberDecisionJourneys } from "./ChamberDecisionJourneys";
 import { DataDecisionFlow } from "./DataDecisionFlow";
@@ -12,30 +12,33 @@ type FlowMode = "national" | "chamber";
  * Two variants share one plate contract (`btn-flow-lens`): the lens emblem for
  * the national map, the ten-cell grid for the Chamber journeys.
  */
-function FlowLensPlate({
-  mode,
-  headline,
-  caption,
-  emblem,
-  onPick,
-  ...rest
-}: {
-  mode: FlowMode;
-  headline: string;
-  caption: string;
-  emblem: "lens" | "grid";
-  onPick: () => void;
-} & ButtonHTMLAttributes<HTMLButtonElement>) {
+const FlowLensPlate = forwardRef<
+  HTMLButtonElement,
+  {
+    mode: FlowMode;
+    headline: string;
+    caption: string;
+    emblem: "lens" | "grid";
+    onPick: () => void;
+  } & ButtonHTMLAttributes<HTMLButtonElement>
+>(function FlowLensPlate(
+  { mode, headline, caption, emblem, onPick, className, onClick, ...rest },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       type="button"
       {...rest}
       onClick={(event) => {
         onPick();
-        rest.onClick?.(event);
+        onClick?.(event);
       }}
       data-mode={mode}
-      className="btn-flow-lens relative z-10 w-full flex-row items-center gap-3 px-4 py-4 text-left sm:px-5"
+      className={cn(
+        "btn-flow-lens relative z-10 w-full flex-row items-center gap-3 px-4 py-4 text-left sm:px-5",
+        className,
+      )}
     >
       {/* Internal gold frame of the etched plate */}
       <span
@@ -111,10 +114,11 @@ function FlowLensPlate({
       </span>
     </button>
   );
-}
+});
 
 export function DataDecisionFlowDialog() {
   const [mode, setMode] = useState<FlowMode>("national");
+  const [open, setOpen] = useState(false);
   return (
     <div className="group relative flex w-full flex-col items-center">
       {/* Faint engraved sketch rings — hint at the living diagram behind the plates */}
@@ -153,26 +157,30 @@ export function DataDecisionFlowDialog() {
           />
         </svg>
       </div>
-      <DialogPrimitive.Root>
+      <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
         <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
-          <DialogPrimitive.Trigger asChild>
-            <FlowLensPlate
-              mode="national"
-              emblem="lens"
-              headline="Data & Decision Flow"
-              caption="Engage the National Decision Engine"
-              onPick={() => setMode("national")}
-            />
-          </DialogPrimitive.Trigger>
-          <DialogPrimitive.Trigger asChild>
-            <FlowLensPlate
-              mode="chamber"
-              emblem="grid"
-              headline="By Chamber"
-              caption="Follow one decision through its Chamber"
-              onPick={() => setMode("chamber")}
-            />
-          </DialogPrimitive.Trigger>
+          <FlowLensPlate
+            mode="national"
+            emblem="lens"
+            headline="Data & Decision Flow"
+            caption="Engage the National Decision Engine"
+            aria-haspopup="dialog"
+            onPick={() => {
+              setMode("national");
+              setOpen(true);
+            }}
+          />
+          <FlowLensPlate
+            mode="chamber"
+            emblem="grid"
+            headline="By Chamber"
+            caption="Follow one decision through its Chamber"
+            aria-haspopup="dialog"
+            onPick={() => {
+              setMode("chamber");
+              setOpen(true);
+            }}
+          />
         </div>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-paper-0" />

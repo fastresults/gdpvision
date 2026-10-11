@@ -140,8 +140,6 @@ export function CorpusChamberRing() {
                   hash="instrument"
                   aria-label={`Chamber ${c.index}: ${c.title}. ${c.outcome}`}
                   {...hover(i)}
-                  onFocus={() => setActive(i)}
-                  onBlur={() => setActive(null)}
                   className="outline-none"
                 >
                   <g
@@ -232,8 +230,6 @@ export function CorpusChamberRing() {
           role="img"
           aria-label="The Corpus: graded, cited national evidence."
           {...hover("core")}
-          onFocus={() => setActive("core")}
-          onBlur={() => setActive(null)}
           className="outline-none"
         >
           <g className="ccr-core" style={{ transformOrigin: `${C}px ${C}px` }}>

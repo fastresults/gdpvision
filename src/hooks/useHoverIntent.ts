@@ -1,41 +1,27 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
+import { useCallback, useState, type MouseEvent } from "react";
 
 /**
- * Hover-to-pause with intent: the mouse must rest on an element for `delay` ms
- * before `commit(value)` runs; leaving clears the timer and calls `release()`.
- * Touch/pen pointers are ignored (taps keep their existing click behaviour).
+ * Click-to-pause: one click on an element pauses (`commit(value)`),
+ * a second click on it resumes (`release()`).
  */
-export function useHoverIntent<T>(commit: (value: T) => void, release: () => void, delay = 1500) {
-  const timer = useRef<number | null>(null);
-  const [pending, setPending] = useState<T | null>(null);
-  const clear = () => {
-    if (timer.current !== null) window.clearTimeout(timer.current);
-    timer.current = null;
-  };
-  useEffect(() => clear, []);
+export function useHoverIntent<T>(commit: (value: T) => void, release: () => void) {
+  const [held, setHeld] = useState<T | null>(null);
 
   const hover = useCallback(
     (value: T) => ({
-      "data-intent": pending === value ? "pending" : undefined,
-      onPointerEnter: (e: PointerEvent) => {
-        if (e.pointerType !== "mouse") return;
-        clear();
-        setPending(value);
-        timer.current = window.setTimeout(() => {
-          timer.current = null;
-          setPending(null);
+      "data-held": held === value ? true : undefined,
+      onClick: (_e: MouseEvent) => {
+        if (held === value) {
+          setHeld(null);
+          release();
+        } else {
+          setHeld(value);
           commit(value);
-        }, delay);
-      },
-      onPointerLeave: (e: PointerEvent) => {
-        if (e.pointerType !== "mouse") return;
-        clear();
-        setPending(null);
-        release();
+        }
       },
     }),
-    [pending, delay, commit, release],
+    [held, commit, release],
   );
 
-  return { hover, pending };
+  return { hover, held };
 }

@@ -89,8 +89,6 @@ export function NationalCustodyRelay() {
     role: "button" as const,
     "aria-label": `${STAGES.find((item) => item.id === stage)?.title}. ${STAGES.find((item) => item.id === stage)?.body}`,
     ...hover(stage),
-    onFocus: () => setActive(stage),
-    onBlur: () => setActive(null),
     onClick: () => setActive((current) => (current === stage ? null : stage)),
     onKeyDown: (event: KeyboardEvent<SVGGElement>) => {
       if (event.key !== "Enter" && event.key !== " ") return;

@@ -8,6 +8,7 @@ import { Wordmark } from "@/components/marketing/Wordmark";
 import { SecondBrainFeed } from "./SecondBrainFeed";
 import { ChamberCircuit } from "./ChamberCircuit";
 import { LiveFrame } from "./LiveFrame";
+import { ChamberGlyph } from "./ChamberGlyph";
 import { cn } from "@/lib/utils";
 
 /**
@@ -218,8 +219,11 @@ function ChamberStep({ c }: { c: Chamber }) {
       >
         <div className={cn(wide && "hidden")}>
           <Reveal>
-            <div className={MICRO} style={{ color: `var(${c.accentVar})` }}>
-              Chamber {c.index} of 10
+            <div className="flex items-center gap-3">
+              <ChamberGlyph index={c.index} accentVar={c.accentVar} size={36} />
+              <div className={MICRO} style={{ color: `var(${c.accentVar})` }}>
+                Chamber {c.index} of 10
+              </div>
             </div>
           </Reveal>
           <Reveal delay={100}>
@@ -558,17 +562,20 @@ export function PresentDeck() {
               {DEMO_COUNTRY === "ATG" ? "Antigua & Barbuda" : DEMO_COUNTRY}.
             </p>
           </Reveal>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-12 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {CHAMBERS.map((c, i) => (
               <Reveal key={c.index} delay={400 + i * 110}>
                 <a
                   href={`#chamber-${c.index}`}
-                  className="block rounded-lg border border-line-200 bg-paper-0 p-5 transition-colors hover:border-ink-950"
+                  className="block h-full rounded-lg border border-line-200 bg-paper-0 p-5 transition-colors hover:border-ink-950"
                 >
-                  <div className="font-mono text-sm" style={{ color: `var(${c.accentVar})` }}>
-                    {c.index}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="font-mono text-sm" style={{ color: `var(${c.accentVar})` }}>
+                      {c.index}
+                    </div>
+                    <ChamberGlyph index={c.index} accentVar={c.accentVar} size={52} />
                   </div>
-                  <div className="mt-2 text-lg leading-snug text-ink-950">
+                  <div className="mt-4 text-lg leading-snug text-ink-950">
                     {c.title.replace(/^The /, "")}
                   </div>
                 </a>

@@ -341,7 +341,6 @@ export function MarketingHome() {
             <div className="mt-14 flex w-full justify-center md:-mt-24">
               <DataDecisionFlowDialog />
             </div>
-
           </div>
         </div>
       </section>

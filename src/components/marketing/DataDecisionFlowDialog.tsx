@@ -1,8 +1,12 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { ChamberDecisionJourneys } from "./ChamberDecisionJourneys";
 import { DataDecisionFlow } from "./DataDecisionFlow";
 
 export function DataDecisionFlowDialog() {
+  const [mode, setMode] = useState<"national" | "chamber">("national");
   return (
     <div className="group relative flex flex-col items-center">
       {/* Faint engraved sketch rings — hint at the living diagram behind the plate */}
@@ -62,22 +66,26 @@ export function DataDecisionFlowDialog() {
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-paper-0" />
           <DialogPrimitive.Content className="fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-y-auto bg-paper-0 p-4 md:p-8">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
-                <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">The National Decision Engine</div>
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">GDPVision Decision Engine</div>
                 <DialogPrimitive.Title className="mt-1 font-display text-2xl text-ink-950 md:text-3xl">
-                  How a nation decides faster — and why that raises GDP
+                  {mode === "national" ? "How a nation decides faster — and why that raises GDP" : "Follow one decision through the Chamber built to handle it"}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="mt-1 max-w-2xl text-[14px] text-ink-700">
-                  One flow, five steps: evidence in, protected, worked, decided, GDP up.
+                  {mode === "national" ? "One flow, five steps: evidence in, protected, worked, decided, GDP up." : "Choose a real scenario, watch GDPVision select the Chamber, then open its method and executive value."}
                 </DialogPrimitive.Description>
+              </div>
+              <div className="order-3 flex w-full justify-center border-y border-line-200 py-2 md:order-none md:w-auto md:border-y-0 md:py-0" role="tablist" aria-label="Decision flow view">
+                <button type="button" role="tab" aria-selected={mode === "national"} onClick={() => setMode("national")} className={cn("btn-ghost", mode === "national" && "btn-filter-active")}>National system</button>
+                <button type="button" role="tab" aria-selected={mode === "chamber"} onClick={() => setMode("chamber")} className={cn("btn-ghost", mode === "chamber" && "btn-filter-active")}>By Chamber</button>
               </div>
               <DialogPrimitive.Close className="btn-ghost shrink-0" aria-label="Close">
                 <X className="h-5 w-5" />
               </DialogPrimitive.Close>
             </div>
-            <div className="md:min-h-0 md:flex-1">
-              <DataDecisionFlow />
+            <div className="flex md:min-h-0 md:flex-1">
+              {mode === "national" ? <DataDecisionFlow /> : <ChamberDecisionJourneys />}
             </div>
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>

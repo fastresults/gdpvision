@@ -1,4 +1,5 @@
-// Scenario library for the Data & Decision Flow map — two journeys per Chamber.
+// Scenario library for the Data & Decision Flow map — five journeys per Chamber.
+import { MORE_SCENARIOS } from "./dataDecisionScenariosMore";
 export interface Scenario {
   chamber: string;
   title: string;
@@ -27,11 +28,26 @@ export const SCENARIOS: Scenario[] = [
     title: "Defending the growth figure",
     question: "The IMF questions our growth figure — can we defend it?",
     steps: [
-      { edges: [["stats", "corpus"], ["peers", "corpus"]], text: "Official statistics and peer benchmarks → Corpus: every source behind the figure is gathered." },
-      { edges: [["corpus", "safeguards"]], text: "Corpus → Citations & grades: each input is sourced and graded." },
-      { edges: [["safeguards", "c01"]], text: "Safeguards → National Ledger: the figure is explained step by step." },
+      {
+        edges: [
+          ["stats", "corpus"],
+          ["peers", "corpus"],
+        ],
+        text: "Official statistics and peer benchmarks → Corpus: every source behind the figure is gathered.",
+      },
+      {
+        edges: [["corpus", "safeguards"]],
+        text: "Corpus → Citations & grades: each input is sourced and graded.",
+      },
+      {
+        edges: [["safeguards", "c01"]],
+        text: "Safeguards → National Ledger: the figure is explained step by step.",
+      },
       { edges: [["c01", "brief"]], text: "Ledger → Decision Brief: a cited defence on one page." },
-      { edges: [["brief", "cabinet"]], text: "Brief → Cabinet: the government responds with one clear position." },
+      {
+        edges: [["brief", "cabinet"]],
+        text: "Brief → Cabinet: the government responds with one clear position.",
+      },
       { edges: [["cabinet", "delay"]], text: "Cabinet → answered in days, not months." },
     ],
     outcome: "Credibility kept with lenders and ratings agencies.",
@@ -41,11 +57,23 @@ export const SCENARIOS: Scenario[] = [
     title: "Tourism shock",
     question: "Tourism arrivals drop 15% — how big is the hit to GDP?",
     steps: [
-      { edges: [["stats", "corpus"], ["flows", "corpus"]], text: "Arrivals and spending flows → Corpus: the drop is measured." },
-      { edges: [["corpus", "c01"]], text: "Corpus → National Ledger: the hit is traced through every linked sector." },
+      {
+        edges: [
+          ["stats", "corpus"],
+          ["flows", "corpus"],
+        ],
+        text: "Arrivals and spending flows → Corpus: the drop is measured.",
+      },
+      {
+        edges: [["corpus", "c01"]],
+        text: "Corpus → National Ledger: the hit is traced through every linked sector.",
+      },
       { edges: [["c01", "c03"]], text: "Ledger → Scenarios: responses are rehearsed." },
       { edges: [["c03", "brief"]], text: "Scenarios → Decision Brief: the options are costed." },
-      { edges: [["brief", "spend"]], text: "Brief → support targeted where it protects most jobs." },
+      {
+        edges: [["brief", "spend"]],
+        text: "Brief → support targeted where it protects most jobs.",
+      },
     ],
     outcome: "A measured response instead of a guess.",
   },
@@ -54,11 +82,29 @@ export const SCENARIOS: Scenario[] = [
     title: "A new minister",
     question: "A new minister takes office — which growth levers do they own?",
     steps: [
-      { edges: [["ministries", "corpus"], ["kpis", "corpus"]], text: "Ministry mandates and KPIs → Corpus." },
-      { edges: [["corpus", "c02"]], text: "Corpus → Portfolios: the minister's sectors and levers are mapped." },
-      { edges: [["c02", "cabinet"]], text: "Portfolios → Cabinet: priorities agreed in the first weeks." },
-      { edges: [["cabinet", "commit"]], text: "Cabinet → Tracked commitments: owners and dates set." },
-      { edges: [["commit", "delay"]], text: "Commitments → no lost months while the minister learns the brief." },
+      {
+        edges: [
+          ["ministries", "corpus"],
+          ["kpis", "corpus"],
+        ],
+        text: "Ministry mandates and KPIs → Corpus.",
+      },
+      {
+        edges: [["corpus", "c02"]],
+        text: "Corpus → Portfolios: the minister's sectors and levers are mapped.",
+      },
+      {
+        edges: [["c02", "cabinet"]],
+        text: "Portfolios → Cabinet: priorities agreed in the first weeks.",
+      },
+      {
+        edges: [["cabinet", "commit"]],
+        text: "Cabinet → Tracked commitments: owners and dates set.",
+      },
+      {
+        edges: [["commit", "delay"]],
+        text: "Commitments → no lost months while the minister learns the brief.",
+      },
     ],
     outcome: "A productive first hundred days.",
   },
@@ -67,9 +113,21 @@ export const SCENARIOS: Scenario[] = [
     title: "Overlapping programmes",
     question: "Two ministries claim the same programme — who delivers?",
     steps: [
-      { edges: [["ministries", "corpus"], ["manifestos", "corpus"]], text: "Mandates and promises → Corpus: the overlap is found." },
-      { edges: [["corpus", "c02"]], text: "Corpus → Portfolios: each ministry's real influence is compared." },
-      { edges: [["c02", "commit"]], text: "Portfolios → Tracked commitments: one owner, one budget." },
+      {
+        edges: [
+          ["ministries", "corpus"],
+          ["manifestos", "corpus"],
+        ],
+        text: "Mandates and promises → Corpus: the overlap is found.",
+      },
+      {
+        edges: [["corpus", "c02"]],
+        text: "Corpus → Portfolios: each ministry's real influence is compared.",
+      },
+      {
+        edges: [["c02", "commit"]],
+        text: "Portfolios → Tracked commitments: one owner, one budget.",
+      },
       { edges: [["commit", "spend"]], text: "Commitments → duplicate spending removed." },
     ],
     outcome: "One accountable owner; money not spent twice.",
@@ -79,12 +137,33 @@ export const SCENARIOS: Scenario[] = [
     title: "Revenue shock",
     question: "Citizenship by Investment receipts fall — what replaces the revenue?",
     steps: [
-      { edges: [["flows", "corpus"], ["stats", "corpus"]], text: "Capital flows and public statistics → Corpus: the revenue exposure is measured and cited." },
-      { edges: [["corpus", "c01"]], text: "Corpus → National Ledger: the gap is priced year by year." },
-      { edges: [["c01", "c03"]], text: "Ledger → Scenarios: replacement options are rehearsed against GDP." },
-      { edges: [["c03", "brief"]], text: "Scenarios → Decision Brief: the best options are costed on one page." },
-      { edges: [["brief", "cabinet"]], text: "Brief → Cabinet: ministers choose with the full picture." },
-      { edges: [["cabinet", "spend"]], text: "Cabinet → spending redirected to the highest-return replacements." },
+      {
+        edges: [
+          ["flows", "corpus"],
+          ["stats", "corpus"],
+        ],
+        text: "Capital flows and public statistics → Corpus: the revenue exposure is measured and cited.",
+      },
+      {
+        edges: [["corpus", "c01"]],
+        text: "Corpus → National Ledger: the gap is priced year by year.",
+      },
+      {
+        edges: [["c01", "c03"]],
+        text: "Ledger → Scenarios: replacement options are rehearsed against GDP.",
+      },
+      {
+        edges: [["c03", "brief"]],
+        text: "Scenarios → Decision Brief: the best options are costed on one page.",
+      },
+      {
+        edges: [["brief", "cabinet"]],
+        text: "Brief → Cabinet: ministers choose with the full picture.",
+      },
+      {
+        edges: [["cabinet", "spend"]],
+        text: "Cabinet → spending redirected to the highest-return replacements.",
+      },
     ],
     outcome: "Revenue gap closed before it becomes a crisis.",
   },
@@ -93,9 +172,24 @@ export const SCENARIOS: Scenario[] = [
     title: "Closing the deficit",
     question: "Should we raise VAT or cut spending to close the deficit?",
     steps: [
-      { edges: [["stats", "corpus"], ["private", "vault"]], text: "Public figures → Corpus; confidential Treasury data → Vault, kept in the country." },
-      { edges: [["corpus", "c03"], ["vault", "c03"]], text: "Both → Scenarios: each option is tested against GDP, debt and jobs." },
-      { edges: [["c03", "brief"]], text: "Scenarios → Decision Brief: trade-offs set side by side." },
+      {
+        edges: [
+          ["stats", "corpus"],
+          ["private", "vault"],
+        ],
+        text: "Public figures → Corpus; confidential Treasury data → Vault, kept in the country.",
+      },
+      {
+        edges: [
+          ["corpus", "c03"],
+          ["vault", "c03"],
+        ],
+        text: "Both → Scenarios: each option is tested against GDP, debt and jobs.",
+      },
+      {
+        edges: [["c03", "brief"]],
+        text: "Scenarios → Decision Brief: trade-offs set side by side.",
+      },
       { edges: [["brief", "cabinet"]], text: "Brief → Cabinet: the choice is made on evidence." },
       { edges: [["cabinet", "spend"]], text: "Cabinet → the least damaging mix is applied." },
     ],
@@ -106,9 +200,21 @@ export const SCENARIOS: Scenario[] = [
     title: "Global promotion",
     question: "A new national project is ready for global promotion — what do we do?",
     steps: [
-      { edges: [["peers", "corpus"], ["flows", "corpus"]], text: "Peer benchmarks and capital flows → Corpus: how rivals pitch similar projects." },
-      { edges: [["corpus", "c04"]], text: "Corpus → FDI Studio: readiness checked across law, land, workforce and incentives." },
-      { edges: [["c04", "invest"]], text: "FDI Studio → Investor package: an open-standard file investors trust." },
+      {
+        edges: [
+          ["peers", "corpus"],
+          ["flows", "corpus"],
+        ],
+        text: "Peer benchmarks and capital flows → Corpus: how rivals pitch similar projects.",
+      },
+      {
+        edges: [["corpus", "c04"]],
+        text: "Corpus → FDI Studio: readiness checked across law, land, workforce and incentives.",
+      },
+      {
+        edges: [["c04", "invest"]],
+        text: "FDI Studio → Investor package: an open-standard file investors trust.",
+      },
       { edges: [["invest", "capital"]], text: "Package → promoted to investors worldwide." },
     ],
     outcome: "Capital committed to a national priority.",
@@ -118,13 +224,22 @@ export const SCENARIOS: Scenario[] = [
     title: "Investor exit",
     question: "A major foreign investor threatens to leave — how exposed are we?",
     steps: [
-      { edges: [["flows", "corpus"]], text: "Capital flows → Corpus: the investor's share of jobs and revenue is measured." },
+      {
+        edges: [["flows", "corpus"]],
+        text: "Capital flows → Corpus: the investor's share of jobs and revenue is measured.",
+      },
       { edges: [["corpus", "c04"]], text: "Corpus → FDI Studio: the exposure is priced." },
-      { edges: [["c04", "c03"]], text: "FDI Studio → Scenarios: retain, replace or let go — each is rehearsed." },
+      {
+        edges: [["c04", "c03"]],
+        text: "FDI Studio → Scenarios: retain, replace or let go — each is rehearsed.",
+      },
       { edges: [["c03", "brief"]], text: "Scenarios → Decision Brief." },
       { edges: [["brief", "cabinet"]], text: "Brief → Cabinet: a negotiating position is agreed." },
       { edges: [["cabinet", "commit"]], text: "Cabinet → commitments with a clear owner." },
-      { edges: [["commit", "spend"]], text: "Commitments → incentives spent only where they pay back." },
+      {
+        edges: [["commit", "spend"]],
+        text: "Commitments → incentives spent only where they pay back.",
+      },
     ],
     outcome: "Jobs protected without overpaying to keep them.",
   },
@@ -133,10 +248,22 @@ export const SCENARIOS: Scenario[] = [
     title: "Cabinet scandal",
     question: "A scandal breaks inside Cabinet — what do we do?",
     steps: [
-      { edges: [["private", "vault"]], text: "Internal records → Sovereign Vault: the facts are established privately." },
-      { edges: [["vault", "c05"]], text: "Vault → Narrative: approved facts only shape a truthful position." },
-      { edges: [["c05", "cabinet"]], text: "Narrative → Cabinet: the response is authorised by principals." },
-      { edges: [["cabinet", "delay"]], text: "Cabinet → government business continues without paralysis." },
+      {
+        edges: [["private", "vault"]],
+        text: "Internal records → Sovereign Vault: the facts are established privately.",
+      },
+      {
+        edges: [["vault", "c05"]],
+        text: "Vault → Narrative: approved facts only shape a truthful position.",
+      },
+      {
+        edges: [["c05", "cabinet"]],
+        text: "Narrative → Cabinet: the response is authorised by principals.",
+      },
+      {
+        edges: [["cabinet", "delay"]],
+        text: "Cabinet → government business continues without paralysis.",
+      },
     ],
     outcome: "Confidence held; decisions keep moving.",
   },
@@ -145,10 +272,22 @@ export const SCENARIOS: Scenario[] = [
     title: "Disaster preparation",
     question: "A natural disaster is imminent — how do we prepare the public?",
     steps: [
-      { edges: [["stats", "corpus"], ["kpis", "corpus"]], text: "Population, shelter and supply data → Corpus." },
-      { edges: [["corpus", "c05"]], text: "Corpus → Narrative: clear, sourced public guidance is drafted." },
+      {
+        edges: [
+          ["stats", "corpus"],
+          ["kpis", "corpus"],
+        ],
+        text: "Population, shelter and supply data → Corpus.",
+      },
+      {
+        edges: [["corpus", "c05"]],
+        text: "Corpus → Narrative: clear, sourced public guidance is drafted.",
+      },
       { edges: [["c05", "cabinet"]], text: "Narrative → Cabinet: warnings approved and released." },
-      { edges: [["cabinet", "commit"]], text: "Cabinet → commitments to each ministry for preparation." },
+      {
+        edges: [["cabinet", "commit"]],
+        text: "Cabinet → commitments to each ministry for preparation.",
+      },
       { edges: [["commit", "delay"]], text: "Commitments → action within hours." },
     ],
     outcome: "A prepared public and a faster recovery.",
@@ -159,10 +298,19 @@ export const SCENARIOS: Scenario[] = [
     question: "Five urgent decisions, one Cabinet session — what comes first?",
     steps: [
       { edges: [["kpis", "corpus"]], text: "National KPIs → Corpus: what each decision affects." },
-      { edges: [["corpus", "safeguards"]], text: "Corpus → Citations & grades: evidence strength checked." },
-      { edges: [["safeguards", "c06"]], text: "Safeguards → Cabinet Room: the queue is ranked by value and urgency." },
+      {
+        edges: [["corpus", "safeguards"]],
+        text: "Corpus → Citations & grades: evidence strength checked.",
+      },
+      {
+        edges: [["safeguards", "c06"]],
+        text: "Safeguards → Cabinet Room: the queue is ranked by value and urgency.",
+      },
       { edges: [["c06", "cabinet"]], text: "Cabinet Room → Cabinet: decided in order." },
-      { edges: [["cabinet", "delay"]], text: "Cabinet → the most valuable decisions are no longer waiting." },
+      {
+        edges: [["cabinet", "delay"]],
+        text: "Cabinet → the most valuable decisions are no longer waiting.",
+      },
     ],
     outcome: "Less time lost to the wrong priorities.",
   },
@@ -171,9 +319,18 @@ export const SCENARIOS: Scenario[] = [
     title: "Slipping commitment",
     question: "A flagship commitment is slipping — intervene or re-plan?",
     steps: [
-      { edges: [["kpis", "corpus"], ["private", "vault"]], text: "Delivery KPIs → Corpus; ministry reports → Vault." },
+      {
+        edges: [
+          ["kpis", "corpus"],
+          ["private", "vault"],
+        ],
+        text: "Delivery KPIs → Corpus; ministry reports → Vault.",
+      },
       { edges: [["vault", "c06"]], text: "Vault → Cabinet Room: the cause of delay is shown." },
-      { edges: [["c06", "commit"]], text: "Cabinet Room → commitment re-planned with a new owner or date." },
+      {
+        edges: [["c06", "commit"]],
+        text: "Cabinet Room → commitment re-planned with a new owner or date.",
+      },
       { edges: [["commit", "record"]], text: "Commitment → the change is recorded publicly." },
     ],
     outcome: "The flagship recovers — and the record stays honest.",
@@ -184,11 +341,26 @@ export const SCENARIOS: Scenario[] = [
     title: "Testing a new tax",
     question: "Will citizens accept a new property tax before we announce it?",
     steps: [
-      { edges: [["private", "vault"]], text: "Property records → Sovereign Vault: analysed on state-owned servers, never exported." },
-      { edges: [["vault", "safeguards"]], text: "Vault → approved findings only, each graded and explainable." },
-      { edges: [["safeguards", "c07"]], text: "Findings → Persona Lab: the tax is tested with simulated households." },
-      { edges: [["c07", "c05"]], text: "Persona Lab → Narrative: the explanation is shaped before launch." },
-      { edges: [["c05", "cabinet"]], text: "Narrative → Cabinet: decided with public reaction understood." },
+      {
+        edges: [["private", "vault"]],
+        text: "Property records → Sovereign Vault: analysed on state-owned servers, never exported.",
+      },
+      {
+        edges: [["vault", "safeguards"]],
+        text: "Vault → approved findings only, each graded and explainable.",
+      },
+      {
+        edges: [["safeguards", "c07"]],
+        text: "Findings → Persona Lab: the tax is tested with simulated households.",
+      },
+      {
+        edges: [["c07", "c05"]],
+        text: "Persona Lab → Narrative: the explanation is shaped before launch.",
+      },
+      {
+        edges: [["c05", "cabinet"]],
+        text: "Narrative → Cabinet: decided with public reaction understood.",
+      },
       { edges: [["cabinet", "delay"]], text: "Cabinet → fewer reversals and delays." },
     ],
     outcome: "Reform adopted faster; private data stayed in the country.",
@@ -198,9 +370,18 @@ export const SCENARIOS: Scenario[] = [
     title: "Diaspora bond",
     question: "Will the diaspora invest in a national bond?",
     steps: [
-      { edges: [["peers", "corpus"], ["flows", "corpus"]], text: "Regional bond examples and remittance flows → Corpus." },
+      {
+        edges: [
+          ["peers", "corpus"],
+          ["flows", "corpus"],
+        ],
+        text: "Regional bond examples and remittance flows → Corpus.",
+      },
       { edges: [["corpus", "c07"]], text: "Corpus → Persona Lab: diaspora investors are studied." },
-      { edges: [["c07", "brief"]], text: "Persona Lab → Decision Brief: the terms most likely to sell." },
+      {
+        edges: [["c07", "brief"]],
+        text: "Persona Lab → Decision Brief: the terms most likely to sell.",
+      },
       { edges: [["brief", "cabinet"]], text: "Brief → Cabinet: the bond is approved." },
       { edges: [["cabinet", "spend"]], text: "Cabinet → proceeds directed to agreed projects." },
     ],
@@ -211,10 +392,31 @@ export const SCENARIOS: Scenario[] = [
     title: "Manifesto to delivery",
     question: "A new government takes office — turn the manifesto into a delivery plan.",
     steps: [
-      { edges: [["manifestos", "corpus"], ["ministries", "corpus"]], text: "Manifestos and ministries → Corpus: promises matched to the ministries that own them." },
-      { edges: [["corpus", "c08"], ["corpus", "c02"]], text: "Corpus → Mandate Compact and Portfolios: promises become commitments with owners." },
-      { edges: [["c08", "commit"], ["c02", "commit"]], text: "Both → Tracked commitments: deadlines and KPIs for every one." },
-      { edges: [["commit", "record"]], text: "Commitments → results published on the National Record." },
+      {
+        edges: [
+          ["manifestos", "corpus"],
+          ["ministries", "corpus"],
+        ],
+        text: "Manifestos and ministries → Corpus: promises matched to the ministries that own them.",
+      },
+      {
+        edges: [
+          ["corpus", "c08"],
+          ["corpus", "c02"],
+        ],
+        text: "Corpus → Mandate Compact and Portfolios: promises become commitments with owners.",
+      },
+      {
+        edges: [
+          ["c08", "commit"],
+          ["c02", "commit"],
+        ],
+        text: "Both → Tracked commitments: deadlines and KPIs for every one.",
+      },
+      {
+        edges: [["commit", "record"]],
+        text: "Commitments → results published on the National Record.",
+      },
     ],
     outcome: "Delivery on the record — and fed back as new evidence.",
     loop: true,
@@ -225,8 +427,14 @@ export const SCENARIOS: Scenario[] = [
     question: "The quarterly review shows three ministries off track.",
     steps: [
       { edges: [["kpis", "corpus"]], text: "Quarterly KPIs → Corpus." },
-      { edges: [["corpus", "c08"]], text: "Corpus → Mandate Compact: the three gaps are identified." },
-      { edges: [["c08", "c02"]], text: "Mandate Compact → Portfolios: each ministry's constraint is found." },
+      {
+        edges: [["corpus", "c08"]],
+        text: "Corpus → Mandate Compact: the three gaps are identified.",
+      },
+      {
+        edges: [["c08", "c02"]],
+        text: "Mandate Compact → Portfolios: each ministry's constraint is found.",
+      },
       { edges: [["c02", "cabinet"]], text: "Portfolios → Cabinet: corrective action agreed." },
       { edges: [["cabinet", "commit"]], text: "Cabinet → revised commitments." },
       { edges: [["commit", "record"]], text: "Commitments → progress reported publicly." },
@@ -239,11 +447,29 @@ export const SCENARIOS: Scenario[] = [
     title: "One-day registration",
     question: "Business registration takes six weeks — make it one day.",
     steps: [
-      { edges: [["kpis", "corpus"], ["ministries", "corpus"]], text: "KPIs and ministries → Corpus: where time and cost are lost today." },
-      { edges: [["corpus", "c09"]], text: "Corpus → Digital Government: the service is designed and approved." },
-      { edges: [["c09", "c06"]], text: "Digital Government → Cabinet Room: rollout decided and scheduled." },
+      {
+        edges: [
+          ["kpis", "corpus"],
+          ["ministries", "corpus"],
+        ],
+        text: "KPIs and ministries → Corpus: where time and cost are lost today.",
+      },
+      {
+        edges: [["corpus", "c09"]],
+        text: "Corpus → Digital Government: the service is designed and approved.",
+      },
+      {
+        edges: [["c09", "c06"]],
+        text: "Digital Government → Cabinet Room: rollout decided and scheduled.",
+      },
       { edges: [["c06", "commit"]], text: "Cabinet Room → Tracked commitments: owners and dates." },
-      { edges: [["commit", "delay"], ["commit", "record"]], text: "Commitments → less friction, recorded publicly." },
+      {
+        edges: [
+          ["commit", "delay"],
+          ["commit", "record"],
+        ],
+        text: "Commitments → less friction, recorded publicly.",
+      },
     ],
     outcome: "New businesses start trading weeks sooner.",
     loop: true,
@@ -253,9 +479,24 @@ export const SCENARIOS: Scenario[] = [
     title: "National digital ID",
     question: "Launch a national digital ID people trust.",
     steps: [
-      { edges: [["ministries", "corpus"], ["private", "vault"]], text: "Service needs → Corpus; civil registry → Vault, kept in the country." },
-      { edges: [["corpus", "safeguards"], ["vault", "safeguards"]], text: "Both → safeguards: privacy and approval rules applied." },
-      { edges: [["safeguards", "c09"]], text: "Safeguards → Digital Government: the ID is designed with independent approval." },
+      {
+        edges: [
+          ["ministries", "corpus"],
+          ["private", "vault"],
+        ],
+        text: "Service needs → Corpus; civil registry → Vault, kept in the country.",
+      },
+      {
+        edges: [
+          ["corpus", "safeguards"],
+          ["vault", "safeguards"],
+        ],
+        text: "Both → safeguards: privacy and approval rules applied.",
+      },
+      {
+        edges: [["safeguards", "c09"]],
+        text: "Safeguards → Digital Government: the ID is designed with independent approval.",
+      },
       { edges: [["c09", "c06"]], text: "Digital Government → Cabinet Room: launch authorised." },
       { edges: [["c06", "commit"]], text: "Cabinet Room → Tracked commitments." },
       { edges: [["commit", "record"]], text: "Commitments → uptake reported publicly." },
@@ -268,9 +509,21 @@ export const SCENARIOS: Scenario[] = [
     title: "Budget priorities",
     question: "Which three sectors should the next budget back?",
     steps: [
-      { edges: [["stats", "corpus"], ["peers", "corpus"]], text: "National accounts and peer benchmarks → Corpus." },
-      { edges: [["corpus", "c10"]], text: "Corpus → Sector Studio: sectors ranked; the Head of Government chooses." },
-      { edges: [["c10", "commit"]], text: "Sector Studio → Tracked commitments: a plan for each chosen sector." },
+      {
+        edges: [
+          ["stats", "corpus"],
+          ["peers", "corpus"],
+        ],
+        text: "National accounts and peer benchmarks → Corpus.",
+      },
+      {
+        edges: [["corpus", "c10"]],
+        text: "Corpus → Sector Studio: sectors ranked; the Head of Government chooses.",
+      },
+      {
+        edges: [["c10", "commit"]],
+        text: "Sector Studio → Tracked commitments: a plan for each chosen sector.",
+      },
       { edges: [["commit", "spend"]], text: "Commitments → budget where it grows output most." },
     ],
     outcome: "More growth per dollar in the budget.",
@@ -280,11 +533,21 @@ export const SCENARIOS: Scenario[] = [
     title: "Agriculture growth plan",
     question: "Build a growth plan for agriculture that investors can back.",
     steps: [
-      { edges: [["flows", "corpus"], ["peers", "corpus"]], text: "Food import flows and regional peers → Corpus." },
-      { edges: [["corpus", "c10"]], text: "Corpus → Sector Studio: a cited diagnosis and roadmap." },
+      {
+        edges: [
+          ["flows", "corpus"],
+          ["peers", "corpus"],
+        ],
+        text: "Food import flows and regional peers → Corpus.",
+      },
+      {
+        edges: [["corpus", "c10"]],
+        text: "Corpus → Sector Studio: a cited diagnosis and roadmap.",
+      },
       { edges: [["c10", "invest"]], text: "Sector Studio → Investor packages: bankable projects." },
       { edges: [["invest", "capital"]], text: "Packages → investment in local production." },
     ],
     outcome: "Lower import bills and new rural jobs.",
   },
+  ...MORE_SCENARIOS,
 ];

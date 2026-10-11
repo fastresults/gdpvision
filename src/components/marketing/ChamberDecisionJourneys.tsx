@@ -3,16 +3,15 @@ import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Sparkles } from "luc
 import { cn } from "@/lib/utils";
 import { CHAMBER_NAMES } from "./dataDecisionScenarios";
 import { CHAMBER_JOURNEYS, JOURNEY_ACTS, type ChamberJourney } from "./chamberDecisionJourneys";
+import { BENEFIT_SLOTS } from "./chamberJourneyExtras";
 
 const ACT_MS = 6000;
+/** "Open the Chamber" and the benefits register get longer on screen. */
+const actDuration = (act: number) => (act === 4 ? 11000 : ACT_MS);
 const CHAMBER_INDICES = Object.keys(CHAMBER_NAMES);
 
 function EvidencePlate({ journey, act }: { journey: ChamberJourney; act: number }) {
   const evidence = ["Public evidence", "Sovereign records", "Citations & grades"];
-  const stageWidth = 128;
-  const stageGap = 26;
-  const startX = 34;
-  const centerY = 222;
 
   if (act === 0) {
     return (
@@ -187,139 +186,118 @@ function EvidencePlate({ journey, act }: { journey: ChamberJourney; act: number 
   }
 
   if (act === 4) {
+    const [usual, withGdp] = journey.profile.clock;
     return (
-      <div className="h-full overflow-auto px-3 py-5 md:px-7">
-        <svg
-          viewBox="0 0 820 470"
-          className="cjj-method min-h-[420px] w-full"
-          role="img"
-          aria-label={`${journey.method.name} method: ${journey.method.stages.join(", ")}`}
-        >
-          <text x="34" y="36" className="fill-ink-500 font-mono" fontSize="10" letterSpacing="2.4">
-            CHAMBER {journey.chamber} · INTERNAL DECISION METHOD
-          </text>
-          <text x="34" y="72" className="fill-ink-950 font-display" fontSize="29">
-            {journey.method.name}
-          </text>
-          <path d="M34 102 H786" stroke="var(--line-200)" strokeDasharray="3 5" />
-          {journey.method.stages.map((stage, index) => {
-            const x = startX + index * (stageWidth + stageGap);
-            const nextX = x + stageWidth + stageGap;
-            return (
-              <g
-                key={stage}
-                className="cjj-method-stage"
-                style={{ animationDelay: `${index * 0.75}s` }}
-              >
-                {index < 4 && (
-                  <path
-                    d={`M ${x + stageWidth} ${centerY} H ${nextX}`}
-                    pathLength={1}
-                    className="cjj-method-line"
-                    stroke="var(--gold-500)"
-                    fill="none"
-                  />
-                )}
-                <rect
-                  x={x}
-                  y={centerY - 58}
-                  width={stageWidth}
-                  height="116"
-                  rx="3"
-                  fill="var(--paper-0)"
-                  stroke="var(--ink-700)"
-                />
-                <text x={x + 12} y={centerY - 33} className="fill-gold-500 font-mono" fontSize="10">
-                  0{index + 1}
-                </text>
-                <foreignObject x={x + 12} y={centerY - 20} width={stageWidth - 24} height="68">
-                  <div className="flex h-full items-center text-[13px] leading-snug text-ink-950">
-                    {stage}
-                  </div>
-                </foreignObject>
-              </g>
-            );
-          })}
-          {[0, 1, 2].map((dot) => (
-            <circle
-              key={dot}
-              r={dot === 0 ? 5 : 3.5}
-              className="cjj-dot"
-              style={{ offsetPath: "path('M 52 222 H 752')", animationDelay: `${dot * 0.22}s` }}
-            />
+      <div className="h-full overflow-auto px-4 py-5 md:px-7">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+              Chamber {journey.chamber} · inside the decision · {journey.profile.kind}
+            </div>
+            <h3 className="mt-1 font-display text-2xl text-ink-950 md:text-3xl">
+              {journey.method.name}
+            </h3>
+          </div>
+          <div
+            className="cjj-clock border border-line-200 bg-paper-0 px-3 py-2 text-right"
+            aria-label={`Illustrative decision time: usually ${usual}, with GDPVision ${withGdp}`}
+          >
+            <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+              Time to decision · illustrative
+            </div>
+            <div className="mt-1 font-display text-lg text-ink-950">
+              <span className="text-ink-500 line-through decoration-gold-500">{usual}</span>
+              <span className="mx-2 text-gold-500">→</span>
+              <span>{withGdp}</span>
+            </div>
+          </div>
+        </div>
+
+        <ol className="relative mt-5 grid gap-3 md:grid-cols-5">
+          <span
+            aria-hidden
+            className="cjj-rail pointer-events-none absolute left-0 top-[18px] hidden h-px bg-gold-500 md:block"
+          />
+          {journey.stageDetail.map((detail, index) => (
+            <li
+              key={detail.stage}
+              className="cjj-method-stage relative flex flex-col border border-ink-700 bg-paper-0 p-3"
+              style={{ animationDelay: `${0.4 + index * 1.4}s` }}
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gold-500 bg-paper-0 font-mono text-[11px] text-gold-500">
+                0{index + 1}
+              </span>
+              <strong className="mt-2 block text-[13px] leading-snug text-ink-950">
+                {detail.stage}
+              </strong>
+              <dl className="mt-2 space-y-2 text-[12px] leading-snug">
+                <div>
+                  <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
+                    In
+                  </dt>
+                  <dd className="text-ink-700">{detail.input}</dd>
+                </div>
+                <div>
+                  <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-gold-500">
+                    Out
+                  </dt>
+                  <dd className="text-ink-950">{detail.output}</dd>
+                </div>
+              </dl>
+            </li>
           ))}
-          <g className="cjj-output">
-            <rect
-              x="210"
-              y="350"
-              width="400"
-              height="76"
-              rx="3"
-              fill="var(--ink-950)"
-              stroke="var(--gold-500)"
-            />
-            <text
-              x="410"
-              y="380"
-              textAnchor="middle"
-              className="fill-gold-500 font-mono"
-              fontSize="10"
-              letterSpacing="2"
-            >
-              CHAMBER OUTPUT
-            </text>
-            <text
-              x="410"
-              y="407"
-              textAnchor="middle"
-              className="fill-paper-0 font-display"
-              fontSize="20"
-            >
-              {journey.method.output}
-            </text>
-          </g>
-        </svg>
+        </ol>
+
+        <div className="cjj-output mt-5 border border-gold-500 bg-ink-950 px-5 py-4">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-500">
+            {journey.method.output} · the decision Cabinet can now take
+          </div>
+          <p className="mt-1 font-display text-xl text-paper-0 md:text-2xl">
+            {journey.profile.decision}
+          </p>
+        </div>
       </div>
     );
   }
 
   const benefits = Object.values(journey.benefits);
-  const labels = [
-    "Prime Minister now knows",
-    "Choice now clearer",
-    "Risk exposed or avoided",
-    "Next action owned",
-    "Learning returned",
-  ];
   return (
     <div className="h-full overflow-auto px-5 py-6 md:px-10">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold-500">
-          Executive dividend register
+          Executive dividend register · {journey.title}
         </div>
         <h3 className="mt-2 font-display text-3xl text-ink-950 md:text-4xl">
           What this changes for the Prime Minister
         </h3>
         <ol className="mt-6 grid gap-px border border-line-200 bg-line-200 md:grid-cols-5">
-          {benefits.map((benefit, index) => (
-            <li
-              key={labels[index]}
-              className="cjj-benefit min-h-48 bg-paper-0 p-4"
-              style={{ animationDelay: `${index * 0.22}s` }}
-            >
-              <span className="font-mono text-[11px] font-semibold text-gold-500">
-                0{index + 1}
-              </span>
-              <strong className="mt-4 block text-[12px] uppercase text-ink-950">
-                {labels[index]}
-              </strong>
-              <p className="mt-3 text-[13px] leading-relaxed text-ink-700">{benefit}</p>
-            </li>
-          ))}
+          {benefits.map((benefit, index) => {
+            const slot = BENEFIT_SLOTS[index];
+            return (
+              <li
+                key={slot.label}
+                className="cjj-benefit flex min-h-56 flex-col bg-paper-0 p-4"
+                style={{ animationDelay: `${index * 0.45}s` }}
+              >
+                <span className="font-mono text-[11px] font-semibold text-gold-500">
+                  0{index + 1} · {slot.label}
+                </span>
+                <strong className="mt-3 block font-display text-lg leading-tight text-ink-950">
+                  {slot.headline}
+                </strong>
+                <p className="mt-2 text-[13px] leading-relaxed text-ink-700">{benefit}</p>
+                <p className="mt-auto border-t border-dashed border-line-200 pt-2 text-[11px] italic leading-snug text-ink-500">
+                  {slot.before}
+                </p>
+              </li>
+            );
+          })}
         </ol>
-        <p className="mt-7 border-l-2 border-gold-500 pl-4 font-display text-xl italic text-ink-950 md:text-2xl">
-          GDPVision turns sovereign evidence into decisions that can be explained, governed,
-          delivered and learned from.
+        <p
+          className="cjj-benefit mt-7 border-l-2 border-gold-500 pl-4 font-display text-xl italic text-ink-950 md:text-2xl"
+          style={{ animationDelay: "2.5s" }}
+        >
+          Faster, defensible decisions — protected growth. {journey.outcome}
         </p>
       </div>
     </div>

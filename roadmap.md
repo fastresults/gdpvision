@@ -30,3 +30,5 @@
 - [ ] Admin review list for flagged outliers (23 flagged)
 - [ ] Storm forecast cones; optional satellite / flight / ship globe layers
 - [x] Sector Plan visual summary: target trajectory, readiness, delivery portfolio, roadmap, evidence, and executive perspectives
+
+- [x] Five decision journeys per Chamber (50 total) with richer Open the Chamber and Prime Minister value steps

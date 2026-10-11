@@ -33,4 +33,4 @@
 
 - [x] Five decision journeys per Chamber (50 total) with richer Open the Chamber and Prime Minister value steps
 - [x] Deeper Select the Chamber (routing beats) and Open the Chamber (working-session dossier)
-- [ ] Rebuild all six Chamber journey phases as one detailed, connected Sovereign Decision Theatre
+- [x] Rebuild all six Chamber journey phases as one detailed, connected Sovereign Decision Theatre

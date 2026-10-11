@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CHAMBER_NAMES } from "./dataDecisionScenarios";
@@ -217,7 +217,7 @@ export function ChamberDecisionJourneys() {
             }
           }}
           aria-label={playing ? "Pause decision theatre" : "Resume decision theatre"}
-          className="hover-intent cjj mt-3 min-h-[430px] flex-1 cursor-pointer overflow-hidden border border-line-200 bg-paper-50"
+          className="hover-intent cjj relative mt-3 min-h-[430px] flex-1 cursor-pointer overflow-hidden border border-line-200 bg-paper-50"
         >
           <EvidencePlate journey={journey} act={act} beat={reduce ? beatCount(act, journey) - 1 : beat} />
           {!playing && !reduce && <span className="pointer-events-none absolute right-3 top-3 border border-gold-500 bg-ink-950 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.16em] text-gold-300">Paused · click to resume</span>}

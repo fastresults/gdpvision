@@ -5,6 +5,7 @@ import { CHAMBERS, type Chamber } from "@/lib/chambers";
 import { GDP_EVENTS, type GdpEvent } from "@/lib/present/events";
 import { DEMO_COUNTRY, chamberDemo } from "@/lib/present/chambers";
 import { Wordmark } from "@/components/marketing/Wordmark";
+import sealAsset from "@/assets/favicon-seal.png.asset.json";
 import { SecondBrainFeed } from "./SecondBrainFeed";
 import { ChamberCircuit } from "./ChamberCircuit";
 import { LiveFrame } from "./LiveFrame";
@@ -357,11 +358,21 @@ export function PresentDeck() {
 
       <main className="snap-y snap-proximity">
         {/* 01 Cover */}
-        <Step id="cover" label="Cover">
-          <Reveal>
-            <div className={MICRO}>Briefing · October 2026</div>
+        <Step id="cover" label="Cover" className="pt-28">
+          <Reveal className="mb-12 flex justify-center">
+            <img
+              src={sealAsset.url}
+              alt="GDPVision seal: Instrument of State"
+              width={1319}
+              height={1341}
+              className="h-auto w-[clamp(160px,22vh,260px)]"
+              decoding="async"
+            />
           </Reveal>
           <Reveal delay={120}>
+            <div className={MICRO}>Briefing · October 2026</div>
+          </Reveal>
+          <Reveal delay={220}>
             <h1 className="mt-6 font-display text-[clamp(3.6rem,9vw,9rem)] leading-[0.95] tracking-[-0.02em] text-ink-950">
               GDPVision
             </h1>

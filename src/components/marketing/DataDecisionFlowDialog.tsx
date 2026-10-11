@@ -1,6 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useState, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 import { ChamberDecisionJourneys } from "./ChamberDecisionJourneys";
 import { DataDecisionFlow } from "./DataDecisionFlow";
@@ -18,17 +18,22 @@ function FlowLensPlate({
   caption,
   emblem,
   onPick,
+  ...rest
 }: {
   mode: FlowMode;
   headline: string;
   caption: string;
   emblem: "lens" | "grid";
   onPick: () => void;
-}) {
+} & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="button"
-      onClick={onPick}
+      {...rest}
+      onClick={(event) => {
+        onPick();
+        rest.onClick?.(event);
+      }}
       data-mode={mode}
       className="btn-flow-lens relative z-10 w-full flex-row items-center gap-3 px-4 py-4 text-left sm:px-5"
     >

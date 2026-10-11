@@ -1795,7 +1795,20 @@
 }
 .cjj-output {
   opacity: 0;
-  animation: cjj-output 0.7s var(--ease-instrument) 4.6s forwards;
+  animation: cjj-output 0.7s var(--ease-instrument) 7.6s forwards;
+}
+.cjj-rail {
+  width: 0;
+  animation: cjj-rail 7s linear 0.4s forwards;
+}
+@keyframes cjj-rail {
+  to {
+    width: 100%;
+  }
+}
+.cjj-clock {
+  opacity: 0;
+  animation: cjj-rise 0.6s var(--ease-instrument) 0.2s forwards;
 }
 @media (prefers-reduced-motion: reduce) {
   .cjj *,
@@ -1805,7 +1818,8 @@
     opacity: 1;
     transform: none;
   }
-  .cjj-rule {
+  .cjj-rule,
+  .cjj-rail {
     width: 100%;
   }
   .cjj-dot {

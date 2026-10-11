@@ -228,7 +228,7 @@ export function DataDecisionFlowDialog() {
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
       <p className="relative z-10 mt-3 text-center font-mono text-[10px] uppercase tracking-[0.28em] text-ink-400">
-        Twenty scenarios — two for every Chamber
+        Fifty scenarios — five for every Chamber
       </p>
     </div>
   );

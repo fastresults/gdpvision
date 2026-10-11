@@ -3,16 +3,15 @@ import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Sparkles } from "luc
 import { cn } from "@/lib/utils";
 import { CHAMBER_NAMES } from "./dataDecisionScenarios";
 import { CHAMBER_JOURNEYS, JOURNEY_ACTS, type ChamberJourney } from "./chamberDecisionJourneys";
+import { BENEFIT_SLOTS } from "./chamberJourneyExtras";
 
 const ACT_MS = 6000;
+/** "Open the Chamber" and the benefits register get longer on screen. */
+const actDuration = (act: number) => (act === 4 ? 11000 : ACT_MS);
 const CHAMBER_INDICES = Object.keys(CHAMBER_NAMES);
 
 function EvidencePlate({ journey, act }: { journey: ChamberJourney; act: number }) {
   const evidence = ["Public evidence", "Sovereign records", "Citations & grades"];
-  const stageWidth = 128;
-  const stageGap = 26;
-  const startX = 34;
-  const centerY = 222;
 
   if (act === 0) {
     return (

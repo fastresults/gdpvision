@@ -324,12 +324,13 @@ function buildStages(scenario: Scenario, method: ChamberMethod): StageDetail[] {
   const steps = scenario.steps.map((step) => step.text);
   return method.stages.map((stage, index) => {
     const step = steps[Math.min(steps.length - 1, Math.round((index * (steps.length - 1)) / 4))];
-    const [left, right] = step.split("→").map((part) => part.trim());
-    const [, after = right ?? left] = (right ?? left).split(":").map((part) => part.trim());
+    const [left, rest = left] = step.split("→").map((part) => part.trim());
+    const colon = rest.indexOf(":");
+    const out = colon >= 0 ? rest.slice(colon + 1).trim() : rest;
     return {
       stage,
-      input: index === 0 ? left : (right ?? left).split(":")[0],
-      output: index === 4 ? scenario.outcome : after.charAt(0).toUpperCase() + after.slice(1),
+      input: left,
+      output: index === 4 ? scenario.outcome : out.charAt(0).toUpperCase() + out.slice(1),
     };
   });
 }

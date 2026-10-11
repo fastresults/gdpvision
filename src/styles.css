@@ -1797,6 +1797,22 @@
   opacity: 0;
   animation: cjj-output 0.7s var(--ease-instrument) 7.6s forwards;
 }
+.cjj-beat {
+  opacity: 0;
+  animation: cjj-rise 0.55s var(--ease-instrument) forwards;
+}
+.cjj-fit {
+  transform-origin: left;
+  animation: cjj-fit 1.1s var(--ease-instrument) both;
+}
+@keyframes cjj-fit {
+  from {
+    transform: scaleX(0);
+  }
+}
+.cjj-seal {
+  animation: cjj-scale 0.5s var(--ease-instrument) 0.3s both;
+}
 .cjj-rail {
   width: 0;
   animation: cjj-rail 7s linear 0.4s forwards;

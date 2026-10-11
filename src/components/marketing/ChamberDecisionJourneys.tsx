@@ -4,13 +4,26 @@ import { cn } from "@/lib/utils";
 import { CHAMBER_NAMES } from "./dataDecisionScenarios";
 import { CHAMBER_JOURNEYS, JOURNEY_ACTS, type ChamberJourney } from "./chamberDecisionJourneys";
 import { BENEFIT_SLOTS } from "./chamberJourneyExtras";
+import { ChamberDossier } from "./journeys/ChamberDossier";
+import { ChamberRouter } from "./journeys/ChamberRouter";
 
 const ACT_MS = 6000;
-/** "Open the Chamber" and the benefits register get longer on screen. */
-const actDuration = (act: number) => (act === 4 ? 11000 : ACT_MS);
+/** Acts with internal beats: Select the Chamber (3 beats), Open the Chamber (5 stages). */
+const BEATS: Record<number, { count: number; ms: number }> = {
+  3: { count: 3, ms: 3200 },
+  4: { count: 5, ms: 3000 },
+};
 const CHAMBER_INDICES = Object.keys(CHAMBER_NAMES);
 
-function EvidencePlate({ journey, act }: { journey: ChamberJourney; act: number }) {
+function EvidencePlate({
+  journey,
+  act,
+  beat,
+}: {
+  journey: ChamberJourney;
+  act: number;
+  beat: number;
+}) {
   const evidence = ["Public evidence", "Sovereign records", "Citations & grades"];
 
   if (act === 0) {
@@ -87,178 +100,8 @@ function EvidencePlate({ journey, act }: { journey: ChamberJourney; act: number 
     );
   }
 
-  if (act === 3) {
-    const radius = 168;
-    return (
-      <div className="flex h-full items-center justify-center overflow-hidden">
-        <svg
-          viewBox="0 0 760 520"
-          className="cjj-ring h-full w-full max-w-5xl"
-          role="img"
-          aria-label={`GDPVision selects Chamber ${journey.chamber}, ${journey.method.name}`}
-        >
-          <defs>
-            <pattern
-              id="cjj-hatch"
-              width="7"
-              height="7"
-              patternUnits="userSpaceOnUse"
-              patternTransform="rotate(45)"
-            >
-              <line x1="0" y1="0" x2="0" y2="7" stroke="var(--line-200)" />
-            </pattern>
-          </defs>
-          <circle
-            cx="380"
-            cy="260"
-            r="204"
-            fill="none"
-            stroke="var(--line-200)"
-            strokeDasharray="3 7"
-          />
-          <circle cx="380" cy="260" r="84" fill="url(#cjj-hatch)" stroke="var(--ink-950)" />
-          <text
-            x="380"
-            y="252"
-            textAnchor="middle"
-            className="fill-ink-950 font-display"
-            fontSize="22"
-          >
-            GDPVision
-          </text>
-          <text
-            x="380"
-            y="276"
-            textAnchor="middle"
-            className="fill-ink-500 font-mono"
-            fontSize="9"
-            letterSpacing="2"
-          >
-            SECOND BRAIN
-          </text>
-          {CHAMBER_INDICES.map((index, i) => {
-            const angle = -Math.PI / 2 + (i * Math.PI * 2) / CHAMBER_INDICES.length;
-            const x = 380 + Math.cos(angle) * radius;
-            const y = 260 + Math.sin(angle) * radius;
-            const active = index === journey.chamber;
-            return (
-              <g key={index} className={cn("cjj-orbit-node", active && "cjj-orbit-active")}>
-                <line
-                  x1="380"
-                  y1="260"
-                  x2={x}
-                  y2={y}
-                  stroke={active ? "var(--gold-500)" : "var(--line-200)"}
-                  strokeWidth={active ? 2 : 1}
-                />
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={active ? 38 : 28}
-                  fill="var(--paper-0)"
-                  stroke={active ? "var(--gold-500)" : "var(--ink-700)"}
-                  strokeWidth={active ? 2 : 1}
-                />
-                <text
-                  x={x}
-                  y={y + 5}
-                  textAnchor="middle"
-                  className={active ? "fill-gold-500 font-mono" : "fill-ink-700 font-mono"}
-                  fontSize={active ? 15 : 12}
-                >
-                  {index}
-                </text>
-              </g>
-            );
-          })}
-          <text
-            x="380"
-            y="500"
-            textAnchor="middle"
-            className="fill-ink-950 font-display"
-            fontSize="24"
-          >
-            Chamber {journey.chamber} · {journey.method.name}
-          </text>
-        </svg>
-      </div>
-    );
-  }
-
-  if (act === 4) {
-    const [usual, withGdp] = journey.profile.clock;
-    return (
-      <div className="h-full overflow-auto px-4 py-5 md:px-7">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
-              Chamber {journey.chamber} · inside the decision · {journey.profile.kind}
-            </div>
-            <h3 className="mt-1 font-display text-2xl text-ink-950 md:text-3xl">
-              {journey.method.name}
-            </h3>
-          </div>
-          <div
-            className="cjj-clock border border-line-200 bg-paper-0 px-3 py-2 text-right"
-            aria-label={`Illustrative decision time: usually ${usual}, with GDPVision ${withGdp}`}
-          >
-            <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
-              Time to decision · illustrative
-            </div>
-            <div className="mt-1 font-display text-lg text-ink-950">
-              <span className="text-ink-500 line-through decoration-gold-500">{usual}</span>
-              <span className="mx-2 text-gold-500">→</span>
-              <span>{withGdp}</span>
-            </div>
-          </div>
-        </div>
-
-        <ol className="relative mt-5 grid gap-3 md:grid-cols-5">
-          <span
-            aria-hidden
-            className="cjj-rail pointer-events-none absolute left-0 top-[18px] hidden h-px bg-gold-500 md:block"
-          />
-          {journey.stageDetail.map((detail, index) => (
-            <li
-              key={detail.stage}
-              className="cjj-method-stage relative flex flex-col border border-ink-700 bg-paper-0 p-3"
-              style={{ animationDelay: `${0.4 + index * 1.4}s` }}
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gold-500 bg-paper-0 font-mono text-[11px] text-gold-500">
-                0{index + 1}
-              </span>
-              <strong className="mt-2 block text-[13px] leading-snug text-ink-950">
-                {detail.stage}
-              </strong>
-              <dl className="mt-2 space-y-2 text-[12px] leading-snug">
-                <div>
-                  <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
-                    In
-                  </dt>
-                  <dd className="text-ink-700">{detail.input}</dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-gold-500">
-                    Out
-                  </dt>
-                  <dd className="text-ink-950">{detail.output}</dd>
-                </div>
-              </dl>
-            </li>
-          ))}
-        </ol>
-
-        <div className="cjj-output mt-5 border border-gold-500 bg-ink-950 px-5 py-4">
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-500">
-            {journey.method.output} · the decision Cabinet can now take
-          </div>
-          <p className="mt-1 font-display text-xl text-paper-0 md:text-2xl">
-            {journey.profile.decision}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (act === 3) return <ChamberRouter journey={journey} beat={beat} />;
+  if (act === 4) return <ChamberDossier journey={journey} beat={beat} />;
 
   const benefits = Object.values(journey.benefits);
   return (
@@ -311,6 +154,7 @@ export function ChamberDecisionJourneys() {
   const [journeyIndex, setJourneyIndex] = useState(openingIndex < 0 ? 0 : openingIndex);
   const [chamber, setChamber] = useState("03");
   const [act, setAct] = useState(0);
+  const [beat, setBeat] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [cycle, setCycle] = useState(0);
   const [reduce, setReduce] = useState(false);
@@ -323,9 +167,19 @@ export function ChamberDecisionJourneys() {
   useEffect(() => setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches), []);
   useEffect(() => {
     if (!playing || reduce || act >= JOURNEY_ACTS.length - 1) return;
-    const timer = window.setTimeout(() => setAct((current) => current + 1), ACT_MS);
+    const beats = BEATS[act];
+    const timer = window.setTimeout(
+      () => {
+        if (beats && beat < beats.count - 1) setBeat((b) => b + 1);
+        else {
+          setBeat(0);
+          setAct((current) => current + 1);
+        }
+      },
+      beats ? beats.ms : ACT_MS,
+    );
     return () => window.clearTimeout(timer);
-  }, [act, playing, reduce, cycle]);
+  }, [act, beat, playing, reduce, cycle]);
 
   const chooseJourney = (next: ChamberJourney) => {
     const index = CHAMBER_JOURNEYS.findIndex((item) => item.id === next.id);
@@ -333,12 +187,23 @@ export function ChamberDecisionJourneys() {
     setJourneyIndex(index);
     setChamber(next.chamber);
     setAct(0);
+    setBeat(0);
     setPlaying(!reduce);
     setCycle((value) => value + 1);
   };
-  const goToAct = (next: number) => {
+  const goToAct = (next: number, nextBeat = 0) => {
     setAct(Math.max(0, Math.min(JOURNEY_ACTS.length - 1, next)));
+    setBeat(nextBeat);
     setCycle((value) => value + 1);
+  };
+  const beatsHere = reduce ? 1 : (BEATS[act]?.count ?? 1);
+  const stepForward = () => {
+    if (beat < beatsHere - 1) setBeat((b) => b + 1);
+    else goToAct(act + 1);
+  };
+  const stepBack = () => {
+    if (beat > 0) setBeat((b) => b - 1);
+    else goToAct(act - 1, reduce ? 0 : Math.max(0, (BEATS[act - 1]?.count ?? 1) - 1));
   };
 
   return (
@@ -448,7 +313,7 @@ export function ChamberDecisionJourneys() {
           key={`${journey.id}-${act}-${cycle}`}
           className="cjj mt-3 min-h-[430px] flex-1 overflow-hidden border border-line-200 bg-paper-50"
         >
-          <EvidencePlate journey={journey} act={act} />
+          <EvidencePlate journey={journey} act={act} beat={reduce ? 9 : beat} />
         </div>
 
         <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
@@ -456,8 +321,8 @@ export function ChamberDecisionJourneys() {
             <button
               type="button"
               className="btn-ghost"
-              onClick={() => goToAct(act - 1)}
-              disabled={act === 0}
+              onClick={stepBack}
+              disabled={act === 0 && beat === 0}
             >
               <ChevronLeft className="h-4 w-4" /> Previous
             </button>
@@ -465,6 +330,7 @@ export function ChamberDecisionJourneys() {
               type="button"
               className="btn-ghost"
               onClick={() => {
+                setBeat(0);
                 setCycle((value) => value + 1);
                 setPlaying(!reduce);
               }}
@@ -474,7 +340,7 @@ export function ChamberDecisionJourneys() {
             <button
               type="button"
               className="btn-ghost"
-              onClick={() => goToAct(act + 1)}
+              onClick={stepForward}
               disabled={act === JOURNEY_ACTS.length - 1}
             >
               Next <ChevronRight className="h-4 w-4" />

@@ -118,7 +118,7 @@ export function DataDecisionFlowDialog() {
                 </DialogPrimitive.Description>
               </div>
               <div
-                className="order-3 flex w-full justify-center border-y border-line-200 py-2 md:order-none md:w-auto md:border-y-0 md:py-0"
+                className="order-3 flex w-full justify-center gap-1 border-y border-line-200 py-2 md:order-none md:w-auto md:border-y-0 md:py-0"
                 role="tablist"
                 aria-label="Decision flow view"
               >
@@ -145,7 +145,7 @@ export function DataDecisionFlowDialog() {
                 <X className="h-5 w-5" />
               </DialogPrimitive.Close>
             </div>
-            <div className="flex md:min-h-0 md:flex-1">
+            <div className="flex min-w-0 md:min-h-0 md:flex-1">
               {mode === "national" ? <DataDecisionFlow /> : <ChamberDecisionJourneys />}
             </div>
           </DialogPrimitive.Content>

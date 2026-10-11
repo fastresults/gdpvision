@@ -298,26 +298,40 @@ export interface ChamberJourney extends Scenario {
 }
 
 const FEATURED = new Set([
-  "Tourism shock",
+  "72-hour tourism shock",
   "Closing the deficit",
   "Investor exit",
   "National digital ID",
 ]);
 
-export const CHAMBER_JOURNEYS: ChamberJourney[] = SCENARIOS.map((scenario) => ({
+const STANDARD_JOURNEYS: ChamberJourney[] = SCENARIOS.map((scenario) => ({
   ...scenario,
   id: `${scenario.chamber}-${scenario.title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")}`,
-  question:
-    scenario.title === "Tourism shock"
-      ? "Tourism receipts fall sharply — what should the Prime Minister do in the next 72 hours?"
-      : scenario.question,
   method: CHAMBER_METHODS[scenario.chamber],
   benefits: BENEFITS[scenario.title],
   featured: FEATURED.has(scenario.title),
 }));
+
+const tourismSource = SCENARIOS.find((scenario) => scenario.title === "Tourism shock");
+const openingJourney: ChamberJourney | null = tourismSource
+  ? {
+      ...tourismSource,
+      id: "03-72-hour-tourism-shock",
+      chamber: "03",
+      title: "72-hour tourism shock",
+      question: "Tourism receipts fall sharply — what should the Prime Minister do in the next 72 hours?",
+      method: CHAMBER_METHODS["03"],
+      benefits: BENEFITS["Tourism shock"],
+      featured: true,
+    }
+  : null;
+
+export const CHAMBER_JOURNEYS: ChamberJourney[] = openingJourney
+  ? [openingJourney, ...STANDARD_JOURNEYS]
+  : STANDARD_JOURNEYS;
 
 if (import.meta.env.DEV) {
   CHAMBER_JOURNEYS.forEach((journey) => {

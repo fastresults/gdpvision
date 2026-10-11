@@ -327,7 +327,7 @@ function EvidencePlate({ journey, act }: { journey: ChamberJourney; act: number 
 }
 
 export function ChamberDecisionJourneys() {
-  const openingIndex = CHAMBER_JOURNEYS.findIndex((journey) => journey.title === "Tourism shock");
+  const openingIndex = CHAMBER_JOURNEYS.findIndex((journey) => journey.title === "72-hour tourism shock");
   const [journeyIndex, setJourneyIndex] = useState(openingIndex < 0 ? 0 : openingIndex);
   const [chamber, setChamber] = useState("03");
   const [act, setAct] = useState(0);
@@ -362,7 +362,7 @@ export function ChamberDecisionJourneys() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
+    <div className="flex w-full min-h-0 min-w-0 flex-1 flex-col gap-4 lg:flex-row">
       <aside className="w-full shrink-0 border-b border-line-200 pb-4 lg:w-[300px] lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-500">
           Featured for this briefing

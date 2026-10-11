@@ -1,7 +1,8 @@
 import { Check, FileText, LockKeyhole, Stamp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
-export function BeatLabel({ index, children }: { index: number; children: React.ReactNode }) {
+export function BeatLabel({ index, children }: { index: number; children: ReactNode }) {
   return (
     <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
       <span className="mr-2 text-gold-500">0{index + 1}</span>{children}

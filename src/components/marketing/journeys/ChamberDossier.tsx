@@ -75,14 +75,14 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
                 <li
                   key={c.id}
                   className={cn(
-                    "flex items-center justify-between gap-2 border px-2 py-1 text-[11px] transition-all duration-500",
+                    "flex flex-col border px-2 py-1 text-[11px] transition-all duration-500",
                     lit
                       ? "translate-x-1 border-gold-500 text-ink-950"
                       : "border-line-200 text-ink-700",
                   )}
                 >
-                  <span className="min-w-0 truncate">{c.label}</span>
-                  <span className="shrink-0 font-mono text-[9px] text-ink-500">
+                  <span className="leading-snug">{c.label}</span>
+                  <span className="font-mono text-[9px] text-ink-500">
                     {c.inCountry ? "IN-COUNTRY" : "PUBLIC"} · {c.grade}
                   </span>
                 </li>

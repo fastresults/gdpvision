@@ -1,0 +1,227 @@
+import type { ChamberDemo } from "@/lib/present/chambers";
+
+/**
+ * One chamber's circuit, drawn for the live briefing: the Second Brain feeds
+ * evidence through the chamber's three stages and out as a decision. Pure
+ * SVG; reveals and draws run off the `.prs-*` keyframes once the parent step
+ * carries `.is-on`. Colour comes from the chamber's accent variable.
+ */
+
+const W = 560;
+const H = 372;
+const BRAIN_X = 62;
+const BRAIN_Y = 186;
+const BRAIN_R = 42;
+const STAGE_X = 170;
+const STAGE_W = 366;
+const STAGE_H = 54;
+const STAGE_Y = [80, 160, 240];
+const OUT_Y = 328;
+
+function feed(y: number) {
+  const x1 = BRAIN_X + BRAIN_R;
+  const x2 = STAGE_X;
+  const mx = (x1 + x2) / 2;
+  return `M ${x1} ${BRAIN_Y} C ${mx} ${BRAIN_Y}, ${mx} ${y}, ${x2} ${y}`;
+}
+
+export function ChamberCircuit({ demo, accentVar }: { demo: ChamberDemo; accentVar: string }) {
+  const accent = `var(${accentVar})`;
+  const centers = STAGE_Y.map((y) => y + STAGE_H / 2);
+  const tip = `prs-tip-${demo.index}`;
+  const outX = STAGE_X + STAGE_W / 2;
+  const drop = `M ${outX} ${STAGE_Y[2] + STAGE_H} L ${outX} ${OUT_Y - 2}`;
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="block h-auto w-full"
+      role="img"
+      aria-label={`${demo.ask} The Second Brain feeds ${demo.stages.join(", then ")}, producing ${demo.output}.`}
+    >
+      <defs>
+        <marker
+          id={tip}
+          viewBox="0 0 10 10"
+          refX="9"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto"
+        >
+          <path d="M0 0L10 5L0 10z" fill={accent} />
+        </marker>
+      </defs>
+
+      {/* The question */}
+      <g className="prs-rise">
+        <text x={BRAIN_X - BRAIN_R} y={18} className="prs-label" fill="var(--ink-500)">
+          THE QUESTION
+        </text>
+        <text
+          x={BRAIN_X - BRAIN_R}
+          y={48}
+          fontFamily="var(--font-display)"
+          fontSize={23}
+          fontStyle="italic"
+          fill="var(--ink-950)"
+        >
+          {demo.ask}
+        </text>
+      </g>
+
+      {/* The Second Brain */}
+      <g className="prs-rise" style={{ animationDelay: "150ms" }}>
+        <g
+          className="prs-breathe"
+          style={{ transformOrigin: `${BRAIN_X}px ${BRAIN_Y}px`, transformBox: "view-box" }}
+        >
+          <circle
+            cx={BRAIN_X}
+            cy={BRAIN_Y}
+            r={BRAIN_R}
+            fill="var(--paper-0)"
+            stroke="var(--ink-950)"
+            strokeWidth={1.5}
+          />
+          <circle
+            cx={BRAIN_X}
+            cy={BRAIN_Y}
+            r={BRAIN_R - 9}
+            fill="none"
+            stroke="var(--line-200)"
+            strokeDasharray="3 5"
+          />
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => {
+            const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+            const r = BRAIN_R - 4;
+            return (
+              <circle
+                key={i}
+                cx={BRAIN_X + Math.cos(a) * r}
+                cy={BRAIN_Y + Math.sin(a) * r}
+                r={2.6}
+                fill={i === Number(demo.index) - 1 ? accent : "var(--ink-400)"}
+              />
+            );
+          })}
+          {[
+            [-14, -8],
+            [10, -14],
+            [16, 6],
+            [-6, 14],
+            [2, 0],
+          ].map(([dx, dy], i) => (
+            <circle
+              key={i}
+              cx={BRAIN_X + dx}
+              cy={BRAIN_Y + dy}
+              r={i === 4 ? 3.2 : 1.9}
+              fill={i === 4 ? accent : "var(--ink-700)"}
+              className="prs-light"
+              style={{ animationDelay: `${i * 600}ms` }}
+            />
+          ))}
+        </g>
+        <text
+          x={BRAIN_X}
+          y={BRAIN_Y + BRAIN_R + 24}
+          textAnchor="middle"
+          className="prs-label"
+          fill="var(--ink-700)"
+        >
+          SECOND BRAIN
+        </text>
+      </g>
+
+      {/* Feed lines, brain to each stage */}
+      {centers.map((cy, i) => (
+        <path
+          key={i}
+          d={feed(cy)}
+          pathLength={1}
+          fill="none"
+          stroke={accent}
+          strokeWidth={1.5}
+          className="prs-draw-n"
+          markerEnd={`url(#${tip})`}
+          style={{ animationDelay: `${450 + i * 380}ms` }}
+        />
+      ))}
+
+      {/* Stages */}
+      {STAGE_Y.map((y, i) => (
+        <g key={i} className="prs-rise" style={{ animationDelay: `${700 + i * 380}ms` }}>
+          <rect
+            x={STAGE_X}
+            y={y}
+            width={STAGE_W}
+            height={STAGE_H}
+            rx={6}
+            fill="var(--paper-0)"
+            stroke="var(--line-200)"
+          />
+          <rect x={STAGE_X} y={y} width={4} height={STAGE_H} rx={2} fill={accent} />
+          <text x={STAGE_X + 18} y={y + 21} className="prs-label" fill="var(--ink-500)">
+            {`STAGE ${i + 1}`}
+          </text>
+          <text
+            x={STAGE_X + 18}
+            y={y + 42}
+            fontFamily="var(--font-sans)"
+            fontSize={17}
+            fill="var(--ink-950)"
+          >
+            {demo.stages[i]}
+          </text>
+        </g>
+      ))}
+
+      {/* Evidence travelling from the brain */}
+      {centers.map((cy, i) => (
+        <circle key={i} r={3.6} fill={accent}>
+          <animateMotion
+            dur={`${3.2 + i * 0.4}s`}
+            begin={`${1.8 + i * 1.1}s`}
+            repeatCount="indefinite"
+            path={feed(cy)}
+          />
+        </circle>
+      ))}
+
+      {/* Out the other side */}
+      <path
+        d={drop}
+        pathLength={1}
+        fill="none"
+        stroke="var(--ink-800)"
+        strokeWidth={1.5}
+        className="prs-draw-n"
+        markerEnd={`url(#${tip})`}
+        style={{ animationDelay: "1900ms" }}
+      />
+      <g className="prs-rise" style={{ animationDelay: "2400ms" }}>
+        <rect
+          x={STAGE_X}
+          y={OUT_Y}
+          width={STAGE_W}
+          height={42}
+          rx={21}
+          fill="var(--paper-0)"
+          stroke={accent}
+          strokeWidth={2}
+        />
+        <text
+          x={outX}
+          y={OUT_Y + 27}
+          textAnchor="middle"
+          fontFamily="var(--font-display)"
+          fontSize={18}
+          fill="var(--ink-950)"
+        >
+          {demo.output}
+        </text>
+      </g>
+    </svg>
+  );
+}

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useHoverIntent } from "@/hooks/useHoverIntent";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { SCENARIOS, CHAMBER_NAMES } from "./dataDecisionScenarios";
 
@@ -125,7 +126,12 @@ export function DataDecisionFlow() {
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<Path | null>(null);
   const [reduce, setReduce] = useState(false);
-  const paused = selected !== null;
+  const [hoverHold, setHoverHold] = useState(false);
+  const { hover: holdHover } = useHoverIntent<true>(
+    useCallback(() => setHoverHold(true), []),
+    useCallback(() => setHoverHold(false), []),
+  );
+  const paused = selected !== null || hoverHold;
 
   useEffect(() => {
     setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -295,6 +301,7 @@ export function DataDecisionFlow() {
         <div className="hidden min-h-0 flex-1 overflow-auto md:block">
           <svg
             viewBox={`0 0 ${W} ${H}`}
+            {...holdHover(true)}
             className={cn("ddf h-full min-h-[520px] w-full", (paused || !playing) && "ddf-paused")}
             role="group"
             aria-label="Data and decision flow map"

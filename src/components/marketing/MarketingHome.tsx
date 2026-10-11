@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useHoverIntent } from "@/hooks/useHoverIntent";
+import { useEffect, useState, useCallback } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -175,6 +176,10 @@ export function MarketingHome() {
   const [momentIndex, setMomentIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [stopped, setStopped] = useState(false);
+  const { hover: heroHover } = useHoverIntent<true>(
+    useCallback(() => setPaused(true), []),
+    useCallback(() => setPaused(false), []),
+  );
   useEffect(() => {
     setTail(shuffleTail());
     setMomentIndex(1 + Math.floor(Math.random() * (MOMENT_VARIANTS.length - 1)));
@@ -236,8 +241,7 @@ export function MarketingHome() {
 
             <div
               aria-live="polite"
-              onMouseEnter={() => setPaused(true)}
-              onMouseLeave={() => setPaused(false)}
+              {...heroHover(true)}
               onFocusCapture={() => setPaused(true)}
               onBlurCapture={() => setPaused(false)}
               className="mt-8"

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useHoverIntent } from "@/hooks/useHoverIntent";
+import { useEffect, useRef, useState, type KeyboardEvent, useCallback } from "react";
 
 type Stage = "understand" | "rehearse" | "decide" | "deliver" | "learn";
 
@@ -15,6 +16,7 @@ export function NationalCustodyRelay() {
   const wasVisible = useRef(false);
   const [visible, setVisible] = useState(false);
   const [active, setActive] = useState<Stage | null>(null);
+  const releaseActive = useCallback(() => setActive(null), []);
   const [cycle, setCycle] = useState(0);
 
   useEffect(() => {
@@ -39,12 +41,12 @@ export function NationalCustodyRelay() {
     return () => window.clearTimeout(timer);
   }, [visible, active, cycle]);
 
+  const { hover } = useHoverIntent<Stage>(setActive, releaseActive);
   const stageProps = (stage: Stage) => ({
     tabIndex: 0,
     role: "button" as const,
     "aria-label": `${STAGES.find((item) => item.id === stage)?.title}. ${STAGES.find((item) => item.id === stage)?.body}`,
-    onMouseEnter: () => setActive(stage),
-    onMouseLeave: () => setActive(null),
+    ...hover(stage),
     onFocus: () => setActive(stage),
     onBlur: () => setActive(null),
     onClick: () => setActive((current) => (current === stage ? null : stage)),

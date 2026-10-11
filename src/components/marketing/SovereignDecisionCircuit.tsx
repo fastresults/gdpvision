@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useHoverIntent } from "@/hooks/useHoverIntent";
+import { useEffect, useRef, useState, type KeyboardEvent, useCallback } from "react";
 
 type Stage = "corpus" | "vault" | "analysis" | "approval" | "value";
 
@@ -29,6 +30,7 @@ export function SovereignDecisionCircuit() {
   const ref = useRef<HTMLElement>(null);
   const [started, setStarted] = useState(false);
   const [active, setActive] = useState<Stage | null>(null);
+  const releaseActive = useCallback(() => setActive(null), []);
   const [cycle, setCycle] = useState(0);
 
   useEffect(() => {
@@ -52,12 +54,12 @@ export function SovereignDecisionCircuit() {
     return () => window.clearTimeout(timer);
   }, [started, active, cycle]);
 
+  const { hover } = useHoverIntent<Stage>(setActive, releaseActive);
   const stageProps = (stage: Stage) => ({
     tabIndex: 0,
     role: "button" as const,
     "aria-label": `${STAGE_COPY[stage].title}. ${STAGE_COPY[stage].body}`,
-    onMouseEnter: () => setActive(stage),
-    onMouseLeave: () => setActive(null),
+    ...hover(stage),
     onFocus: () => setActive(stage),
     onBlur: () => setActive(null),
     onClick: () => setActive((current) => (current === stage ? null : stage)),

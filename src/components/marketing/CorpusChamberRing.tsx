@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useHoverIntent } from "@/hooks/useHoverIntent";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "@tanstack/react-router";
 import { CHAMBERS } from "@/lib/chambers";
 
@@ -63,6 +64,8 @@ export function CorpusChamberRing() {
   }, []);
 
   const [rot, setRot] = useState(0);
+  const releaseActive = useCallback(() => setActive(null), []);
+  const { hover } = useHoverIntent<number | "core">(setActive, releaseActive);
   const pausedRef = useRef(false);
   pausedRef.current = active !== null;
 
@@ -113,8 +116,7 @@ export function CorpusChamberRing() {
                   to="/"
                   hash="instrument"
                   aria-label={`Chamber ${c.index}: ${c.title}. ${c.outcome}`}
-                  onMouseEnter={() => setActive(i)}
-                  onMouseLeave={() => setActive(null)}
+                  {...hover(i)}
                   onFocus={() => setActive(i)}
                   onBlur={() => setActive(null)}
                   className="outline-none"
@@ -168,8 +170,7 @@ export function CorpusChamberRing() {
           tabIndex={0}
           role="img"
           aria-label="The Corpus: graded, cited national evidence."
-          onMouseEnter={() => setActive("core")}
-          onMouseLeave={() => setActive(null)}
+          {...hover("core")}
           onFocus={() => setActive("core")}
           onBlur={() => setActive(null)}
           className="outline-none"

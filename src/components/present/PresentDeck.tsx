@@ -221,6 +221,9 @@ function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
 export function PresentDeck() {
   const [stepIndex, setStepIndex] = useState(0);
   const [stepCount, setStepCount] = useState(0);
+  // Where a smooth scroll is heading. Lets two quick arrow presses count as two
+  // steps instead of one, since the observer only reports once the scroll lands.
+  const targetRef = useRef<number | null>(null);
 
   useEffect(() => {
     const steps = Array.from(document.querySelectorAll<HTMLElement>("[data-step]"));
@@ -228,7 +231,10 @@ export function PresentDeck() {
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
-          if (e.isIntersecting) setStepIndex(steps.indexOf(e.target as HTMLElement));
+          if (!e.isIntersecting) return;
+          const i = steps.indexOf(e.target as HTMLElement);
+          setStepIndex(i);
+          if (targetRef.current === i) targetRef.current = null;
         });
       },
       { threshold: 0.55 },
@@ -240,7 +246,9 @@ export function PresentDeck() {
   const go = useCallback(
     (dir: 1 | -1) => {
       const steps = Array.from(document.querySelectorAll<HTMLElement>("[data-step]"));
-      const next = Math.min(steps.length - 1, Math.max(0, stepIndex + dir));
+      const from = targetRef.current ?? stepIndex;
+      const next = Math.min(steps.length - 1, Math.max(0, from + dir));
+      targetRef.current = next;
       steps[next]?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
     [stepIndex],

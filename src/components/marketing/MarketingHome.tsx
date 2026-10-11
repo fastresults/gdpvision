@@ -218,7 +218,7 @@ export function MarketingHome() {
     <MarketingShell>
       {/* HERO ------------------------------------------------------------- */}
       <section id="top" className="border-b border-line-200">
-        <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-5 py-12 sm:px-6 sm:py-16 md:grid-cols-[1.15fr_1fr] md:gap-16 md:px-10 md:py-24">
+        <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-5 py-12 sm:px-6 sm:py-16 md:grid-cols-[1.15fr_1fr] md:gap-16 md:px-10 md:py-16">
           <div className="min-w-0">
             <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
               GDPVision · A national decision system under government control
@@ -334,10 +334,10 @@ export function MarketingHome() {
               </a>
             </div>
           </div>
-          <div className="relative flex flex-col items-center justify-center">
-            <SignatureRing size={480} />
-            <div className="-mt-24 flex justify-center">
-              <DataDecisionFlowDialog />
+          <div className="relative flex flex-col items-center justify-center md:self-start">
+            <DataDecisionFlowDialog />
+            <div className="mt-24 flex w-full justify-center md:mt-40">
+              <SignatureRing size={520} />
             </div>
           </div>
         </div>

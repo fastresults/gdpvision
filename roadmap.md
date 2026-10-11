@@ -32,3 +32,4 @@
 - [x] Sector Plan visual summary: target trajectory, readiness, delivery portfolio, roadmap, evidence, and executive perspectives
 
 - [x] Five decision journeys per Chamber (50 total) with richer Open the Chamber and Prime Minister value steps
+- [x] Deeper Select the Chamber (routing beats) and Open the Chamber (working-session dossier)

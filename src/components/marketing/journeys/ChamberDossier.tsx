@@ -161,7 +161,7 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
       </div>
 
       {done && (
-        <div className="cjj-beat grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border border-gold-500 bg-ink-950 px-5 py-3">
+        <div className="cjj-beat grid items-center gap-2 border border-gold-500 bg-ink-950 px-5 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:gap-3">
           <div className="min-w-0">
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-500">
               {journey.method.output} · the decision Cabinet can now take

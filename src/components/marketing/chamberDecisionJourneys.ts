@@ -322,7 +322,8 @@ const openingJourney: ChamberJourney | null = tourismSource
       id: "03-72-hour-tourism-shock",
       chamber: "03",
       title: "72-hour tourism shock",
-      question: "Tourism receipts fall sharply — what should the Prime Minister do in the next 72 hours?",
+      question:
+        "Tourism receipts fall sharply — what should the Prime Minister do in the next 72 hours?",
       method: CHAMBER_METHODS["03"],
       benefits: BENEFITS["Tourism shock"],
       featured: true,

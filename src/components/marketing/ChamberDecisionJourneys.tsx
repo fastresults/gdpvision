@@ -327,7 +327,9 @@ function EvidencePlate({ journey, act }: { journey: ChamberJourney; act: number 
 }
 
 export function ChamberDecisionJourneys() {
-  const openingIndex = CHAMBER_JOURNEYS.findIndex((journey) => journey.title === "72-hour tourism shock");
+  const openingIndex = CHAMBER_JOURNEYS.findIndex(
+    (journey) => journey.title === "72-hour tourism shock",
+  );
   const [journeyIndex, setJourneyIndex] = useState(openingIndex < 0 ? 0 : openingIndex);
   const [chamber, setChamber] = useState("03");
   const [act, setAct] = useState(0);

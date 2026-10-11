@@ -778,7 +778,10 @@ export function DataDecisionFlow() {
                   tabIndex={0}
                   aria-label={`${n.label}. ${n.what}`}
                   aria-pressed={isSel}
-                  onClick={() => toggle(n.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggle(n.id);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
@@ -857,7 +860,10 @@ export function DataDecisionFlow() {
                   <button
                     key={n.id}
                     type="button"
-                    onClick={() => toggle(n.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggle(n.id);
+                    }}
                     aria-pressed={selected === n.id}
                     className={cn(
                       "card-choice px-2 py-2 text-left text-[13px]",

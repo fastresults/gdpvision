@@ -28,7 +28,6 @@ function feed(y: number) {
 export function ChamberCircuit({ demo, accentVar }: { demo: ChamberDemo; accentVar: string }) {
   const accent = `var(${accentVar})`;
   const centers = STAGE_Y.map((y) => y + STAGE_H / 2);
-  const tip = `prs-tip-${demo.index}`;
   const outX = STAGE_X + STAGE_W / 2;
   const drop = `M ${outX} ${STAGE_Y[2] + STAGE_H} L ${outX} ${OUT_Y - 2}`;
 
@@ -39,20 +38,6 @@ export function ChamberCircuit({ demo, accentVar }: { demo: ChamberDemo; accentV
       role="img"
       aria-label={`${demo.ask} The Second Brain feeds ${demo.stages.join(", then ")}, producing ${demo.output}.`}
     >
-      <defs>
-        <marker
-          id={tip}
-          viewBox="0 0 10 10"
-          refX="9"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto"
-        >
-          <path d="M0 0L10 5L0 10z" fill={accent} />
-        </marker>
-      </defs>
-
       {/* The question */}
       <g className="prs-rise">
         <text x={BRAIN_X - BRAIN_R} y={18} className="prs-label" fill="var(--ink-500)">
@@ -144,7 +129,6 @@ export function ChamberCircuit({ demo, accentVar }: { demo: ChamberDemo; accentV
           stroke={accent}
           strokeWidth={1.5}
           className="prs-draw-n"
-          markerEnd={`url(#${tip})`}
           style={{ animationDelay: `${450 + i * 380}ms` }}
         />
       ))}
@@ -162,6 +146,10 @@ export function ChamberCircuit({ demo, accentVar }: { demo: ChamberDemo; accentV
             stroke="var(--line-200)"
           />
           <rect x={STAGE_X} y={y} width={4} height={STAGE_H} rx={2} fill={accent} />
+          <path
+            d={`M ${STAGE_X - 9} ${y + STAGE_H / 2 - 5} L ${STAGE_X - 1} ${y + STAGE_H / 2} L ${STAGE_X - 9} ${y + STAGE_H / 2 + 5} Z`}
+            fill={accent}
+          />
           <text x={STAGE_X + 18} y={y + 21} className="prs-label" fill="var(--ink-500)">
             {`STAGE ${i + 1}`}
           </text>
@@ -179,7 +167,8 @@ export function ChamberCircuit({ demo, accentVar }: { demo: ChamberDemo; accentV
 
       {/* Evidence travelling from the brain */}
       {centers.map((cy, i) => (
-        <circle key={i} r={3.6} fill={accent}>
+        <circle key={i} r={3.6} fill={accent} opacity={0}>
+          <set attributeName="opacity" to="1" begin={`${1.8 + i * 1.1}s`} />
           <animateMotion
             dur={`${3.2 + i * 0.4}s`}
             begin={`${1.8 + i * 1.1}s`}
@@ -197,10 +186,13 @@ export function ChamberCircuit({ demo, accentVar }: { demo: ChamberDemo; accentV
         stroke="var(--ink-800)"
         strokeWidth={1.5}
         className="prs-draw-n"
-        markerEnd={`url(#${tip})`}
         style={{ animationDelay: "1900ms" }}
       />
       <g className="prs-rise" style={{ animationDelay: "2400ms" }}>
+        <path
+          d={`M ${outX - 5} ${OUT_Y - 11} L ${outX} ${OUT_Y - 2} L ${outX + 5} ${OUT_Y - 11} Z`}
+          fill="var(--ink-800)"
+        />
         <rect
           x={STAGE_X}
           y={OUT_Y}

@@ -328,7 +328,11 @@ function buildStages(scenario: Scenario, method: ChamberMethod): StageDetail[] {
     const [left, rest = left] = step.split("→").map((part) => part.trim());
     const colon = rest.indexOf(":");
     const out =
-      colon >= 0 ? rest.slice(colon + 1).trim() : `Gathered into the ${rest.replace(/\.$/, "")}.`;
+      colon >= 0
+        ? rest.slice(colon + 1).trim()
+        : rest.split(" ").length > 3
+          ? rest
+          : `Gathered into the ${rest.replace(/\.$/, "")}.`;
     details.push({
       stage,
       input: index === 0 ? left : details[index - 1].output,

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import type { ChamberJourney } from "../chamberDecisionJourneys";
 import { questionSignals, routing } from "./journeyRouting";
 
-/** Act 4 — "Select the Chamber": read the question, weigh all ten, route it. */
+/** Act 4 — route through five auditable beats. */
 export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat: number }) {
   const { keywords, tags } = questionSignals(journey);
   const fits = routing(journey);
@@ -104,11 +104,20 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
       )}
 
       {/* Beat 3 — route */}
-      {beat >= 2 && (
+      {beat >= 3 && support.length > 0 && (
+        <div className="cjj-beat border border-ink-700 bg-paper-0 p-3">
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">04 · Supporting Chambers remain connected</div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {support.map((s) => <span key={s.index} className="border border-gold-500 px-2 py-1 text-[11px] text-ink-950"><span className="font-mono text-gold-500">{s.index}</span> · {s.name} — {s.purpose}</span>)}
+          </div>
+        </div>
+      )}
+
+      {beat >= 4 && (
         <div className="cjj-beat grid gap-3 border border-gold-500 bg-ink-950 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
           <div className="min-w-0">
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-500">
-              03 · Routed · Lead Chamber
+              05 · Routing authorised · Lead Chamber
             </div>
             <p className="mt-1 font-display text-xl text-paper-0 md:text-2xl">
               Chamber {lead.index} · {journey.method.name}

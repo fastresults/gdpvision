@@ -3,14 +3,16 @@ import "@/lib/explain/journeys-entries";
 import { cn } from "@/lib/utils";
 import type { ChamberJourney } from "../chamberDecisionJourneys";
 import { STAGE_PLAYBOOK, evidenceChips } from "./journeyRouting";
+import { stageFinding, stageOperation } from "./journeyVisuals";
 
 /** Act 5 — "Open the Chamber": evidence tray → workbench → decision file. */
 export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; beat: number }) {
   const stages = journey.stageDetail;
   const play = STAGE_PLAYBOOK[journey.chamber];
   const chips = evidenceChips(journey);
-  const active = Math.min(beat, stages.length - 1);
-  const done = beat >= stages.length - 1;
+  const active = Math.min(Math.floor(beat / 6), stages.length - 1);
+  const stageBeat = beat % 6;
+  const done = beat >= stages.length * 6 - 1;
   const [usual, withGdp] = journey.profile.clock;
   const inCountry = chips.filter((c) => c.inCountry).length;
   const current = stages[active];
@@ -70,7 +72,7 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
           </div>
           <ul className="mt-2 space-y-1.5">
             {chips.map((c, i) => {
-              const lit = i % stages.length === active || (active === 0 && i === 0);
+              const lit = stageBeat >= 1 && (i % stages.length === active || (active === 0 && i === 0));
               return (
                 <li
                   key={c.id}
@@ -101,14 +103,18 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
               {current.stage}
             </strong>
           </div>
+          <div className="mt-3 grid grid-cols-6 gap-1" aria-label="Stage micro-steps">
+            {["Question", "Inputs", "Method", "Finding", "Safeguard", "Sign-off"].map((label, i) => <span key={label} className={cn("border px-1 py-1 text-center font-mono text-[7px] uppercase", i <= stageBeat ? "border-gold-500 text-ink-950" : "border-line-200 text-ink-500")}>{label}</span>)}
+          </div>
           <dl className="mt-3 divide-y divide-line-100 text-[13px]">
             {[
               ["What we ask", step.ask],
               ["What we use", current.input],
-              ["What we found", current.output],
+              ["Method applied", stageOperation(journey, active)],
+              ["What we found", stageFinding(journey, current, active)],
               ["Safeguard", step.safeguard],
               ["Who signs off", step.signoff],
-            ].map(([k, v], i) => (
+            ].map(([k, v], i) => i <= stageBeat && (
               <div
                 key={k}
                 className="cjj-beat grid grid-cols-[110px_minmax(0,1fr)] gap-3 py-2"
@@ -134,7 +140,7 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
             Decision file
           </div>
           <ol className="mt-2 space-y-2">
-            {stages.slice(0, active + 1).map((s, i) => (
+            {stages.slice(0, active + (stageBeat >= 3 ? 1 : 0)).map((s, i) => (
               <li
                 key={s.stage}
                 className="cjj-beat border-l border-gold-500 pl-2 text-[11px] leading-snug"

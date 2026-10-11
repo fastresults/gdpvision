@@ -60,8 +60,6 @@ export function SovereignDecisionCircuit() {
     role: "button" as const,
     "aria-label": `${STAGE_COPY[stage].title}. ${STAGE_COPY[stage].body}`,
     ...hover(stage),
-    onFocus: () => setActive(stage),
-    onBlur: () => setActive(null),
     onClick: () => setActive((current) => (current === stage ? null : stage)),
     onKeyDown: (event: KeyboardEvent<SVGGElement>) => {
       if (event.key !== "Enter" && event.key !== " ") return;

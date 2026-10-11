@@ -1896,17 +1896,22 @@
 .prs-rise { opacity: 0; transform: translateY(18px); }
 .prs-draw { stroke-dasharray: 1200; stroke-dashoffset: 1200; }
 .is-on .prs-draw { animation: prs-draw 1600ms ease-out forwards; }
+.prs-draw-n { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.is-on .prs-draw-n { animation: prs-draw 700ms ease-out forwards; }
+.prs-frame-sheen { animation: prs-sheen 1.6s ease-in-out infinite; }
 .prs-label { font-family: var(--font-mono); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
 .prs-wall { animation: prs-wall 2.4s linear infinite; }
 .prs-light { animation: prs-light 3s ease-in-out infinite; }
 .prs-breathe { animation: prs-breathe 6s ease-in-out infinite; }
 @keyframes prs-rise { to { opacity: 1; transform: translateY(0); } }
 @keyframes prs-draw { to { stroke-dashoffset: 0; } }
+@keyframes prs-sheen { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 @keyframes prs-wall { to { stroke-dashoffset: -48; } }
 @keyframes prs-light { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
 @keyframes prs-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
 @media (prefers-reduced-motion: reduce) {
   .prs-rise, .prs-step .prs-rise { opacity: 1; transform: none; animation: none; }
-  .prs-draw { stroke-dashoffset: 0; animation: none; }
+  .prs-draw, .prs-draw-n { stroke-dashoffset: 0; animation: none; }
+  .prs-frame-sheen { animation: none; }
   .prs-wall, .prs-light, .prs-breathe { animation: none; }
 }

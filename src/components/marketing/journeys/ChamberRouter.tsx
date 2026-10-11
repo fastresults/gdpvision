@@ -22,7 +22,10 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
         <p className="mt-2 font-display text-lg leading-snug text-ink-950 md:text-xl">
           {journey.question.split(pattern).map((part, i) =>
             keywords.includes(part) ? (
-              <mark key={i} className="cjj-mark bg-transparent text-gold-500 underline decoration-gold-500 underline-offset-4">
+              <mark
+                key={i}
+                className="cjj-mark bg-transparent text-gold-500 underline decoration-gold-500 underline-offset-4"
+              >
                 {part}
               </mark>
             ) : (

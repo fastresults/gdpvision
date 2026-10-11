@@ -76,7 +76,9 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
                   key={c.id}
                   className={cn(
                     "flex items-center justify-between gap-2 border px-2 py-1 text-[11px] transition-all duration-500",
-                    lit ? "translate-x-1 border-gold-500 text-ink-950" : "border-line-200 text-ink-700",
+                    lit
+                      ? "translate-x-1 border-gold-500 text-ink-950"
+                      : "border-line-200 text-ink-700",
                   )}
                 >
                   <span className="min-w-0 truncate">{c.label}</span>
@@ -133,7 +135,10 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
           </div>
           <ol className="mt-2 space-y-2">
             {stages.slice(0, active + 1).map((s, i) => (
-              <li key={s.stage} className="cjj-beat border-l border-gold-500 pl-2 text-[11px] leading-snug">
+              <li
+                key={s.stage}
+                className="cjj-beat border-l border-gold-500 pl-2 text-[11px] leading-snug"
+              >
                 <span className="font-mono text-[9px] text-gold-500">0{i + 1}</span>{" "}
                 <span className="text-ink-950">{s.output}</span>
               </li>
@@ -161,7 +166,9 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-500">
               {journey.method.output} · the decision Cabinet can now take
             </div>
-            <p className="font-display text-lg text-paper-0 md:text-xl">{journey.profile.decision}</p>
+            <p className="font-display text-lg text-paper-0 md:text-xl">
+              {journey.profile.decision}
+            </p>
           </div>
           <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.18em] text-gold-300">
             Then → Prime Minister value

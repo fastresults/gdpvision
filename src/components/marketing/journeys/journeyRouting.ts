@@ -52,7 +52,11 @@ export const STAGE_PLAYBOOK: Record<string, StagePlay[]> = {
   "02": [
     sp("What does the mandate say?", "Mandate read from the gazette", "Cabinet Secretary"),
     sp("Who has real influence?", "Influence scored on evidence", "Cabinet Secretary"),
-    sp("Where do ministries depend on each other?", "Overlaps shown to both ministers", "Ministers concerned"),
+    sp(
+      "Where do ministries depend on each other?",
+      "Overlaps shown to both ministers",
+      "Ministers concerned",
+    ),
     sp("Who owns the result?", "One owner — never two", "Prime Minister"),
     sp("What happens next, by when?", "Action logged with a date", "Accountable minister"),
   ],
@@ -65,7 +69,11 @@ export const STAGE_PLAYBOOK: Record<string, StagePlay[]> = {
   ],
   "04": [
     sp("How exposed are we?", "Exposure priced from cited flows", "Investment agency"),
-    sp("Are we ready — law, land, people?", "Readiness checked against standards", "Investment agency"),
+    sp(
+      "Are we ready — law, land, people?",
+      "Readiness checked against standards",
+      "Investment agency",
+    ),
     sp("What must replace or attract it?", "Target tied to GDP and jobs", "Treasury"),
     sp("What will we offer — and not?", "Incentives capped by payback", "Minister of Finance"),
     sp("What does the investor receive?", "Open-standard investor file", "Minister of Investment"),

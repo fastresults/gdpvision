@@ -323,7 +323,7 @@ export function ChamberDecisionJourneys() {
   useEffect(() => setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches), []);
   useEffect(() => {
     if (!playing || reduce || act >= JOURNEY_ACTS.length - 1) return;
-    const timer = window.setTimeout(() => setAct((current) => current + 1), ACT_MS);
+    const timer = window.setTimeout(() => setAct((current) => current + 1), actDuration(act));
     return () => window.clearTimeout(timer);
   }, [act, playing, reduce, cycle]);
 

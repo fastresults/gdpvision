@@ -158,7 +158,7 @@ export function DataDecisionFlowDialog() {
             <FlowLensPlate
               mode="national"
               emblem="lens"
-              headline="Data &amp; Decision Flow"
+              headline="Data & Decision Flow"
               caption="Engage the National Decision Engine"
               onPick={() => setMode("national")}
             />

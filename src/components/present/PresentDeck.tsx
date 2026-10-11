@@ -1,10 +1,13 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, ExternalLink, Maximize2, Minimize2 } from "lucide-react";
-import { CHAMBERS } from "@/lib/chambers";
+import { ArrowDown, ArrowUp, ExternalLink } from "lucide-react";
+import { CHAMBERS, type Chamber } from "@/lib/chambers";
 import { GDP_EVENTS, type GdpEvent } from "@/lib/present/events";
+import { DEMO_COUNTRY, chamberDemo } from "@/lib/present/chambers";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { SecondBrainFeed } from "./SecondBrainFeed";
+import { ChamberCircuit } from "./ChamberCircuit";
+import { LiveFrame } from "./LiveFrame";
 import { cn } from "@/lib/utils";
 
 /**
@@ -104,10 +107,11 @@ const ECCU = [
 function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
   const [ref, on] = useInView<HTMLElement>(0.4);
   const [wide, setWide] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [active, setActive] = useState(false);
   useEffect(() => {
-    if (on) setLoaded(true);
+    if (on) setActive(true);
   }, [on]);
+  const host = ev.url ? ev.url.replace(/^https?:\/\//, "").replace(/\/$/, "") : null;
 
   return (
     <section
@@ -146,64 +150,27 @@ function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
           <div className={cn(MICRO, "mt-5")}>
             {ev.venue} · Sector: {ev.sector}
           </div>
-          <div className="mt-8 flex flex-wrap gap-3">
-            {ev.url ? (
-              <>
-                <a href={ev.url} target="_blank" rel="noreferrer" className="btn-primary">
-                  Open the site
-                  <ExternalLink className="ml-2 h-4 w-4" aria-hidden />
-                </a>
-                <button type="button" className="btn-secondary" onClick={() => setWide(true)}>
-                  Tour it full width
-                  <Maximize2 className="ml-2 h-4 w-4" aria-hidden />
-                </button>
-              </>
-            ) : (
-              <span className={MICRO}>Site link to be added</span>
-            )}
-          </div>
+          {ev.url ? (
+            <div className="mt-8">
+              <a href={ev.url} target="_blank" rel="noreferrer" className="btn-primary">
+                Open {host}
+                <ExternalLink className="ml-2 h-4 w-4" aria-hidden />
+              </a>
+            </div>
+          ) : null}
         </div>
 
         <div className="prs-rise" style={{ animationDelay: "200ms" }}>
-          {ev.url ? (
-            <div className="relative overflow-hidden rounded-xl border border-line-200 bg-paper-0 shadow-[0_24px_60px_-30px_rgba(8,17,31,0.35)]">
-              <div className="flex items-center justify-between gap-3 border-b border-line-200 bg-paper-50 px-4 py-2">
-                <span className={cn(MICRO, "truncate")}>{ev.url.replace(/^https?:\/\//, "")}</span>
-                <div className="flex items-center gap-2">
-                  {wide ? (
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      onClick={() => setWide(false)}
-                      aria-label="Back to the event description"
-                    >
-                      <Minimize2 className="h-4 w-4" aria-hidden />
-                    </button>
-                  ) : null}
-                  <a
-                    href={ev.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-ghost"
-                    aria-label="Open the site in a new tab"
-                  >
-                    <ExternalLink className="h-4 w-4" aria-hidden />
-                  </a>
-                </div>
-              </div>
-              <div className={cn("relative w-full", wide ? "h-[82dvh]" : "aspect-[16/10]")}>
-                {loaded ? (
-                  <iframe
-                    title={`${ev.name} website`}
-                    src={ev.url}
-                    className="absolute inset-0 h-full w-full"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    allow="fullscreen"
-                  />
-                ) : null}
-              </div>
-            </div>
+          {ev.url && host ? (
+            <LiveFrame
+              src={ev.url}
+              label={host}
+              title={`${ev.name} website`}
+              active={active}
+              wide={wide}
+              onWide={() => setWide(true)}
+              onNarrow={() => setWide(false)}
+            />
           ) : (
             <div className="flex aspect-[16/10] w-full items-center justify-center rounded-xl border border-dashed border-line-200 bg-paper-100/60">
               <div className="text-center">
@@ -212,6 +179,75 @@ function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
               </div>
             </div>
           )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ChamberStep({ c }: { c: Chamber }) {
+  const demo = chamberDemo(c.index);
+  const [ref, on] = useInView<HTMLElement>(0.4);
+  const [wide, setWide] = useState(false);
+  const [active, setActive] = useState(false);
+  useEffect(() => {
+    if (on) setActive(true);
+  }, [on]);
+  if (!demo) return null;
+  const label = `gdpvision.com${demo.path}`;
+
+  return (
+    <section
+      id={`chamber-${c.index}`}
+      ref={ref}
+      data-step
+      className={cn(
+        "prs-step relative flex min-h-dvh snap-start flex-col justify-center border-b border-line-200 px-6 py-16 md:px-16 lg:px-24",
+        on && "is-on",
+      )}
+    >
+      <div
+        className="pointer-events-none absolute left-6 top-16 bottom-16 w-[2px] bg-ink-950 md:left-10"
+        aria-hidden
+      />
+      <div
+        className={cn(
+          "mx-auto grid w-full max-w-[1400px] items-center gap-10",
+          wide ? "grid-cols-1" : "lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]",
+        )}
+      >
+        <div className={cn(wide && "hidden")}>
+          <Reveal>
+            <div className={MICRO} style={{ color: `var(${c.accentVar})` }}>
+              Chamber {c.index} of 10
+            </div>
+          </Reveal>
+          <Reveal delay={100}>
+            <h2 className={cn(H2, "mt-3 text-[clamp(2rem,3.6vw,3.4rem)]")}>{c.title}</h2>
+          </Reveal>
+          <Reveal delay={220}>
+            <p className="mt-3 font-display text-[clamp(1.2rem,1.7vw,1.5rem)] italic leading-snug text-ink-700">
+              {c.outcome}
+            </p>
+          </Reveal>
+          <Reveal delay={340}>
+            <p className={cn(LEDE, "mt-4 text-[clamp(1rem,1.2vw,1.15rem)]")}>{c.purpose}</p>
+          </Reveal>
+          <div className="mt-6 border-t border-line-200 pt-4">
+            <ChamberCircuit demo={demo} accentVar={c.accentVar} />
+          </div>
+        </div>
+
+        <div className="prs-rise" style={{ animationDelay: "200ms" }}>
+          <LiveFrame
+            src={demo.path}
+            label={label}
+            title={`${c.title}, live for ${DEMO_COUNTRY}`}
+            active={active}
+            wide={wide}
+            onWide={() => setWide(true)}
+            onNarrow={() => setWide(false)}
+          />
         </div>
       </div>
     </section>
@@ -518,7 +554,8 @@ export function PresentDeck() {
           <Reveal delay={240}>
             <p className={cn(LEDE, "mt-5 max-w-4xl")}>
               Each chamber is a workspace for one job a government has to do. They all read from,
-              and write to, the same national record.
+              and write to, the same national record. The next ten steps open each one live, for{" "}
+              {DEMO_COUNTRY === "ATG" ? "Antigua & Barbuda" : DEMO_COUNTRY}.
             </p>
           </Reveal>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -540,60 +577,9 @@ export function PresentDeck() {
           </div>
         </Step>
 
-        {/* 07–16 Chamber walk */}
+        {/* 07–16 Chamber walk: circuit on the left, the live chamber on the right */}
         {CHAMBERS.map((c) => (
-          <Step key={c.index} id={`chamber-${c.index}`} label={c.title}>
-            <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-              <Reveal>
-                <div className="overflow-hidden rounded-xl border border-line-200 bg-paper-0 shadow-[0_24px_60px_-30px_rgba(8,17,31,0.35)]">
-                  <div className="h-[3px]" style={{ background: `var(${c.accentVar})` }} />
-                  {c.screenshot ? (
-                    <img
-                      src={c.screenshot}
-                      alt={`${c.title} inside GDPVision`}
-                      className="block aspect-[16/9] w-full object-cover object-top"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="aspect-[16/9] w-full bg-paper-100" />
-                  )}
-                </div>
-              </Reveal>
-              <div>
-                <Reveal delay={150}>
-                  <div className={MICRO} style={{ color: `var(${c.accentVar})` }}>
-                    Chamber {c.index}
-                  </div>
-                </Reveal>
-                <Reveal delay={250}>
-                  <h2 className={cn(H2, "mt-4")}>{c.title}</h2>
-                </Reveal>
-                <Reveal delay={380}>
-                  <p className="mt-5 font-display text-[clamp(1.3rem,2vw,1.8rem)] italic leading-snug text-ink-700">
-                    {c.outcome}
-                  </p>
-                </Reveal>
-                <Reveal delay={480}>
-                  <hr className="my-6 border-line-200" />
-                  <p className={LEDE}>{c.purpose}</p>
-                </Reveal>
-                <Reveal delay={600}>
-                  <ul className="mt-5 space-y-2 text-ink-700">
-                    {c.bullets.map((b) => (
-                      <li key={b} className="flex gap-3">
-                        <span
-                          className="mt-[0.7em] h-1.5 w-1.5 shrink-0 rounded-full"
-                          style={{ background: `var(${c.accentVar})` }}
-                          aria-hidden
-                        />
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </Reveal>
-              </div>
-            </div>
-          </Step>
+          <ChamberStep key={c.index} c={c} />
         ))}
 
         {/* 17 Events overview */}

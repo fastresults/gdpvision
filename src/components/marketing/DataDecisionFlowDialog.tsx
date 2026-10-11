@@ -118,6 +118,7 @@ const FlowLensPlate = forwardRef<
 
 export function DataDecisionFlowDialog() {
   const [mode, setMode] = useState<FlowMode>("national");
+  const [open, setOpen] = useState(false);
   return (
     <div className="group relative flex w-full flex-col items-center">
       {/* Faint engraved sketch rings — hint at the living diagram behind the plates */}
@@ -156,26 +157,30 @@ export function DataDecisionFlowDialog() {
           />
         </svg>
       </div>
-      <DialogPrimitive.Root>
+      <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
         <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
-          <DialogPrimitive.Trigger asChild>
-            <FlowLensPlate
-              mode="national"
-              emblem="lens"
-              headline="Data & Decision Flow"
-              caption="Engage the National Decision Engine"
-              onPick={() => setMode("national")}
-            />
-          </DialogPrimitive.Trigger>
-          <DialogPrimitive.Trigger asChild>
-            <FlowLensPlate
-              mode="chamber"
-              emblem="grid"
-              headline="By Chamber"
-              caption="Follow one decision through its Chamber"
-              onPick={() => setMode("chamber")}
-            />
-          </DialogPrimitive.Trigger>
+          <FlowLensPlate
+            mode="national"
+            emblem="lens"
+            headline="Data & Decision Flow"
+            caption="Engage the National Decision Engine"
+            aria-haspopup="dialog"
+            onPick={() => {
+              setMode("national");
+              setOpen(true);
+            }}
+          />
+          <FlowLensPlate
+            mode="chamber"
+            emblem="grid"
+            headline="By Chamber"
+            caption="Follow one decision through its Chamber"
+            aria-haspopup="dialog"
+            onPick={() => {
+              setMode("chamber");
+              setOpen(true);
+            }}
+          />
         </div>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-paper-0" />

@@ -322,17 +322,19 @@ const FEATURED = new Set([
 /** Map the journey's own route steps onto the Chamber's five method stages. */
 function buildStages(scenario: Scenario, method: ChamberMethod): StageDetail[] {
   const steps = scenario.steps.map((step) => step.text);
-  return method.stages.map((stage, index) => {
+  const details: StageDetail[] = [];
+  method.stages.forEach((stage, index) => {
     const step = steps[Math.min(steps.length - 1, Math.round((index * (steps.length - 1)) / 4))];
     const [left, rest = left] = step.split("→").map((part) => part.trim());
     const colon = rest.indexOf(":");
-    const out = colon >= 0 ? rest.slice(colon + 1).trim() : rest;
-    return {
+    const out = colon >= 0 ? rest.slice(colon + 1).trim() : `Passed to ${rest.replace(/\.$/, "")}.`;
+    details.push({
       stage,
-      input: left,
+      input: index === 0 ? left : details[index - 1].output,
       output: index === 4 ? scenario.outcome : out.charAt(0).toUpperCase() + out.slice(1),
-    };
+    });
   });
+  return details;
 }
 
 const toJourney = (scenario: Scenario, overrides: Partial<ChamberJourney> = {}): ChamberJourney => {

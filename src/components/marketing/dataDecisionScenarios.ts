@@ -1,4 +1,5 @@
-// Scenario library for the Data & Decision Flow map — two journeys per Chamber.
+// Scenario library for the Data & Decision Flow map — five journeys per Chamber.
+import { MORE_SCENARIOS } from "./dataDecisionScenariosMore";
 export interface Scenario {
   chamber: string;
   title: string;
@@ -287,4 +288,5 @@ export const SCENARIOS: Scenario[] = [
     ],
     outcome: "Lower import bills and new rural jobs.",
   },
+  ...MORE_SCENARIOS,
 ];

@@ -1,4 +1,5 @@
 import { CHAMBER_NAMES, SCENARIOS, type Scenario } from "./dataDecisionScenarios";
+import { MORE_BENEFITS, PROFILES, type JourneyProfile } from "./chamberJourneyExtras";
 
 export const JOURNEY_ACTS = [
   "The question",
@@ -290,11 +291,23 @@ const BENEFITS: Record<string, BenefitSeed> = {
   },
 };
 
+Object.entries(MORE_BENEFITS).forEach(([title, [knows, choice, risk, owner, measure]]) => {
+  BENEFITS[title] = { knows, choice, risk, owner, measure };
+});
+
+export interface StageDetail {
+  stage: string;
+  input: string;
+  output: string;
+}
+
 export interface ChamberJourney extends Scenario {
   id: string;
   method: ChamberMethod;
   benefits: BenefitSeed;
   featured: boolean;
+  profile: JourneyProfile;
+  stageDetail: StageDetail[];
 }
 
 const FEATURED = new Set([
@@ -302,32 +315,58 @@ const FEATURED = new Set([
   "Closing the deficit",
   "Investor exit",
   "National digital ID",
+  "Hurricane in 96 hours",
+  "Article IV mission",
 ]);
 
-const STANDARD_JOURNEYS: ChamberJourney[] = SCENARIOS.map((scenario) => ({
-  ...scenario,
-  id: `${scenario.chamber}-${scenario.title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")}`,
-  method: CHAMBER_METHODS[scenario.chamber],
-  benefits: BENEFITS[scenario.title],
-  featured: FEATURED.has(scenario.title),
-}));
+/** Map the journey's own route steps onto the Chamber's five method stages. */
+function buildStages(scenario: Scenario, method: ChamberMethod): StageDetail[] {
+  const steps = scenario.steps.map((step) => step.text);
+  return method.stages.map((stage, index) => {
+    const step = steps[Math.min(steps.length - 1, Math.round((index * (steps.length - 1)) / 4))];
+    const [left, right] = step.split("→").map((part) => part.trim());
+    const [, after = right ?? left] = (right ?? left).split(":").map((part) => part.trim());
+    return {
+      stage,
+      input: index === 0 ? left : (right ?? left).split(":")[0],
+      output: index === 4 ? scenario.outcome : after.charAt(0).toUpperCase() + after.slice(1),
+    };
+  });
+}
+
+const toJourney = (scenario: Scenario, overrides: Partial<ChamberJourney> = {}): ChamberJourney => {
+  const method = CHAMBER_METHODS[scenario.chamber];
+  return {
+    ...scenario,
+    id: `${scenario.chamber}-${scenario.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")}`,
+    method,
+    benefits: BENEFITS[scenario.title],
+    featured: FEATURED.has(scenario.title),
+    profile: PROFILES[scenario.title],
+    stageDetail: buildStages(scenario, method),
+    ...overrides,
+  };
+};
+
+const STANDARD_JOURNEYS: ChamberJourney[] = SCENARIOS.map((scenario) => toJourney(scenario));
 
 const tourismSource = SCENARIOS.find((scenario) => scenario.title === "Tourism shock");
 const openingJourney: ChamberJourney | null = tourismSource
-  ? {
-      ...tourismSource,
-      id: "03-72-hour-tourism-shock",
-      chamber: "03",
-      title: "72-hour tourism shock",
-      question:
-        "Tourism receipts fall sharply — what should the Prime Minister do in the next 72 hours?",
-      method: CHAMBER_METHODS["03"],
-      benefits: BENEFITS["Tourism shock"],
-      featured: true,
-    }
+  ? toJourney(
+      { ...tourismSource, chamber: "03" },
+      {
+        id: "03-72-hour-tourism-shock",
+        title: "72-hour tourism shock",
+        question:
+          "Tourism receipts fall sharply — what should the Prime Minister do in the next 72 hours?",
+        benefits: BENEFITS["Tourism shock"],
+        profile: PROFILES["Tourism shock"],
+        featured: true,
+      },
+    )
   : null;
 
 export const CHAMBER_JOURNEYS: ChamberJourney[] = openingJourney
@@ -336,13 +375,19 @@ export const CHAMBER_JOURNEYS: ChamberJourney[] = openingJourney
 
 if (import.meta.env.DEV) {
   CHAMBER_JOURNEYS.forEach((journey) => {
-    if (!journey.method || !journey.benefits || journey.method.stages.length !== 5) {
+    if (
+      !journey.method ||
+      !journey.benefits ||
+      !journey.profile ||
+      journey.method.stages.length !== 5
+    ) {
       console.error(`[ChamberDecisionJourneys] incomplete journey: ${journey.title}`);
     }
   });
   Object.keys(CHAMBER_NAMES).forEach((index) => {
-    if (CHAMBER_JOURNEYS.filter((journey) => journey.chamber === index).length < 2) {
-      console.error(`[ChamberDecisionJourneys] Chamber ${index} needs at least two journeys`);
+    const count = SCENARIOS.filter((scenario) => scenario.chamber === index).length;
+    if (count < 5) {
+      console.error(`[ChamberDecisionJourneys] Chamber ${index} needs at least five journeys`);
     }
   });
 }

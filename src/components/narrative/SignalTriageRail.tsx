@@ -163,6 +163,17 @@ export function SignalTriageRail({
         )}
       </div>
 
+      <p className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-ink-500">
+        {levelList.length > 0
+          ? levelQuery.isFetching && !levelQuery.data
+            ? "Loading every signal at this priority…"
+            : `Showing ${Math.min(levelTotal, 200).toLocaleString()} of ${levelTotal.toLocaleString()} at this priority${levelTotal > 200 ? " (newest 200)" : ""}`
+          : fullTotal > signals.length
+            ? `Showing newest ${signals.length.toLocaleString()} of ${fullTotal.toLocaleString()}. Choose a priority to see all of that level.`
+            : `${fullTotal.toLocaleString()} active signals`}
+      </p>
+
+
       {filtered.length === 0 && (
         <p className="border border-dashed border-line-200 p-3 text-xs text-ink-500">
           No signals match.

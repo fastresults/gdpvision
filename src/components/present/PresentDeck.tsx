@@ -109,10 +109,6 @@ const ECCU = [
 function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
   const [ref, on] = useInView<HTMLElement>(0.4);
   const [wide, setWide] = useState(false);
-  const [active, setActive] = useState(false);
-  useEffect(() => {
-    if (on) setActive(true);
-  }, [on]);
   const host = ev.url ? ev.url.replace(/^https?:\/\//, "").replace(/\/$/, "") : null;
 
   return (
@@ -168,7 +164,6 @@ function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
               src={ev.url}
               label={host}
               title={`${ev.name} website`}
-              active={active}
               wide={wide}
               onWide={() => setWide(true)}
               onNarrow={() => setWide(false)}
@@ -191,10 +186,6 @@ function ChamberStep({ c }: { c: Chamber }) {
   const demo = chamberDemo(c.index);
   const [ref, on] = useInView<HTMLElement>(0.4);
   const [wide, setWide] = useState(false);
-  const [active, setActive] = useState(false);
-  useEffect(() => {
-    if (on) setActive(true);
-  }, [on]);
   if (!demo) return null;
   const label = `gdpvision.com${demo.path}`;
 
@@ -248,7 +239,6 @@ function ChamberStep({ c }: { c: Chamber }) {
             src={demo.path}
             label={label}
             title={`${c.title}, live for ${DEMO_COUNTRY}`}
-            active={active}
             wide={wide}
             onWide={() => setWide(true)}
             onNarrow={() => setWide(false)}

@@ -18,8 +18,6 @@ export interface LiveFrameProps {
   /** What appears in the address strip. */
   label: string;
   title: string;
-  /** Mount the iframe only once the step is in view. */
-  active: boolean;
   wide: boolean;
   onWide: () => void;
   onNarrow: () => void;
@@ -30,7 +28,6 @@ export function LiveFrame({
   src,
   label,
   title,
-  active,
   wide,
   onWide,
   onNarrow,
@@ -121,26 +118,24 @@ export function LiveFrame({
         </div>
       </div>
       <div ref={viewportRef} className="relative aspect-[9/12] w-full overflow-hidden bg-paper-100">
-        {active ? (
-          <iframe
-            key={gen}
-            title={title}
-            src={src}
-            className={cn(
-              "absolute left-0 top-0 max-w-none origin-top-left transition-opacity duration-500",
-              loaded ? "opacity-100" : "opacity-0",
-            )}
-            style={{
-              width: `${canvasWidth}px`,
-              height: `${100 / scale}%`,
-              transform: `scale(${scale})`,
-            }}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            allow="fullscreen; clipboard-read; clipboard-write"
-            onLoad={() => setLoaded(true)}
-          />
-        ) : null}
+        <iframe
+          key={gen}
+          title={title}
+          src={src}
+          className={cn(
+            "absolute left-0 top-0 max-w-none origin-top-left transition-opacity duration-500",
+            loaded ? "opacity-100" : "opacity-0",
+          )}
+          style={{
+            width: `${canvasWidth}px`,
+            height: `${100 / scale}%`,
+            transform: `scale(${scale})`,
+          }}
+          loading="eager"
+          referrerPolicy="no-referrer-when-downgrade"
+          allow="fullscreen; clipboard-read; clipboard-write"
+          onLoad={() => setLoaded(true)}
+        />
         {!loaded ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
             <div

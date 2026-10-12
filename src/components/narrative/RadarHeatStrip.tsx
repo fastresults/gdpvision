@@ -25,7 +25,11 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
     queryFn: () => heat({ data: { countryCode: code } }),
     refetchInterval: 60_000,
   });
-  const lastRun = useQuery({ queryKey: ["radar-last-run"], queryFn: () => last(), refetchInterval: 60_000 });
+  const lastRun = useQuery({
+    queryKey: ["radar-last-run", code],
+    queryFn: () => last({ data: { countryCode: code } }),
+    refetchInterval: 60_000,
+  });
   const coverage = useQuery({
     queryKey: ["radar-coverage", code],
     queryFn: () => cov({ data: { countryCode: code } }),
@@ -37,7 +41,7 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
     onSuccess: async () => {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["radar-heat", code] }),
-        qc.invalidateQueries({ queryKey: ["radar-last-run"] }),
+        qc.invalidateQueries({ queryKey: ["radar-last-run", code] }),
         qc.invalidateQueries({ queryKey: ["radar-coverage", code] }),
         qc.invalidateQueries({ queryKey: ["narrative-signals", code] }),
       ]);
@@ -74,10 +78,15 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
           {lastRun.data && (
             <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
               Last harvest {lastRun.data.finished_at ? new Date(lastRun.data.finished_at).toLocaleString() : "running…"} ·
-              {" "}{lastRun.data.feeds_polled} feeds · {lastRun.data.items_promoted} promoted
+               {" "}{lastRun.data.feeds_polled} feeds · {lastRun.data.items_fetched} fetched · {lastRun.data.items_new} new · {lastRun.data.items_promoted} promoted
               {Array.isArray(lastRun.data.errors) && (lastRun.data.errors as unknown[]).length > 0 && (
                 <span className="ml-2 text-rose-600">· {(lastRun.data.errors as unknown[]).length} errors</span>
               )}
+            </p>
+          )}
+          {lastRun.data?.finished_at && lastRun.data.items_fetched > 0 && lastRun.data.items_promoted === 0 && (
+            <p className="mt-2 border border-amber-400 bg-amber-50 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-amber-900">
+              Scan completed, but no mentions were promoted. Review the run errors or retry the queued items.
             </p>
           )}
         </div>

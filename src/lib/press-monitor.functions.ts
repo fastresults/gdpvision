@@ -161,13 +161,15 @@ export const runManualTick = createServerFn({ method: "POST" })
 
 export const lastHarvestRun = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string().optional() }).parse(d ?? {}))
+  .handler(async ({ data: input, context }) => {
+    let query = context.supabase
       .from("narrative_harvest_runs")
       .select("*")
       .order("started_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    if (input.countryCode) query = query.contains("countries_run", [input.countryCode]);
+    const { data, error } = await query.maybeSingle();
     if (error) throw new Error(error.message);
     return data as HarvestRun | null;
   });

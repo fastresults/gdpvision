@@ -198,6 +198,63 @@ export interface Classification {
   citations?: string[];
 }
 
+function normalizeClassification(value: Classification, input: {
+  countryCode: string;
+  url?: string | null;
+  sectorMenu: string[];
+  hintSectorCode?: string | null;
+}): Classification {
+  const scopes: Scope[] = ["local", "regional", "international"];
+  const recommendations: Classification["recommendation"][] = ["lead", "amplify", "counter", "monitor", "ignore"];
+  const sector = input.sectorMenu.includes(value.sector_code)
+    ? value.sector_code
+    : input.hintSectorCode && input.sectorMenu.includes(input.hintSectorCode)
+      ? input.hintSectorCode
+      : "cross";
+  return {
+    scope: scopes.includes(value.scope) ? value.scope : "local",
+    sector_code: sector,
+    severity: Math.max(1, Math.min(5, Math.round(Number(value.severity) || 1))),
+    reach: Math.max(1, Math.min(5, Math.round(Number(value.reach) || 1))),
+    sentiment: Math.max(-2, Math.min(2, Math.round(Number(value.sentiment) || 0))),
+    topic: String(value.topic ?? "Press mention").slice(0, 90),
+    summary: String(value.summary ?? "").slice(0, 1200),
+    dossier_bullets: Array.isArray(value.dossier_bullets)
+      ? value.dossier_bullets.map(String).filter(Boolean).slice(0, 6)
+      : [],
+    recommendation: recommendations.includes(value.recommendation) ? value.recommendation : "monitor",
+    rationale: String(value.rationale ?? "Monitor for material changes.").slice(0, 500),
+    citations: Array.from(new Set([...(value.citations ?? []), ...(input.url ? [input.url] : [])]))
+      .filter((url) => /^https:\/\//i.test(url))
+      .slice(0, 8),
+  };
+}
+
+async function classifyWithGateway(input: {
+  countryCode: string;
+  url?: string | null;
+  raw?: string | null;
+  sectorMenu: string[];
+  hintSectorCode?: string | null;
+}): Promise<Classification> {
+  const { callGeminiJson } = await import("@/lib/country-onboarding/gemini.server");
+  const { parsed } = await callGeminiJson<Classification>({
+    system: "You classify press mentions for a sovereign government narrative team. Use only the supplied mention. Return cautious, evidence-grounded JSON.",
+    user: [
+      `Country: ${input.countryCode}`,
+      input.url ? `Source URL: ${input.url}` : "",
+      input.raw ? `Press mention:\n${input.raw.slice(0, 12000)}` : "",
+      `Allowed sector codes: ${input.sectorMenu.join(", ") || "cross"}`,
+      input.hintSectorCode ? `Suggested sector: ${input.hintSectorCode}` : "",
+      "Classify scope, sector, urgency, reach, sentiment and the recommended government response. Return json.",
+    ].filter(Boolean).join("\n\n"),
+    schemaHint: '{"scope":"local|regional|international","sector_code":"allowed code or cross","severity":1,"reach":1,"sentiment":0,"topic":"short headline","summary":"two factual sentences","dossier_bullets":["fact"],"recommendation":"lead|amplify|counter|monitor|ignore","rationale":"one sentence","citations":["https://source"]}',
+    citationText: input.raw ?? "",
+  });
+  if (!parsed) throw new Error("Press classification returned no usable result.");
+  return normalizeClassification(parsed, input);
+}
+
 export async function classifySignal(input: {
   countryCode: string;
   url?: string | null;
@@ -206,7 +263,7 @@ export async function classifySignal(input: {
   hintSectorCode?: string | null;
 }): Promise<Classification> {
   const key = process.env.PERPLEXITY_API_KEY;
-  if (!key) throw new Error("PERPLEXITY_API_KEY not configured");
+  if (!key) return classifyWithGateway(input);
   const userPrompt = [
     `Country: ${input.countryCode}`,
     input.url ? `URL: ${input.url}` : "",
@@ -245,7 +302,7 @@ export async function classifySignal(input: {
   if (!res.ok) {
     const body = await res.text();
     if (res.status === 401 && body.includes("insufficient_quota")) {
-      throw new Error("Perplexity API credits exhausted.");
+      return classifyWithGateway(input);
     }
     throw new Error(`classify ${res.status}: ${body.slice(0, 200)}`);
   }
@@ -260,7 +317,7 @@ export async function classifySignal(input: {
     parsed = JSON.parse(m[0]);
   }
   parsed.citations = citations;
-  return parsed;
+  return normalizeClassification(parsed, input);
 }
 
 // ─── Concurrency helper ──────────────────────────────────────────────────────

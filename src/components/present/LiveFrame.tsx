@@ -37,8 +37,12 @@ export function LiveFrame({
 }: LiveFrameProps) {
   const [loaded, setLoaded] = useState(false);
   const [gen, setGen] = useState(0);
-  // Portrait, always: a 9:16 panel whose height is set by the viewport.
-  const height = wide ? "86dvh" : "74dvh";
+  // Portrait, always, at 9:12. The panel fills its half of the screen with an
+  // 8px buffer on every side, whichever dimension runs out first
+  // (104px = the fixed header, the address strip, and the buffers).
+  const width = wide
+    ? "min(calc(100vw - 16px), calc((100dvh - 104px) * 0.75))"
+    : "min(calc(50vw - 16px), calc((100dvh - 104px) * 0.75))";
 
   return (
     <div
@@ -46,7 +50,7 @@ export function LiveFrame({
         "relative mx-auto max-w-full overflow-hidden rounded-xl border border-line-200 bg-paper-0 shadow-[0_24px_60px_-30px_rgba(8,17,31,0.35)]",
         className,
       )}
-      style={{ width: `calc(${height} * 9 / 16)` }}
+      style={{ width }}
     >
       <div className="flex items-center justify-between gap-3 border-b border-line-200 bg-paper-50 px-4 py-2">
         <div className="flex min-w-0 items-center gap-3">
@@ -105,7 +109,7 @@ export function LiveFrame({
           </a>
         </div>
       </div>
-      <div className="relative w-full bg-paper-100" style={{ height }}>
+      <div className="relative aspect-[9/12] w-full bg-paper-100">
         {active ? (
           <iframe
             key={gen}

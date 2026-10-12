@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DEMO_COUNTRY } from "@/lib/present/chambers";
 import { cn } from "@/lib/utils";
-import { CorpusMark } from "./CorpusMark";
+import { ElevatingGdpPuzzleMark } from "./ElevatingGdpPuzzleMark";
 import { LiveFrame } from "./LiveFrame";
 
 /**
@@ -12,11 +12,11 @@ import { LiveFrame } from "./LiveFrame";
 
 const W = 560;
 const H = 400;
-const BX = 62;
+const BX = 72;
 const BY = 200;
-const BR = 44;
-const SX = 170;
-const SW = 366;
+const BR = 62;
+const SX = 174;
+const SW = 362;
 const SH = 64;
 const SY = [70, 168, 266];
 const OUT_Y = 362;
@@ -60,7 +60,7 @@ function CorpusCircuit() {
         <rect x={SX - 10} y={SY[1] - 8} width={SW + 20} height={SH + 16} fill="none" stroke={red} strokeDasharray="4 4" strokeWidth={1} opacity={0.7} />
 
         <g className="prs-rise" style={{ animationDelay: "150ms" }}>
-          <CorpusMark x={BX} y={BY} r={BR} accent={gold} />
+          <ElevatingGdpPuzzleMark x={BX} y={BY} r={BR} />
         </g>
 
         {centers.map((cy, i) => {

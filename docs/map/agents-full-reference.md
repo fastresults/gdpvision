@@ -126,4 +126,4 @@ Full route map: `docs/map/routes.md` (Phase 2, generated).
 
 When you add a new server function, migration, or route: run `bun run headers && bun run map` before committing, or CI will reject the PR.
 
-- **Briefing corpus data**: `/present` reads only aggregate corpus row counts via `getCorpusSnapshot` (`src/lib/present/corpus-snapshot.functions.ts`) — the public briefing must never receive corpus rows or text. `CorpusMark` is the single Second Brain drawing for briefing circuits.
+- **Briefing corpus data**: `/present` reads only aggregate corpus row counts via `getCorpusSnapshot` (`src/lib/present/corpus-snapshot.functions.ts`) — the public briefing must never receive corpus rows or text. `CorpusMark` is the default Second Brain drawing for briefing circuits; the sovereign-corpus circuit intentionally uses the compact Elevating GDP puzzle mark.

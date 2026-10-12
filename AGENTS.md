@@ -16,7 +16,7 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 - **Auth**: protected fns use `requireSupabaseAuth`; call from components (`useServerFn` + `useQuery`), never public loaders.
 - **Impersonation**: `useImpersonation()` → `viewAs.country_code` for super-admins.
 - **AI research**: go through the corpus gateway + fallback waterfall (`fallback.server.ts` → Perplexity → Gemini → infer); never call providers from components.
-- **Briefing data**: `/present` gives public visitors only aggregate counts or anonymous shape (`getCorpusSnapshot`, `getCountryBrainShape`), never titles or text; real rows only for signed-in admins via protected fns. `CorpusMark` is the single Second Brain drawing in briefing circuits.
+- **Briefing data**: `/present` gives public visitors only aggregate counts or anonymous shape (`getCorpusSnapshot`, `getCountryBrainShape`), never titles or text; real rows only for signed-in admins via protected fns. `CorpusMark` is the default Second Brain drawing in briefing circuits; the sovereign-corpus circuit intentionally uses the compact Elevating GDP puzzle mark.
 
 ## Do not edit
 `src/routeTree.gen.ts`, `src/integrations/supabase/{client,client.server,auth-middleware,auth-attacher,types}.ts`, `.env`, `supabase/config.toml`.

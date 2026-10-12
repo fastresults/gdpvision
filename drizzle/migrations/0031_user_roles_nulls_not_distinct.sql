@@ -1,0 +1,2 @@
+ALTER TABLE public.user_roles DROP CONSTRAINT IF EXISTS user_roles_user_id_role_country_code_key;
+ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_user_id_role_country_code_key UNIQUE NULLS NOT DISTINCT (user_id, role, country_code);

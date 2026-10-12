@@ -575,12 +575,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
           </button>
         </div>
         {chamberScenarios.length > 0 && (
-          <div
-            className={cn(
-              "grid gap-2 sm:grid-cols-2 shrink-0",
-              presentation ? "mb-2" : "mb-3",
-            )}
-          >
+          <div className={cn("grid gap-2 sm:grid-cols-2 shrink-0", presentation ? "mb-2" : "mb-3")}>
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 sm:col-span-2">
               Chamber {chamber} · {CHAMBER_NAMES[chamber]} — choose a scenario to run
             </div>

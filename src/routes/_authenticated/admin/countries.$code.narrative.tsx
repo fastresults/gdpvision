@@ -14,7 +14,7 @@ import { CoverageBadge } from "@/components/narrative/CoverageBadge";
 
 function signalsQuery(code: string) {
   return queryOptions({
-    queryKey: ["narrative-signals", code, "with-total-v1"],
+    queryKey: ["narrative-signals", code, "with-total-v2"],
     queryFn: () => listSignals({ data: { countryCode: code } }),
   });
 }
@@ -57,6 +57,7 @@ function NarrativeLayout() {
   const signalTotal = Array.isArray(signalResult)
     ? signalResult.length
     : (signalResult.total ?? signalResult.signals.length);
+  const priorityCounts = Array.isArray(signalResult) ? undefined : signalResult.priorityCounts;
   const { data: oppositionItems } = useSuspenseQuery(oppositionQuery(code));
   const params = useParams({ strict: false }) as { id?: string };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -154,7 +155,13 @@ function NarrativeLayout() {
                       No signals yet. Ingest one to begin.
                     </div>
                   ) : (
-                    <SignalTriageRail signals={signals} code={code} activeId={params.id} />
+                    <SignalTriageRail
+                      signals={signals}
+                      code={code}
+                      activeId={params.id}
+                      total={signalTotal}
+                      priorityCounts={priorityCounts}
+                    />
                   )}
                 </div>
               </div>

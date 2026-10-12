@@ -14,7 +14,7 @@ import { useUrlState } from "@/lib/nav/url-state";
 
 function signalsQuery(code: string) {
   return queryOptions({
-    queryKey: ["narrative-signals", code, "with-total-v1"],
+    queryKey: ["narrative-signals", code, "with-total-v2"],
     queryFn: () => listSignals({ data: { countryCode: code } }),
   });
 }
@@ -37,6 +37,8 @@ function SignalRadarPage() {
   const signalTotal = Array.isArray(signalResult)
     ? signalResult.length
     : (signalResult.total ?? signalResult.signals.length);
+  const priorityCounts =
+    (!Array.isArray(signalResult) && signalResult.priorityCounts) || countsByPriority(signals);
   const [tab, setTab] = useUrlState<"radar" | "sources">("tab", "radar");
 
   const byScope = {
@@ -112,7 +114,7 @@ function SignalRadarPage() {
             <div className="mt-3 grid grid-cols-5 gap-2">
               {PRIORITY_ORDER.map((lvl) => {
                 const meta = PRIORITY_META[lvl];
-                const count = countsByPriority(signals)[lvl];
+                const count = priorityCounts[lvl];
                 return (
                   <div
                     key={lvl}
@@ -121,7 +123,9 @@ function SignalRadarPage() {
                     <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
                       {meta.label}
                     </p>
-                    <p className="mt-1 font-serif text-2xl tabular-nums text-ink-950">{count}</p>
+                    <p className="mt-1 font-serif text-2xl tabular-nums text-ink-950">
+                      {count.toLocaleString()}
+                    </p>
                     <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-500">
                       {meta.caption}
                     </p>

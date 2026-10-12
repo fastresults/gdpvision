@@ -11302,6 +11302,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      narrative_priority_counts: {
+        Args: { _country_code: string }
+        Returns: {
+          level: number
+          n: number
+        }[]
+      }
+      narrative_priority_level: {
+        Args: { _reach: number; _rec: string; _sev: number }
+        Returns: number
+      }
+      narrative_signal_ids_at_priority: {
+        Args: { _country_code: string; _levels: number[]; _limit?: number }
+        Returns: {
+          id: string
+        }[]
+      }
       portfolio_profile_history: {
         Args: { _set_id: string }
         Returns: {

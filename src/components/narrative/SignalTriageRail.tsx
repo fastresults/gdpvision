@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Search, ChevronDown, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignalRow } from "./SignalRow";
@@ -13,7 +15,11 @@ import {
   type PriorityLevel,
   type SortKey,
 } from "@/lib/narrative-priority";
-import type { SignalRow as Signal } from "@/lib/narrative-chamber.functions";
+import {
+  listSignalsAtPriority,
+  type PriorityCounts,
+  type SignalRow as Signal,
+} from "@/lib/narrative-chamber.functions";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "priority", label: "Priority" },
@@ -27,37 +33,72 @@ export function SignalTriageRail({
   signals,
   code,
   activeId,
+  total,
+  priorityCounts,
 }: {
   signals: Signal[];
   code: string;
   activeId?: string;
+  /** True number of active signals (the list itself holds only the newest 200). */
+  total?: number;
+  /** Per-level counts across ALL active signals. Falls back to the loaded sample. */
+  priorityCounts?: PriorityCounts;
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("priority");
   const [activeLevels, setActiveLevels] = useState<Set<PriorityLevel>>(new Set());
   const [collapsed, setCollapsed] = useState<Set<PriorityLevel>>(new Set([4, 5]));
 
-  const filtered = useMemo(() => {
-    const q = filterSignals(signals, query);
-    const byLevel = activeLevels.size
-      ? q.filter((s) => activeLevels.has(priorityFor(s).level))
-      : q;
-    return sortSignals(byLevel, sort);
-  }, [signals, query, sort, activeLevels]);
+  const levelList = useMemo(() => [...activeLevels].sort(), [activeLevels]);
+  const fetchAtPriority = useServerFn(listSignalsAtPriority);
+  const levelQuery = useQuery({
+    queryKey: ["narrative-signals-at-priority", code, levelList],
+    queryFn: () => fetchAtPriority({ data: { countryCode: code, levels: levelList } }),
+    enabled: levelList.length > 0,
+    staleTime: 30_000,
+  });
 
-  const counts = useMemo(() => countsByPriority(signals), [signals]);
+  // With a priority chosen, the list comes from the server across ALL signals;
+  // otherwise it is the newest-200 sample.
+  const source: Signal[] =
+    levelList.length > 0
+      ? (levelQuery.data ?? signals.filter((s) => activeLevels.has(priorityFor(s).level)))
+      : signals;
+
+  const filtered = useMemo(() => {
+    const q = filterSignals(source, query);
+    const byLevel = activeLevels.size ? q.filter((s) => activeLevels.has(priorityFor(s).level)) : q;
+    return sortSignals(byLevel, sort);
+  }, [source, query, sort, activeLevels]);
+
+  const counts = useMemo(
+    () => priorityCounts ?? countsByPriority(signals),
+    [priorityCounts, signals],
+  );
+  const fullTotal = total ?? signals.length;
+  const levelTotal = levelList.reduce((n, l) => n + (counts[l] ?? 0), 0);
 
   const toggleLevel = (lvl: PriorityLevel) => {
+    const turningOn = !activeLevels.has(lvl);
     setActiveLevels((prev) => {
       const next = new Set(prev);
-      if (next.has(lvl)) next.delete(lvl); else next.add(lvl);
+      if (next.has(lvl)) next.delete(lvl);
+      else next.add(lvl);
       return next;
     });
+    if (turningOn) {
+      setCollapsed((prev) => {
+        const next = new Set(prev);
+        next.delete(lvl);
+        return next;
+      });
+    }
   };
   const toggleCollapse = (lvl: PriorityLevel) => {
     setCollapsed((prev) => {
       const next = new Set(prev);
-      if (next.has(lvl)) next.delete(lvl); else next.add(lvl);
+      if (next.has(lvl)) next.delete(lvl);
+      else next.add(lvl);
       return next;
     });
   };
@@ -73,7 +114,10 @@ export function SignalTriageRail({
   return (
     <div className="space-y-3">
       <div className="relative">
-        <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-ink-500" />
+        <Search
+          size={12}
+          className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-ink-500"
+        />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -99,7 +143,9 @@ export function SignalTriageRail({
           className="flex-1 border border-line-200 bg-paper-0 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-950 focus:border-ink-950 focus:outline-none"
         >
           {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
           ))}
         </select>
       </div>
@@ -123,6 +169,16 @@ export function SignalTriageRail({
           </button>
         )}
       </div>
+
+      <p className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-ink-500">
+        {levelList.length > 0
+          ? levelQuery.isFetching && !levelQuery.data
+            ? "Loading every signal at this priority…"
+            : `Showing ${Math.min(levelTotal, 200).toLocaleString()} of ${levelTotal.toLocaleString()} at this priority${levelTotal > 200 ? " (newest 200)" : ""}`
+          : fullTotal > signals.length
+            ? `Showing newest ${signals.length.toLocaleString()} of ${fullTotal.toLocaleString()}. Choose a priority to see all of that level.`
+            : `${fullTotal.toLocaleString()} active signals`}
+      </p>
 
       {filtered.length === 0 && (
         <p className="border border-dashed border-line-200 p-3 text-xs text-ink-500">
@@ -172,7 +228,7 @@ export function SignalTriageRail({
       )}
 
       <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-        {filtered.length} of {signals.length} shown
+        {filtered.length.toLocaleString()} shown
       </p>
     </div>
   );

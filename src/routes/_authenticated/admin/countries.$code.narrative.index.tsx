@@ -30,7 +30,8 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
 
 function SignalRadarPage() {
   const { code } = Route.useParams();
-  const { data: signals } = useSuspenseQuery(signalsQuery(code));
+  const { data: signalResult } = useSuspenseQuery(signalsQuery(code));
+  const { signals, total: signalTotal } = signalResult;
   const [tab, setTab] = useUrlState<"radar" | "sources">("tab", "radar");
 
   const byScope = {
@@ -57,7 +58,7 @@ function SignalRadarPage() {
         ]}
       />
 
-      <SignalRadarScope signals={signals} />
+      <SignalRadarScope signals={signals} total={signalTotal} />
 
       <div>
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Act 1 · Monitor</p>

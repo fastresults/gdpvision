@@ -33,7 +33,7 @@ function hash(s: string) {
 }
 const q = (n: number) => Math.round(n * 1000) / 1000;
 
-export function SignalRadarScope({ signals }: { signals: SignalRow[] }) {
+export function SignalRadarScope({ signals, total }: { signals: SignalRow[]; total: number }) {
   const [hover, setHover] = useState<string | null>(null);
   const size = 240;
   const c = size / 2;
@@ -68,7 +68,7 @@ export function SignalRadarScope({ signals }: { signals: SignalRow[] }) {
   return (
     <div className="flex flex-col gap-6 border border-line-200 bg-paper-0/40 p-5 lg:flex-row lg:items-center lg:gap-8">
       <div className="relative mx-auto w-full max-w-[300px] shrink-0 lg:mx-0">
-        <svg viewBox={`0 0 ${size} ${size}`} className="h-auto w-full" role="img" aria-label={`Signal radar: ${dots.length} signals, ${urgent} urgent`}>
+        <svg viewBox={`0 0 ${size} ${size}`} className="h-auto w-full" role="img" aria-label={`Signal radar: ${total} active signals; newest ${dots.length} plotted; ${urgent} urgent in the plotted sample`}>
           <defs>
             <radialGradient id="radar-bg" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="var(--gold-500)" stopOpacity="0.10" />
@@ -110,7 +110,7 @@ export function SignalRadarScope({ signals }: { signals: SignalRow[] }) {
             </circle>
           ))}
           <circle cx={c} cy={c} r={22} className="fill-paper-0 stroke-line-200" />
-          <text x={c} y={c + 2} textAnchor="middle" className="fill-ink-950 font-serif" fontSize="15">{dots.length}</text>
+          <text x={c} y={c + 2} textAnchor="middle" className="fill-ink-950 font-serif" fontSize="15">{total.toLocaleString()}</text>
           <text x={c} y={c + 12} textAnchor="middle" className="fill-ink-500 font-mono" fontSize="6" letterSpacing="1">SIGNALS</text>
           <text x={c} y={6} textAnchor="middle" className="fill-ink-500 font-mono" fontSize="7" letterSpacing="1">NOW</text>
         </svg>
@@ -145,7 +145,7 @@ export function SignalRadarScope({ signals }: { signals: SignalRow[] }) {
           ))}
         </ul>
         <p className="font-mono text-[9px] leading-relaxed text-ink-500">
-          Rings: local → international. Clockwise from 12: older, up to 7 days. Size = reach.
+          Newest {dots.length.toLocaleString()} of {total.toLocaleString()} active signals plotted. Rings: local → international. Clockwise from 12: older, up to 7 days. Size = reach.
         </p>
       </div>
     </div>

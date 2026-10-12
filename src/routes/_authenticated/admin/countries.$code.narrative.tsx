@@ -53,7 +53,8 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
 
 function NarrativeLayout() {
   const { code } = Route.useParams();
-  const { data: signals } = useSuspenseQuery(signalsQuery(code));
+  const { data: signalResult } = useSuspenseQuery(signalsQuery(code));
+  const { signals, total: signalTotal } = signalResult;
   const { data: oppositionItems } = useSuspenseQuery(oppositionQuery(code));
   const params = useParams({ strict: false }) as { id?: string };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -109,7 +110,7 @@ function NarrativeLayout() {
                 mode === "signals" ? "bg-ink-950 text-paper-0" : "text-ink-500 hover:text-ink-950"
               }`}
             >
-              Signals · {signals.length}
+              Signals · {signalTotal.toLocaleString()}
             </Link>
             <Link
               to="/admin/countries/$code/narrative/opposition"
@@ -128,7 +129,7 @@ function NarrativeLayout() {
               <div>
                 <div className="flex items-center justify-between gap-2">
                   <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                    <Radar size={11} /> Active signals · {signals.length}
+                    <Radar size={11} /> Active signals · {signalTotal.toLocaleString()}
                   </p>
                   <CoverageBadge />
                 </div>

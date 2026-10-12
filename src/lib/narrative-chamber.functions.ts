@@ -36,6 +36,11 @@ export interface SignalRow {
   created_at: string;
 }
 
+export interface SignalListResult {
+  signals: SignalRow[];
+  total: number;
+}
+
 // ─── List / Get ──────────────────────────────────────────────────────────────
 
 export const listSignals = createServerFn({ method: "GET" })
@@ -46,7 +51,7 @@ export const listSignals = createServerFn({ method: "GET" })
       state: z.string().optional(),
     }).parse(data),
   )
-  .handler(async ({ data, context }): Promise<SignalRow[]> => {
+  .handler(async ({ data, context }): Promise<SignalListResult> => {
     let q = context.supabase
       .from("intake_items")
       .select(
@@ -58,10 +63,20 @@ export const listSignals = createServerFn({ method: "GET" })
       .neq("state", "duplicate")
       .order("created_at", { ascending: false })
       .limit(200);
-    if (data.state) q = q.eq("state", data.state);
-    const { data: rows, error } = await q;
+    let countQ = context.supabase
+      .from("intake_items")
+      .select("id", { count: "exact", head: true })
+      .eq("scope_key", data.countryCode)
+      .or("story_primary.is.true,story_primary.is.null")
+      .neq("state", "duplicate");
+    if (data.state) {
+      q = q.eq("state", data.state);
+      countQ = countQ.eq("state", data.state);
+    }
+    const [{ data: rows, error }, { count, error: countError }] = await Promise.all([q, countQ]);
     if (error) throw new Error(error.message);
-    return (rows ?? []) as unknown as SignalRow[];
+    if (countError) throw new Error(countError.message);
+    return { signals: (rows ?? []) as unknown as SignalRow[], total: count ?? 0 };
   });
 
 export const getSignal = createServerFn({ method: "GET" })

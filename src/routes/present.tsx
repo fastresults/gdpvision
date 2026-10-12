@@ -22,7 +22,7 @@ export const Route = createFileRoute("/present")({
     // Runs in <head> before any viewer exists: stamps each embedded page the
     // moment it finishes, so LiveFrame never misses a load that happened
     // before the briefing became interactive.
-    scripts: [
+    headScripts: [
       {
         children:
           "document.addEventListener('load',function(e){var t=e.target;if(t&&t.tagName==='IFRAME')t.setAttribute('data-loaded',String(Date.now()))},true);",

@@ -118,7 +118,7 @@ export const GDP_EVENTS: GdpEvent[] = [
     purpose:
       "Roads, ports, water and the public works budget behind them. How they get financed, delivered, and made to survive the next storm.",
     sector: "Public administration",
-    url: null,
+    url: "https://public-works.gdpvision.com",
   },
   {
     id: "cbis",

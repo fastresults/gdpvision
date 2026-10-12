@@ -25,7 +25,7 @@ export const Route = createFileRoute("/present")({
     scripts: [
       {
         children:
-          "window.addEventListener('load',function(e){var t=e.target;if(t&&t.tagName==='IFRAME')t.setAttribute('data-loaded',String(Date.now()))},true);",
+          "document.addEventListener('load',function(e){var t=e.target;if(t&&t.tagName==='IFRAME')t.setAttribute('data-loaded',String(Date.now()))},true);",
       },
     ],
   }),

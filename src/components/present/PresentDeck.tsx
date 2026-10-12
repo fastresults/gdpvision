@@ -9,6 +9,7 @@ import sealAsset from "@/assets/favicon-seal.png.asset.json";
 import { SecondBrainFeed } from "./SecondBrainFeed";
 import { ChamberCircuit } from "./ChamberCircuit";
 import { LiveFrame } from "./LiveFrame";
+import { EgovPipeline } from "./EgovPipeline";
 import { ChamberGlyph } from "./ChamberGlyph";
 import { cn } from "@/lib/utils";
 import { DataDecisionFlow } from "@/components/marketing/DataDecisionFlow";
@@ -195,6 +196,48 @@ const ECCU = [
   "Anguilla",
   "Montserrat",
 ];
+
+function EgovStep() {
+  const [ref, on] = useInView<HTMLElement>(0.4);
+  const [wide, setWide] = useState(false);
+  return (
+    <section
+      id="egov"
+      ref={ref}
+      data-step
+      data-label="Digital government"
+      className={cn(
+        "prs-step relative flex min-h-dvh snap-start flex-col justify-center border-b border-line-200 px-6 py-16 md:px-16 lg:px-0 lg:pt-[57px] lg:pb-2",
+        on && "is-on",
+      )}
+    >
+      <div className={cn("grid w-full min-w-0 items-center gap-10 lg:gap-0", wide ? "grid-cols-1" : "lg:grid-cols-2")}>
+        <div className={cn("prs-rise min-w-0 lg:pl-24 lg:pr-10", wide && "hidden")}>
+          <div className={MICRO}>08 · Digital government</div>
+          <h2 className={cn(H2, "mt-4")}>The Second Brain builds the nation's website, and keeps it current</h2>
+          <p className={cn(LEDE, "mt-5")}>
+            The same verified evidence that briefs Cabinet feeds a public API. Chamber 09 turns it
+            into an eGov site that updates itself when the record changes. Shown here as a
+            demonstration for Antigua and Barbuda.
+          </p>
+          <div className="mt-8">
+            <EgovPipeline />
+          </div>
+        </div>
+        <div className="prs-rise min-w-0 w-full" style={{ animationDelay: "200ms" }}>
+          <LiveFrame
+            src="https://atg.gdpvision.com"
+            label="atg.gdpvision.com"
+            title="Antigua and Barbuda eGov website"
+            wide={wide}
+            onWide={() => setWide(true)}
+            onNarrow={() => setWide(false)}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
   const [ref, on] = useInView<HTMLElement>(0.4);
@@ -685,10 +728,12 @@ export function PresentDeck() {
           <ChamberStep key={c.index} c={c} />
         ))}
 
+        <EgovStep />
+
         {/* 17 Events overview */}
         <Step id="events" label="The GDP events" tone="tint">
           <Reveal>
-            <div className={MICRO}>08 · The GDP events</div>
+            <div className={MICRO}>09 · The GDP events</div>
           </Reveal>
           <Reveal delay={100}>
             <h2 className={cn(H2, "mt-5")}>One summit per sector. The room the framework gets.</h2>
@@ -728,7 +773,7 @@ export function PresentDeck() {
         {/* 28 Conclusion */}
         <Step id="conclusion" label="How it fits together" tone="tint">
           <Reveal>
-            <div className={MICRO}>09 · How it fits together</div>
+            <div className={MICRO}>10 · How it fits together</div>
           </Reveal>
           <Reveal delay={100}>
             <h2 className={cn(H2, "mt-5 max-w-5xl")}>

@@ -54,7 +54,9 @@ export const listFeeds = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<FeedRow[]> => {
     const { data: rows, error } = await context.supabase
       .from("narrative_feeds")
-      .select("id,country_code,scope,kind,endpoint,label,language,sector_hint,ministry_hint,weight,active,last_polled_at,last_status,last_error,consecutive_failures,is_seed,is_query,discovered_at,tier_hint")
+      .select(
+        "id,country_code,scope,kind,endpoint,label,language,sector_hint,ministry_hint,weight,active,last_polled_at,last_status,last_error,consecutive_failures,is_seed,is_query,discovered_at,tier_hint",
+      )
       .eq("country_code", data.countryCode)
       .order("scope", { ascending: true })
       .order("label", { ascending: true });
@@ -90,14 +92,17 @@ export const upsertFeed = createServerFn({ method: "POST" })
     };
     if (data.id) {
       const { error } = await context.supabase
-        .from("narrative_feeds").update(row).eq("id", data.id);
+        .from("narrative_feeds")
+        .update(row)
+        .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
     const { data: ins, error } = await context.supabase
       .from("narrative_feeds")
       .upsert({ ...row }, { onConflict: "country_code,endpoint" })
-      .select("id").single();
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
     return { id: ins.id };
   });
@@ -120,14 +125,18 @@ export const testFeed = createServerFn({ method: "POST" })
     const { data: f, error } = await context.supabase
       .from("narrative_feeds")
       .select("id,country_code,scope,kind,endpoint,etag,active,consecutive_failures")
-      .eq("id", data.id).single();
+      .eq("id", data.id)
+      .single();
     if (error || !f) throw new Error(error?.message ?? "feed not found");
     const { fetchFeed } = await import("@/lib/press-monitor.server");
     const r = await fetchFeed({
-      id: f.id, country_code: f.country_code,
+      id: f.id,
+      country_code: f.country_code,
       scope: f.scope as "local" | "regional" | "international",
       kind: f.kind as "rss" | "json" | "gdelt" | "google_news" | "html",
-      endpoint: f.endpoint, etag: f.etag, active: f.active,
+      endpoint: f.endpoint,
+      etag: f.etag,
+      active: f.active,
       consecutive_failures: f.consecutive_failures ?? 0,
     });
     return {
@@ -146,7 +155,9 @@ export const runManualTick = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     // Only admins & country_admins can trigger
     const { data: role } = await context.supabase.rpc("has_country_role", {
-      _user_id: context.userId, _role: "country_admin", _country_code: data.countryCode,
+      _user_id: context.userId,
+      _role: "country_admin",
+      _country_code: data.countryCode,
     });
     if (!role) throw new Error("Only country admins can run the press tick.");
     const { runPressTick } = await import("@/lib/press-tick.server");
@@ -161,20 +172,27 @@ export const runManualTick = createServerFn({ method: "POST" })
 
 export const lastHarvestRun = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string().optional() }).parse(d ?? {}))
+  .handler(async ({ data: input, context }) => {
+    let query = context.supabase
       .from("narrative_harvest_runs")
       .select("*")
       .order("started_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    if (input.countryCode) query = query.contains("countries_run", [input.countryCode]);
+    const { data, error } = await query.maybeSingle();
     if (error) throw new Error(error.message);
     return data as HarvestRun | null;
   });
 
 // ─── Radar 24h heat-strip data ──────────────────────────────────────────────
 
-export interface HeatCell { hour: string; local: number; regional: number; international: number; }
+export interface HeatCell {
+  hour: string;
+  local: number;
+  regional: number;
+  international: number;
+}
 
 export const heatStrip24h = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -200,7 +218,7 @@ export const heatStrip24h = createServerFn({ method: "GET" })
       t.setMinutes(0, 0, 0);
       const idx = buckets.get(t.getTime());
       if (idx === undefined) continue;
-      const s = (r.scope as "local"|"regional"|"international") ?? "local";
+      const s = (r.scope as "local" | "regional" | "international") ?? "local";
       cells[idx][s]++;
     }
     return cells;
@@ -210,7 +228,9 @@ export const heatStrip24h = createServerFn({ method: "GET" })
 
 export const suggestFeeds = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ countryCode: z.string(), countryName: z.string() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ countryCode: z.string(), countryName: z.string() }).parse(d),
+  )
   .handler(async ({ data }) => {
     const key = process.env.PERPLEXITY_API_KEY;
     if (!key) throw new Error("PERPLEXITY_API_KEY not configured");
@@ -240,7 +260,12 @@ Only include feeds you have real evidence for. No commentary.`;
     const m = content.match(/\[[\s\S]*\]/);
     if (!m) return { suggestions: [] };
     try {
-      const arr = JSON.parse(m[0]) as Array<{ scope: string; kind: string; endpoint: string; label?: string }>;
+      const arr = JSON.parse(m[0]) as Array<{
+        scope: string;
+        kind: string;
+        endpoint: string;
+        label?: string;
+      }>;
       return { suggestions: arr.filter((s) => /^https?:\/\//.test(s.endpoint)).slice(0, 15) };
     } catch {
       return { suggestions: [] };
@@ -284,7 +309,9 @@ export const coverageFor = createServerFn({ method: "GET" })
       .order("started_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const cov = ((run?.coverage ?? {}) as unknown as Record<string, CoverageCell>)[data.countryCode];
+    const cov = ((run?.coverage ?? {}) as unknown as Record<string, CoverageCell>)[
+      data.countryCode
+    ];
     return cov ?? { local: 0, regional: 0, international: 0, total: 0 };
   });
 
@@ -311,10 +338,19 @@ export const latestCronCoverage = createServerFn({ method: "GET" })
       .limit(1)
       .maybeSingle();
     if (!run) {
-      return { runId: null, startedAt: null, window: null, universeCount: 0, coveredCount: 0, missing: [] };
+      return {
+        runId: null,
+        startedAt: null,
+        window: null,
+        universeCount: 0,
+        coveredCount: 0,
+        missing: [],
+      };
     }
     const cov = (run.coverage ?? {}) as Record<string, unknown>;
-    const universe = Array.isArray(cov._universe) ? (cov._universe as string[]) : (run.countries_run ?? []);
+    const universe = Array.isArray(cov._universe)
+      ? (cov._universe as string[])
+      : (run.countries_run ?? []);
     const missing = Array.isArray(cov._missing) ? (cov._missing as string[]) : [];
     return {
       runId: run.id as string,
@@ -334,7 +370,9 @@ export const reviveAndRediscover = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: role } = await context.supabase.rpc("has_country_role", {
-      _user_id: context.userId, _role: "country_admin", _country_code: data.countryCode,
+      _user_id: context.userId,
+      _role: "country_admin",
+      _country_code: data.countryCode,
     });
     if (!role) throw new Error("Only country admins can rediscover outlets.");
     const { revivePressFeeds } = await import("@/lib/press-discover.server");
@@ -346,11 +384,15 @@ export const reviveAndRediscover = createServerFn({ method: "POST" })
 export const reportMissingStory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ countryCode: z.string(), url: z.string().url(), note: z.string().optional() }).parse(d),
+    z
+      .object({ countryCode: z.string(), url: z.string().url(), note: z.string().optional() })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: role } = await context.supabase.rpc("has_country_role", {
-      _user_id: context.userId, _role: "country_admin", _country_code: data.countryCode,
+      _user_id: context.userId,
+      _role: "country_admin",
+      _country_code: data.countryCode,
     });
     if (!role) throw new Error("Only country admins can report missing stories.");
 
@@ -360,11 +402,14 @@ export const reportMissingStory = createServerFn({ method: "POST" })
 
     const md = (await firecrawlUpgrade(data.url)) ?? data.note ?? "";
     const { data: secs } = await supabaseAdmin
-      .from("country_sectors").select("sector_code").eq("country_code", data.countryCode);
+      .from("country_sectors")
+      .select("sector_code")
+      .eq("country_code", data.countryCode);
     const sectorMenu = (secs ?? []).map((r) => r.sector_code as string);
 
     const c = await classifySignal({
-      countryCode: data.countryCode, url: data.url,
+      countryCode: data.countryCode,
+      url: data.url,
       raw: [data.note ?? "", md].filter(Boolean).join("\n\n"),
       sectorMenu,
     });
@@ -386,12 +431,16 @@ export const reportMissingStory = createServerFn({ method: "POST" })
         recommendation: c.recommendation,
         story_primary: true,
         metadata: {
-          dossier_bullets: c.dossier_bullets, rationale: c.rationale,
-          citations: c.citations ?? [], source: "reported-missing",
-          reporter_id: context.userId, reporter_note: data.note ?? null,
+          dossier_bullets: c.dossier_bullets,
+          rationale: c.rationale,
+          citations: c.citations ?? [],
+          source: "reported-missing",
+          reporter_id: context.userId,
+          reporter_note: data.note ?? null,
         },
       })
-      .select("id").single();
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
 
     const feedResult = await ensureFeedForUrl(data.countryCode, data.url);
@@ -427,26 +476,26 @@ export const listWatchlist = createServerFn({ method: "GET" })
 export const upsertWatchlistEntity = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      countryCode: z.string(),
-      entityName: z.string().min(2).max(200),
-      entityRole: z.string().max(80).optional(),
-      active: z.boolean().optional(),
-    }).parse(d),
+    z
+      .object({
+        countryCode: z.string(),
+        entityName: z.string().min(2).max(200),
+        entityRole: z.string().max(80).optional(),
+        active: z.boolean().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("narrative_entity_watchlist")
-      .upsert(
-        {
-          country_code: data.countryCode,
-          entity_name: data.entityName.trim(),
-          entity_role: data.entityRole ?? null,
-          source: "manual",
-          active: data.active ?? true,
-        },
-        { onConflict: "country_code,entity_name" },
-      );
+    const { error } = await context.supabase.from("narrative_entity_watchlist").upsert(
+      {
+        country_code: data.countryCode,
+        entity_name: data.entityName.trim(),
+        entity_role: data.entityRole ?? null,
+        source: "manual",
+        active: data.active ?? true,
+      },
+      { onConflict: "country_code,entity_name" },
+    );
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -456,7 +505,9 @@ export const deleteWatchlistEntity = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
-      .from("narrative_entity_watchlist").delete().eq("id", data.id);
+      .from("narrative_entity_watchlist")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -466,7 +517,9 @@ export const refreshWatchlistFeeds = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: role } = await context.supabase.rpc("has_country_role", {
-      _user_id: context.userId, _role: "country_admin", _country_code: data.countryCode,
+      _user_id: context.userId,
+      _role: "country_admin",
+      _country_code: data.countryCode,
     });
     if (!role) throw new Error("Only country admins can rebuild watchlist feeds.");
     const { seedWatchlistFromCorpus, buildEntityFeedsForCountry } =
@@ -475,5 +528,3 @@ export const refreshWatchlistFeeds = createServerFn({ method: "POST" })
     const built = await buildEntityFeedsForCountry(data.countryCode);
     return { seeded: seeded.added, built: built.inserted };
   });
-
-

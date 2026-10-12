@@ -33,12 +33,19 @@ export function normalizeTitle(t: string | null | undefined): string {
   return (t ?? "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 export function guidHash(url: string | null | undefined, title: string | null | undefined): string {
-  return createHash("sha256").update(`${canonicalUrl(url)}::${normalizeTitle(title)}`).digest("hex").slice(0, 32);
+  return createHash("sha256")
+    .update(`${canonicalUrl(url)}::${normalizeTitle(title)}`)
+    .digest("hex")
+    .slice(0, 32);
 }
 
 // ─── Fetcher with ETag + timeout ─────────────────────────────────────────────
 
-async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 15_000): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit = {},
+  ms = 15_000,
+): Promise<Response> {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), ms);
   try {
@@ -51,7 +58,11 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 15_000
 // ─── Parsers ─────────────────────────────────────────────────────────────────
 
 function stripHtml(s: string | null | undefined): string {
-  return (s ?? "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+  return (s ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 function pick(xml: string, tag: string): string | null {
   const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
@@ -68,12 +79,12 @@ export function parseRSS(xml: string, limit = 40): RawItem[] {
   while ((m = re.exec(xml)) && items.length < limit) {
     const body = m[2];
     const title = pick(body, "title") ?? "";
-    let url =
-      pick(body, "link") ??
-      (body.match(/<link[^>]*href="([^"]+)"/i)?.[1] ?? null);
+    let url = pick(body, "link") ?? body.match(/<link[^>]*href="([^"]+)"/i)?.[1] ?? null;
     if (url && /^<!\[CDATA/.test(url)) url = url.replace(/<!\[CDATA\[|\]\]>/g, "").trim();
     const pub = pick(body, "pubDate") ?? pick(body, "updated") ?? pick(body, "published");
-    const desc = stripHtml(pick(body, "description") ?? pick(body, "summary") ?? pick(body, "content"));
+    const desc = stripHtml(
+      pick(body, "description") ?? pick(body, "summary") ?? pick(body, "content"),
+    );
     if (!title) continue;
     let publishedAt: string | null = null;
     if (pub) {
@@ -94,43 +105,49 @@ export function parseRSS(xml: string, limit = 40): RawItem[] {
 export function parseJsonFeed(text: string, limit = 40): RawItem[] {
   const j = JSON.parse(text);
   const list = Array.isArray(j?.items) ? j.items : Array.isArray(j) ? j : [];
-  return list.slice(0, limit).map((it: Record<string, unknown>) => {
-    const url = String(it.url ?? it.link ?? "") || null;
-    const title = String(it.title ?? it.headline ?? "");
-    const pub = it.date_published ?? it.pubDate ?? it.published ?? null;
-    const excerpt = stripHtml(String(it.summary ?? it.content_text ?? it.description ?? ""));
-    return {
-      guid_hash: guidHash(url, title),
-      url,
-      title: title.slice(0, 500),
-      published_at: pub ? new Date(String(pub)).toISOString() : null,
-      raw_excerpt: excerpt ? excerpt.slice(0, 1200) : null,
-    };
-  }).filter((r: RawItem) => r.title);
+  return list
+    .slice(0, limit)
+    .map((it: Record<string, unknown>) => {
+      const url = String(it.url ?? it.link ?? "") || null;
+      const title = String(it.title ?? it.headline ?? "");
+      const pub = it.date_published ?? it.pubDate ?? it.published ?? null;
+      const excerpt = stripHtml(String(it.summary ?? it.content_text ?? it.description ?? ""));
+      return {
+        guid_hash: guidHash(url, title),
+        url,
+        title: title.slice(0, 500),
+        published_at: pub ? new Date(String(pub)).toISOString() : null,
+        raw_excerpt: excerpt ? excerpt.slice(0, 1200) : null,
+      };
+    })
+    .filter((r: RawItem) => r.title);
 }
 
 export function parseGDELT(text: string, limit = 40): RawItem[] {
   const j = JSON.parse(text);
   const arts = Array.isArray(j?.articles) ? j.articles : [];
-  return arts.slice(0, limit).map((a: Record<string, string>) => {
-    const url = a.url ?? null;
-    const title = a.title ?? "";
-    let publishedAt: string | null = null;
-    if (a.seendate) {
-      // GDELT format: 20260118T143000Z
-      const s = a.seendate;
-      if (s.length >= 15) {
-        publishedAt = `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T${s.slice(9,11)}:${s.slice(11,13)}:${s.slice(13,15)}Z`;
+  return arts
+    .slice(0, limit)
+    .map((a: Record<string, string>) => {
+      const url = a.url ?? null;
+      const title = a.title ?? "";
+      let publishedAt: string | null = null;
+      if (a.seendate) {
+        // GDELT format: 20260118T143000Z
+        const s = a.seendate;
+        if (s.length >= 15) {
+          publishedAt = `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T${s.slice(9, 11)}:${s.slice(11, 13)}:${s.slice(13, 15)}Z`;
+        }
       }
-    }
-    return {
-      guid_hash: guidHash(url, title),
-      url,
-      title: title.slice(0, 500),
-      published_at: publishedAt,
-      raw_excerpt: a.domain ? `Source: ${a.domain}` : null,
-    };
-  }).filter((r: RawItem) => r.title);
+      return {
+        guid_hash: guidHash(url, title),
+        url,
+        title: title.slice(0, 500),
+        published_at: publishedAt,
+        raw_excerpt: a.domain ? `Source: ${a.domain}` : null,
+      };
+    })
+    .filter((r: RawItem) => r.title);
 }
 
 // ─── Feed fetch dispatch ─────────────────────────────────────────────────────
@@ -155,7 +172,9 @@ export interface FetchResult {
 
 export async function fetchFeed(feed: FeedRow): Promise<FetchResult> {
   try {
-    const headers: Record<string, string> = { "User-Agent": "GDPVision-PressMonitor/1.0 (+https://gdpvision.com)" };
+    const headers: Record<string, string> = {
+      "User-Agent": "GDPVision-PressMonitor/1.0 (+https://gdpvision.com)",
+    };
     if (feed.etag) headers["If-None-Match"] = feed.etag;
     const res = await fetchWithTimeout(feed.endpoint, { headers });
     if (res.status === 304) return { status: "not_modified", items: [] };
@@ -198,6 +217,78 @@ export interface Classification {
   citations?: string[];
 }
 
+function normalizeClassification(
+  value: Classification,
+  input: {
+    countryCode: string;
+    url?: string | null;
+    sectorMenu: string[];
+    hintSectorCode?: string | null;
+  },
+): Classification {
+  const scopes: Scope[] = ["local", "regional", "international"];
+  const recommendations: Classification["recommendation"][] = [
+    "lead",
+    "amplify",
+    "counter",
+    "monitor",
+    "ignore",
+  ];
+  const sector = input.sectorMenu.includes(value.sector_code)
+    ? value.sector_code
+    : input.hintSectorCode && input.sectorMenu.includes(input.hintSectorCode)
+      ? input.hintSectorCode
+      : "cross";
+  return {
+    scope: scopes.includes(value.scope) ? value.scope : "local",
+    sector_code: sector,
+    severity: Math.max(1, Math.min(5, Math.round(Number(value.severity) || 1))),
+    reach: Math.max(1, Math.min(5, Math.round(Number(value.reach) || 1))),
+    sentiment: Math.max(-2, Math.min(2, Math.round(Number(value.sentiment) || 0))),
+    topic: String(value.topic ?? "Press mention").slice(0, 90),
+    summary: String(value.summary ?? "").slice(0, 1200),
+    dossier_bullets: Array.isArray(value.dossier_bullets)
+      ? value.dossier_bullets.map(String).filter(Boolean).slice(0, 6)
+      : [],
+    recommendation: recommendations.includes(value.recommendation)
+      ? value.recommendation
+      : "monitor",
+    rationale: String(value.rationale ?? "Monitor for material changes.").slice(0, 500),
+    citations: Array.from(new Set([...(value.citations ?? []), ...(input.url ? [input.url] : [])]))
+      .filter((url) => /^https:\/\//i.test(url))
+      .slice(0, 8),
+  };
+}
+
+async function classifyWithGateway(input: {
+  countryCode: string;
+  url?: string | null;
+  raw?: string | null;
+  sectorMenu: string[];
+  hintSectorCode?: string | null;
+}): Promise<Classification> {
+  const { callGeminiJson } = await import("@/lib/country-onboarding/gemini.server");
+  const { parsed } = await callGeminiJson<Classification>({
+    system:
+      "You classify press mentions for a sovereign government narrative team. Use only the supplied mention. Return cautious, evidence-grounded JSON.",
+    user: [
+      `Country: ${input.countryCode}`,
+      input.url ? `Source URL: ${input.url}` : "",
+      input.raw ? `Press mention:\n${input.raw.slice(0, 12000)}` : "",
+      `Allowed sector codes: ${input.sectorMenu.join(", ") || "cross"}`,
+      input.hintSectorCode ? `Suggested sector: ${input.hintSectorCode}` : "",
+      "Classify scope, sector, urgency, reach, sentiment and the recommended government response. Return json.",
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
+    schemaHint:
+      '{"scope":"local|regional|international","sector_code":"allowed code or cross","severity":1,"reach":1,"sentiment":0,"topic":"short headline","summary":"two factual sentences","dossier_bullets":["fact"],"recommendation":"lead|amplify|counter|monitor|ignore","rationale":"one sentence","citations":["https://source"]}',
+    citationText: input.raw ?? "",
+  });
+  if (!parsed) throw new Error("Press classification returned no usable result.");
+  return normalizeClassification(parsed, input);
+}
+
 export async function classifySignal(input: {
   countryCode: string;
   url?: string | null;
@@ -206,7 +297,7 @@ export async function classifySignal(input: {
   hintSectorCode?: string | null;
 }): Promise<Classification> {
   const key = process.env.PERPLEXITY_API_KEY;
-  if (!key) throw new Error("PERPLEXITY_API_KEY not configured");
+  if (!key) return classifyWithGateway(input);
   const userPrompt = [
     `Country: ${input.countryCode}`,
     input.url ? `URL: ${input.url}` : "",
@@ -217,35 +308,60 @@ export async function classifySignal(input: {
     "Return strict JSON: scope (local|regional|international), sector_code, severity 1-5, reach 1-5,",
     "sentiment -2..+2, topic (≤90 chars), summary (2 sentences), dossier_bullets (4 crisp bullets),",
     "recommendation (lead|amplify|counter|monitor|ignore), rationale (1 sentence).",
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
   const schema = {
     type: "object",
     properties: {
-      scope: { type: "string" }, sector_code: { type: "string" },
-      severity: { type: "number" }, reach: { type: "number" }, sentiment: { type: "number" },
-      topic: { type: "string" }, summary: { type: "string" },
+      scope: { type: "string" },
+      sector_code: { type: "string" },
+      severity: { type: "number" },
+      reach: { type: "number" },
+      sentiment: { type: "number" },
+      topic: { type: "string" },
+      summary: { type: "string" },
       dossier_bullets: { type: "array", items: { type: "string" } },
-      recommendation: { type: "string" }, rationale: { type: "string" },
+      recommendation: { type: "string" },
+      rationale: { type: "string" },
     },
-    required: ["scope","sector_code","severity","reach","sentiment","topic","summary","dossier_bullets","recommendation","rationale"],
+    required: [
+      "scope",
+      "sector_code",
+      "severity",
+      "reach",
+      "sentiment",
+      "topic",
+      "summary",
+      "dossier_bullets",
+      "recommendation",
+      "rationale",
+    ],
   };
-  const res = await fetchWithTimeout("https://api.perplexity.ai/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "sonar-pro",
-      messages: [
-        { role: "system", content: "You are a McKinsey-grade GDP narrative analyst. Return strict JSON only." },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_schema", json_schema: { name: "sig", schema } },
-      temperature: 0.2,
-    }),
-  }, 25_000);
+  const res = await fetchWithTimeout(
+    "https://api.perplexity.ai/chat/completions",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "sonar-pro",
+        messages: [
+          {
+            role: "system",
+            content: "You are a McKinsey-grade GDP narrative analyst. Return strict JSON only.",
+          },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_schema", json_schema: { name: "sig", schema } },
+        temperature: 0.2,
+      }),
+    },
+    25_000,
+  );
   if (!res.ok) {
     const body = await res.text();
     if (res.status === 401 && body.includes("insufficient_quota")) {
-      throw new Error("Perplexity API credits exhausted.");
+      return classifyWithGateway(input);
     }
     throw new Error(`classify ${res.status}: ${body.slice(0, 200)}`);
   }
@@ -253,14 +369,15 @@ export async function classifySignal(input: {
   const content: string = j?.choices?.[0]?.message?.content ?? "";
   const citations: string[] = Array.isArray(j?.citations) ? j.citations : [];
   let parsed: Classification;
-  try { parsed = JSON.parse(content); }
-  catch {
+  try {
+    parsed = JSON.parse(content);
+  } catch {
     const m = content.match(/\{[\s\S]*\}/);
     if (!m) throw new Error("classifier returned no JSON");
     parsed = JSON.parse(m[0]);
   }
   parsed.citations = citations;
-  return parsed;
+  return normalizeClassification(parsed, input);
 }
 
 // ─── Concurrency helper ──────────────────────────────────────────────────────

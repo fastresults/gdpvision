@@ -1,6 +1,12 @@
 // Chamber 05 · shared press-tick harvester (invoked inline by server fn + public route).
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { fetchFeed, classifySignal, pMap, canonicalUrl, firecrawlUpgrade } from "@/lib/press-monitor.server";
+import {
+  fetchFeed,
+  classifySignal,
+  pMap,
+  canonicalUrl,
+  firecrawlUpgrade,
+} from "@/lib/press-monitor.server";
 import { findCluster, storyKeyFromTitle, attachSibling } from "@/lib/story-cluster.server";
 
 export type PressTickResult = {
@@ -38,16 +44,17 @@ export async function runPressTick(opts: {
   // shows up as a coverage gap in the UI rather than silently disappearing.
   const universe = new Set<string>();
   {
-    let uniQ = supabaseAdmin
-      .from("narrative_feeds")
-      .select("country_code")
-      .eq("active", true);
+    let uniQ = supabaseAdmin.from("narrative_feeds").select("country_code").eq("active", true);
     if (filterCountry) uniQ = uniQ.eq("country_code", filterCountry);
     const { data: uni } = await uniQ;
     for (const r of uni ?? []) universe.add(r.country_code as string);
     for (const cc of universe) countryList.add(cc);
   }
-  let feedsPolled = 0, itemsFetched = 0, itemsNew = 0, itemsPromoted = 0, clustersMerged = 0;
+  let feedsPolled = 0,
+    itemsFetched = 0,
+    itemsNew = 0,
+    itemsPromoted = 0,
+    clustersMerged = 0;
 
   // Pre-step · once per country per ~20h, auto-revive dead feeds + top up.
   // Skipped for gap-fill sub-runs to keep them cheap.
@@ -69,37 +76,47 @@ export async function runPressTick(opts: {
     const { data: feeds, error: fErr } = await feedsQ;
     if (fErr) throw fErr;
 
-
-    const fetched = await pMap(feeds ?? [], async (f) => {
-      feedsPolled++;
-      countryList.add(f.country_code);
-      const r = await fetchFeed({
-        id: f.id, country_code: f.country_code,
-        scope: f.scope as "local" | "regional" | "international",
-        kind: f.kind as "rss" | "json" | "gdelt" | "google_news" | "html",
-        endpoint: f.endpoint, etag: f.etag,
-        active: f.active, consecutive_failures: f.consecutive_failures ?? 0,
-      });
-      const patch: {
-        last_polled_at: string; last_status: string; last_error: string | null;
-        consecutive_failures?: number; etag?: string; active?: boolean;
-      } = {
-        last_polled_at: new Date().toISOString(),
-        last_status: r.status,
-        last_error: r.error ?? null,
-      };
-      if (r.status === "ok") {
-        patch.consecutive_failures = 0;
-        if (r.etag) patch.etag = r.etag;
-      } else if (r.status === "error") {
-        const cf = (f.consecutive_failures ?? 0) + 1;
-        patch.consecutive_failures = cf;
-        if (cf >= 5) patch.active = false;
-        errors.push({ scope: `feed:${f.id}`, msg: r.error ?? "unknown" });
-      }
-      await supabaseAdmin.from("narrative_feeds").update(patch).eq("id", f.id);
-      return { feed: f, items: r.items };
-    }, 6);
+    const fetched = await pMap(
+      feeds ?? [],
+      async (f) => {
+        feedsPolled++;
+        countryList.add(f.country_code);
+        const r = await fetchFeed({
+          id: f.id,
+          country_code: f.country_code,
+          scope: f.scope as "local" | "regional" | "international",
+          kind: f.kind as "rss" | "json" | "gdelt" | "google_news" | "html",
+          endpoint: f.endpoint,
+          etag: f.etag,
+          active: f.active,
+          consecutive_failures: f.consecutive_failures ?? 0,
+        });
+        const patch: {
+          last_polled_at: string;
+          last_status: string;
+          last_error: string | null;
+          consecutive_failures?: number;
+          etag?: string;
+          active?: boolean;
+        } = {
+          last_polled_at: new Date().toISOString(),
+          last_status: r.status,
+          last_error: r.error ?? null,
+        };
+        if (r.status === "ok") {
+          patch.consecutive_failures = 0;
+          if (r.etag) patch.etag = r.etag;
+        } else if (r.status === "error") {
+          const cf = (f.consecutive_failures ?? 0) + 1;
+          patch.consecutive_failures = cf;
+          if (cf >= 5) patch.active = false;
+          errors.push({ scope: `feed:${f.id}`, msg: r.error ?? "unknown" });
+        }
+        await supabaseAdmin.from("narrative_feeds").update(patch).eq("id", f.id);
+        return { feed: f, items: r.items };
+      },
+      6,
+    );
 
     for (const { feed, items } of fetched) {
       if (!items.length) continue;
@@ -118,7 +135,10 @@ export async function runPressTick(opts: {
         .from("narrative_feed_items")
         .upsert(rows, { onConflict: "feed_id,guid_hash", ignoreDuplicates: true })
         .select("id,feed_id,country_code,url,title,raw_excerpt,state");
-      if (iErr) { errors.push({ scope: `insert:${feed.id}`, msg: iErr.message }); continue; }
+      if (iErr) {
+        errors.push({ scope: `insert:${feed.id}`, msg: iErr.message });
+        continue;
+      }
       itemsNew += inserted?.length ?? 0;
     }
 
@@ -128,33 +148,43 @@ export async function runPressTick(opts: {
     // so a burst from one country cannot starve the classification queue.
     const perCountryFetch = 40;
     type PoolItem = {
-      id: string; country_code: string; url: string | null; title: string;
-      raw_excerpt: string | null; feed_id: string | null; tier_hint: string | null;
+      id: string;
+      country_code: string;
+      url: string | null;
+      title: string;
+      raw_excerpt: string | null;
+      feed_id: string | null;
+      tier_hint: string | null;
     };
     // Build feed_id → tier_hint map from feeds we just polled.
     const feedTier = new Map<string, string | null>();
-    for (const f of feeds ?? []) feedTier.set(f.id as string, (f as { tier_hint?: string | null }).tier_hint ?? null);
+    for (const f of feeds ?? [])
+      feedTier.set(f.id as string, (f as { tier_hint?: string | null }).tier_hint ?? null);
     const perCountryPool = new Map<string, PoolItem[]>();
     const targetCountries = filterCountry ? [filterCountry] : Array.from(universe);
-    await pMap(targetCountries, async (cc) => {
-      const { data } = await supabaseAdmin
-        .from("narrative_feed_items")
-        .select("id,country_code,url,title,raw_excerpt,feed_id")
-        .eq("state", "new")
-        .eq("country_code", cc)
-        .order("fetched_at", { ascending: false })
-        .limit(perCountryFetch);
-      const rows: PoolItem[] = (data ?? []).map((r) => ({
-        id: r.id as string,
-        country_code: r.country_code as string,
-        url: (r.url as string | null) ?? null,
-        title: (r.title as string | null) ?? "",
-        raw_excerpt: (r.raw_excerpt as string | null) ?? null,
-        feed_id: (r.feed_id as string | null) ?? null,
-        tier_hint: r.feed_id ? feedTier.get(r.feed_id as string) ?? null : null,
-      }));
-      if (rows.length) perCountryPool.set(cc, rows);
-    }, 8);
+    await pMap(
+      targetCountries,
+      async (cc) => {
+        const { data } = await supabaseAdmin
+          .from("narrative_feed_items")
+          .select("id,country_code,url,title,raw_excerpt,feed_id")
+          .eq("state", "new")
+          .eq("country_code", cc)
+          .order("fetched_at", { ascending: false })
+          .limit(perCountryFetch);
+        const rows: PoolItem[] = (data ?? []).map((r) => ({
+          id: r.id as string,
+          country_code: r.country_code as string,
+          url: (r.url as string | null) ?? null,
+          title: (r.title as string | null) ?? "",
+          raw_excerpt: (r.raw_excerpt as string | null) ?? null,
+          feed_id: (r.feed_id as string | null) ?? null,
+          tier_hint: r.feed_id ? (feedTier.get(r.feed_id as string) ?? null) : null,
+        }));
+        if (rows.length) perCountryPool.set(cc, rows);
+      },
+      8,
+    );
 
     const canonSet = new Set<string>();
     const since = new Date(Date.now() - 3 * 86400_000).toISOString();
@@ -182,7 +212,14 @@ export async function runPressTick(opts: {
         const it = pool[idx];
         const c = seenPerCountry.get(it.country_code) ?? 0;
         if (c >= perCountryCap) continue;
-        if (it.url && canonSet.has(canonicalUrl(it.url))) continue;
+        if (it.url && canonSet.has(canonicalUrl(it.url))) {
+          await supabaseAdmin
+            .from("narrative_feed_items")
+            .update({ state: "duplicate" })
+            .eq("id", it.id);
+          clustersMerged++;
+          continue;
+        }
         seenPerCountry.set(it.country_code, c + 1);
         toClassify.push(it);
       }
@@ -194,14 +231,16 @@ export async function runPressTick(opts: {
     const upgradeCapDefault = 8;
     const upgradeCapReputational = 15;
     const upgradeSeen = new Map<string, { r: number; d: number }>();
-    const isRepLane = (t: string | null) => t === "reputational" || t === "entity" || t === "governance";
+    const isRepLane = (t: string | null) =>
+      t === "reputational" || t === "entity" || t === "governance";
     const upgradeTargets = toClassify.filter((it) => {
       if (!it.url) return false;
       const bucket = upgradeSeen.get(it.country_code) ?? { r: 0, d: 0 };
       const cap = isRepLane(it.tier_hint) ? upgradeCapReputational : upgradeCapDefault;
       const used = isRepLane(it.tier_hint) ? bucket.r : bucket.d;
       if (used >= cap) return false;
-      if (isRepLane(it.tier_hint)) bucket.r++; else bucket.d++;
+      if (isRepLane(it.tier_hint)) bucket.r++;
+      else bucket.d++;
       upgradeSeen.set(it.country_code, bucket);
       return true;
     });
@@ -219,7 +258,10 @@ export async function runPressTick(opts: {
     async function menu(cc: string) {
       const cached = sectorMenuCache.get(cc);
       if (cached) return cached;
-      const { data } = await supabaseAdmin.from("country_sectors").select("sector_code").eq("country_code", cc);
+      const { data } = await supabaseAdmin
+        .from("country_sectors")
+        .select("sector_code")
+        .eq("country_code", cc);
       const m = (data ?? []).map((r) => r.sector_code as string);
       sectorMenuCache.set(cc, m);
       return m;
@@ -227,56 +269,68 @@ export async function runPressTick(opts: {
 
     // Phase 1 — classify all in parallel, collect results (no inserts yet).
     type ClassifyResult = {
-      it: typeof toClassify[number];
+      it: (typeof toClassify)[number];
       c: Awaited<ReturnType<typeof classifySignal>>;
       pScore: number;
     };
     const classified: ClassifyResult[] = [];
-    await pMap(toClassify, async (it) => {
-      try {
-        const sectorMenu = await menu(it.country_code);
-        const upgradedMd = upgraded.get(it.id);
-        const rawForClassify = upgradedMd
-          ? [it.title, upgradedMd].filter(Boolean).join("\n\n")
-          : [it.title, it.raw_excerpt].filter(Boolean).join("\n\n");
-        const c = await classifySignal({
-          countryCode: it.country_code,
-          url: it.url,
-          raw: rawForClassify,
-          sectorMenu,
-        });
-        // Derive same P1..P5 score used by the triage rail so the highest-urgency
-        // items are inserted (and cluster-headed) first.
-        const sev = Math.max(1, Math.min(5, c.severity));
-        const reach = Math.max(1, Math.min(5, c.reach));
-        const leadish = c.recommendation === "lead" || c.recommendation === "counter";
-        const amplify = c.recommendation === "amplify";
-        const pScore =
-          leadish && sev >= 4 ? 1 :
-          leadish || (amplify && sev >= 4) ? 2 :
-          amplify || sev >= 4 ? 3 :
-          sev >= 3 || reach >= 3 ? 4 : 5;
-        classified.push({ it, c, pScore });
-      } catch (e) {
-        errors.push({ scope: `classify:${it.id}`, msg: (e as Error).message });
-        await supabaseAdmin
-          .from("narrative_feed_items")
-          .update({ state: "error", error: (e as Error).message.slice(0, 400) })
-          .eq("id", it.id);
-      }
-    }, 4);
+    await pMap(
+      toClassify,
+      async (it) => {
+        try {
+          const sectorMenu = await menu(it.country_code);
+          const upgradedMd = upgraded.get(it.id);
+          const rawForClassify = upgradedMd
+            ? [it.title, upgradedMd].filter(Boolean).join("\n\n")
+            : [it.title, it.raw_excerpt].filter(Boolean).join("\n\n");
+          const c = await classifySignal({
+            countryCode: it.country_code,
+            url: it.url,
+            raw: rawForClassify,
+            sectorMenu,
+          });
+          // Derive same P1..P5 score used by the triage rail so the highest-urgency
+          // items are inserted (and cluster-headed) first.
+          const sev = Math.max(1, Math.min(5, c.severity));
+          const reach = Math.max(1, Math.min(5, c.reach));
+          const leadish = c.recommendation === "lead" || c.recommendation === "counter";
+          const amplify = c.recommendation === "amplify";
+          const pScore =
+            leadish && sev >= 4
+              ? 1
+              : leadish || (amplify && sev >= 4)
+                ? 2
+                : amplify || sev >= 4
+                  ? 3
+                  : sev >= 3 || reach >= 3
+                    ? 4
+                    : 5;
+          classified.push({ it, c, pScore });
+        } catch (e) {
+          errors.push({ scope: `classify:${it.id}`, msg: (e as Error).message });
+          await supabaseAdmin
+            .from("narrative_feed_items")
+            .update({ state: "error", error: (e as Error).message.slice(0, 400) })
+            .eq("id", it.id);
+        }
+      },
+      4,
+    );
 
     // Phase 2 — priority-ordered sequential insert with story clustering.
     // Sequential (per country) so newly-inserted primaries are visible to the
     // next findCluster() call in the same tick.
-    classified.sort((a, b) =>
-      a.pScore - b.pScore ||
-      (b.c.severity + b.c.reach) - (a.c.severity + a.c.reach),
+    classified.sort(
+      (a, b) => a.pScore - b.pScore || b.c.severity + b.c.reach - (a.c.severity + a.c.reach),
     );
 
     const outletOf = (u: string | null) => {
       if (!u) return null;
-      try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; }
+      try {
+        return new URL(u).hostname.replace(/^www\./, "");
+      } catch {
+        return null;
+      }
     };
 
     for (const { it, c } of classified) {
@@ -285,35 +339,37 @@ export async function runPressTick(opts: {
         const match = await findCluster(it.country_code, topic);
         if (match) {
           // Sibling — attach to the existing primary, don't create a new card.
-          await supabaseAdmin
-            .from("intake_items")
-            .insert({
-              scope_key: it.country_code,
-              sector_code: c.sector_code || "cross",
-              topic,
-              summary: c.summary,
-              url: it.url,
-              proposed_weight: Math.max(1, Math.min(5, Math.round((c.severity + c.reach) / 2))),
-              scope: c.scope,
-              severity: Math.max(1, Math.min(5, c.severity)),
-              reach: Math.max(1, Math.min(5, c.reach)),
-              sentiment: Math.max(-2, Math.min(2, c.sentiment)),
-              recommendation: c.recommendation,
-              story_key: match.story_key,
-              story_primary: false,
-              duplicate_of: match.primary_id,
-              state: "duplicate",
-              metadata: {
-                dossier_bullets: c.dossier_bullets,
-                rationale: c.rationale,
-                citations: c.citations ?? [],
-                source: "press-tick",
-                ingested_at: new Date().toISOString(),
-                clustered_into: match.primary_id,
-                cluster_similarity: match.similarity,
-              },
-            });
-          await attachSibling(match.primary_id, { url: it.url, title: topic, outlet: outletOf(it.url) });
+          await supabaseAdmin.from("intake_items").insert({
+            scope_key: it.country_code,
+            sector_code: c.sector_code || "cross",
+            topic,
+            summary: c.summary,
+            url: it.url,
+            proposed_weight: Math.max(1, Math.min(5, Math.round((c.severity + c.reach) / 2))),
+            scope: c.scope,
+            severity: Math.max(1, Math.min(5, c.severity)),
+            reach: Math.max(1, Math.min(5, c.reach)),
+            sentiment: Math.max(-2, Math.min(2, c.sentiment)),
+            recommendation: c.recommendation,
+            story_key: match.story_key,
+            story_primary: false,
+            duplicate_of: match.primary_id,
+            state: "duplicate",
+            metadata: {
+              dossier_bullets: c.dossier_bullets,
+              rationale: c.rationale,
+              citations: c.citations ?? [],
+              source: "press-tick",
+              ingested_at: new Date().toISOString(),
+              clustered_into: match.primary_id,
+              cluster_similarity: match.similarity,
+            },
+          });
+          await attachSibling(match.primary_id, {
+            url: it.url,
+            title: topic,
+            outlet: outletOf(it.url),
+          });
           await supabaseAdmin
             .from("narrative_feed_items")
             .update({ state: "duplicate", signal_id: match.primary_id })
@@ -371,7 +427,10 @@ export async function runPressTick(opts: {
   }
 
   // Layer 4 coverage: per-country counts of promoted items in this run, split by scope.
-  const coverage: Record<string, { local: number; regional: number; international: number; total: number }> = {};
+  const coverage: Record<
+    string,
+    { local: number; regional: number; international: number; total: number }
+  > = {};
   const sinceRun = new Date(Date.now() - 6 * 3600_000).toISOString();
   const { data: promotedRows } = await supabaseAdmin
     .from("intake_items")
@@ -443,7 +502,6 @@ export async function runPressTick(opts: {
       },
     })
     .eq("id", run.id);
-
 
   return {
     ok: true,

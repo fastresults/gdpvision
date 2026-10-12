@@ -25,7 +25,11 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
     queryFn: () => heat({ data: { countryCode: code } }),
     refetchInterval: 60_000,
   });
-  const lastRun = useQuery({ queryKey: ["radar-last-run"], queryFn: () => last(), refetchInterval: 60_000 });
+  const lastRun = useQuery({
+    queryKey: ["radar-last-run", code],
+    queryFn: () => last({ data: { countryCode: code } }),
+    refetchInterval: 60_000,
+  });
   const coverage = useQuery({
     queryKey: ["radar-coverage", code],
     queryFn: () => cov({ data: { countryCode: code } }),
@@ -37,7 +41,7 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
     onSuccess: async () => {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["radar-heat", code] }),
-        qc.invalidateQueries({ queryKey: ["radar-last-run"] }),
+        qc.invalidateQueries({ queryKey: ["radar-last-run", code] }),
         qc.invalidateQueries({ queryKey: ["radar-coverage", code] }),
         qc.invalidateQueries({ queryKey: ["narrative-signals", code] }),
       ]);
@@ -52,11 +56,20 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
     },
   });
 
-  const rows = (cells.data ?? []) as { hour: string; local: number; regional: number; international: number }[];
+  const rows = (cells.data ?? []) as {
+    hour: string;
+    local: number;
+    regional: number;
+    international: number;
+  }[];
   const max = rows.reduce((n, c) => Math.max(n, c.local, c.regional, c.international), 1);
 
   const totals = rows.reduce(
-    (acc, c) => ({ local: acc.local + c.local, regional: acc.regional + c.regional, international: acc.international + c.international }),
+    (acc, c) => ({
+      local: acc.local + c.local,
+      regional: acc.regional + c.regional,
+      international: acc.international + c.international,
+    }),
     { local: 0, regional: 0, international: 0 },
   );
 
@@ -64,7 +77,9 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
     <section className="border border-line-200 bg-paper-0 p-5">
       <header className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Press radar · last 24h</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            Press radar · last 24h
+          </p>
           <h3 className="mt-1 font-serif text-xl text-ink-950">
             {totals.local + totals.regional + totals.international} signals ·{" "}
             <span className="text-ink-500">L {totals.local}</span> ·{" "}
@@ -73,13 +88,28 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
           </h3>
           {lastRun.data && (
             <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-              Last harvest {lastRun.data.finished_at ? new Date(lastRun.data.finished_at).toLocaleString() : "running…"} ·
-              {" "}{lastRun.data.feeds_polled} feeds · {lastRun.data.items_promoted} promoted
-              {Array.isArray(lastRun.data.errors) && (lastRun.data.errors as unknown[]).length > 0 && (
-                <span className="ml-2 text-rose-600">· {(lastRun.data.errors as unknown[]).length} errors</span>
-              )}
+              Last harvest{" "}
+              {lastRun.data.finished_at
+                ? new Date(lastRun.data.finished_at).toLocaleString()
+                : "running…"}{" "}
+              · {lastRun.data.feeds_polled} feeds · {lastRun.data.items_fetched} fetched ·{" "}
+              {lastRun.data.items_new} new · {lastRun.data.items_promoted} promoted
+              {Array.isArray(lastRun.data.errors) &&
+                (lastRun.data.errors as unknown[]).length > 0 && (
+                  <span className="ml-2 text-rose-600">
+                    · {(lastRun.data.errors as unknown[]).length} errors
+                  </span>
+                )}
             </p>
           )}
+          {lastRun.data?.finished_at &&
+            lastRun.data.items_fetched > 0 &&
+            lastRun.data.items_promoted === 0 && (
+              <p className="mt-2 border border-amber-400 bg-amber-50 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-amber-900">
+                Scan completed, but no mentions were promoted. Review the run errors or retry the
+                queued items.
+              </p>
+            )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <button
@@ -108,7 +138,8 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
       {coverage.data && (
         <div className="mt-3 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
           <span className="border border-line-200 px-2 py-1 text-ink-600">
-            Coverage (last run) · L {coverage.data.local} · R {coverage.data.regional} · I {coverage.data.international}
+            Coverage (last run) · L {coverage.data.local} · R {coverage.data.regional} · I{" "}
+            {coverage.data.international}
           </span>
           {coverage.data.local === 0 && (
             <span className="border border-amber-400 bg-amber-50 px-2 py-1 text-amber-900">
@@ -126,8 +157,13 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
       <div className="mt-4 space-y-1.5">
         {(["local", "regional", "international"] as const).map((scope) => (
           <div key={scope} className="flex items-center gap-2">
-            <span className="w-24 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">{scope}</span>
-            <div className="grid flex-1 grid-cols-24 gap-[2px]" style={{ gridTemplateColumns: "repeat(24, minmax(0, 1fr))" }}>
+            <span className="w-24 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+              {scope}
+            </span>
+            <div
+              className="grid flex-1 grid-cols-24 gap-[2px]"
+              style={{ gridTemplateColumns: "repeat(24, minmax(0, 1fr))" }}
+            >
               {rows.map((c, i) => {
                 const v = c[scope];
                 const intensity = v === 0 ? 0 : Math.min(1, v / max);
@@ -137,7 +173,8 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
                     title={`${new Date(c.hour).toLocaleTimeString([], { hour: "2-digit" })} · ${scope}: ${v}`}
                     className={cn("h-4 border border-line-200")}
                     style={{
-                      background: v === 0 ? "transparent" : `rgba(15,23,42,${0.15 + intensity * 0.75})`,
+                      background:
+                        v === 0 ? "transparent" : `rgba(15,23,42,${0.15 + intensity * 0.75})`,
                     }}
                   />
                 );
@@ -146,7 +183,9 @@ export function RadarHeatStrip({ code, countryName }: { code: string; countryNam
           </div>
         ))}
         <div className="mt-1 flex justify-between font-mono text-[9px] uppercase tracking-widest text-ink-500">
-          <span>-24h</span><span>-12h</span><span>now</span>
+          <span>-24h</span>
+          <span>-12h</span>
+          <span>now</span>
         </div>
       </div>
       {m.error && <p className="mt-3 text-sm text-rose-600">{(m.error as Error).message}</p>}

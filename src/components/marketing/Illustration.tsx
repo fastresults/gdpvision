@@ -18,7 +18,9 @@ import { cn } from "@/lib/utils";
  * its existing treatment.
  */
 
-type IllustrationVariant = "mark" | "spot" | "aside" | "rule";
+// `plate` is a documented exception (see docs/illustration-contract.md): the
+// /present closing slide only — full-bleed 16:9, with red ink accents kept.
+type IllustrationVariant = "mark" | "spot" | "aside" | "rule" | "plate";
 
 interface IllustrationProps {
   /** CDN url from a `.asset.json` pointer under src/assets/illustrations. */
@@ -44,6 +46,7 @@ const VARIANTS: Record<IllustrationVariant, string> = {
   aside: "w-full max-w-[460px] xl:max-w-[520px]",
   // Engraved divider under a section header, never full width.
   rule: "w-full max-w-[720px]",
+  plate: "absolute inset-0 h-full w-full overflow-hidden",
 };
 
 
@@ -57,9 +60,11 @@ export function Illustration({ src, alt, variant = "spot", className }: Illustra
       <img
         src={src}
         alt={alt ?? ""}
-        loading="lazy"
+        loading={variant === "plate" ? "eager" : "lazy"}
         decoding="async"
-        className={cn(
+        width={variant === "plate" ? 1920 : undefined}
+        height={variant === "plate" ? 1088 : undefined}
+        className={variant === "plate" ? "prs-plate h-full w-full object-cover" : cn(
           "block h-auto w-full object-contain",
           // Contract: monochrome only. Never let a generated asset introduce
           // colour, and let the paper ground show through the white field.

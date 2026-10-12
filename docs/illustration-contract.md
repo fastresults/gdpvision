@@ -5,6 +5,8 @@ site, and any exported document (Mandate Compact PDF, briefing packs, decks).
 
 **Sole exception:** the marketing hero section, which keeps its existing treatment.
 
+**Second exception:** the `/present` closing slide ("Build the floor first. Then measure.") uses `variant="plate"`: one full-bleed 16:9 engraving with deliberate red ink accents. Do not reuse `plate` anywhere else.
+
 ---
 
 ## 1. The style

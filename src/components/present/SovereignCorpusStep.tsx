@@ -214,6 +214,7 @@ export function SovereignCorpusStep({ on }: { on?: boolean }) {
       </div>
       <div className="prs-rise min-w-0 w-full" style={{ animationDelay: "200ms" }}>
         <LiveFrame
+          preloadId="sovereign-corpus"
           src={`/admin/countries/${DEMO_COUNTRY}/data`}
           label={`gdpvision.com/admin/countries/${DEMO_COUNTRY}/data`}
           title={`Data sources control panel, live for ${DEMO_COUNTRY}`}

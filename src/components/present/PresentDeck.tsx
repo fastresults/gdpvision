@@ -27,6 +27,7 @@ import { Illustration } from "@/components/marketing/Illustration";
 import floorFirstAsset from "@/assets/illustrations/floor-first-masterpiece.jpg.asset.json";
 import { DataDecisionFlow } from "@/components/marketing/DataDecisionFlow";
 import { ChamberDecisionJourneys } from "@/components/marketing/ChamberDecisionJourneys";
+import { ViewerPreloadProvider, useViewerPreload } from "./ViewerPreloadCoordinator";
 
 /**
  * The live briefing at /present: a full-viewport, scroll-snapped walk through
@@ -212,31 +213,27 @@ function ChamberJourneyStep() {
   );
 }
 
-/** "Viewers 14 / 19 ready" — counts every live viewer that has shown its page. */
 function ViewerReadiness() {
-  const [state, setState] = useState({ ready: 0, total: 0 });
-  useEffect(() => {
-    const tick = () => {
-      const all = document.querySelectorAll("[data-live-frame]");
-      const ready = document.querySelectorAll('[data-live-frame][data-state="ready"]');
-      setState((s) =>
-        s.ready === ready.length && s.total === all.length
-          ? s
-          : { ready: ready.length, total: all.length },
-      );
-    };
-    tick();
-    const id = window.setInterval(tick, 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  if (!state.total) return null;
-  const done = state.ready === state.total;
+  const { states, expected } = useViewerPreload();
+  const values = Object.values(states);
+  const launched = values.filter((state) => state !== "pending").length;
+  const ready = values.filter((state) => state === "ready").length;
+  const signin = values.filter((state) => state === "signin").length;
+  const slow = values.filter((state) => state === "slow" || state === "failed").length;
+  const done = launched === expected;
+  const detail = slow
+    ? `${slow} slow`
+    : signin
+      ? `${ready} loaded · ${signin} sign-in`
+      : launched === expected
+        ? `${ready} loaded`
+        : "launching";
   return (
     <span
       className={cn(MICRO, "hidden tabular-nums sm:inline", done && "text-gold-500")}
       aria-live="polite"
     >
-      Viewers {state.ready} / {state.total} ready
+      {launched} / {expected} viewers launched · {detail}
     </span>
   );
 }
@@ -297,6 +294,7 @@ function EgovStep() {
         </div>
         <div className="prs-rise min-w-0 w-full" style={{ animationDelay: "200ms" }}>
           <LiveFrame
+            preloadId="egov"
             src="https://atg.gdpvision.com"
             label="atg.gdpvision.com"
             title="Antigua and Barbuda eGov website"
@@ -365,6 +363,7 @@ function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
         <div className="prs-rise min-w-0 w-full" style={{ animationDelay: "200ms" }}>
           {ev.url && host ? (
             <LiveFrame
+              preloadId={`event-${ev.id}`}
               src={ev.url}
               label={host}
               title={`${ev.name} website`}
@@ -442,6 +441,7 @@ function ChamberStep({ c }: { c: Chamber }) {
 
         <div className="prs-rise min-w-0 w-full" style={{ animationDelay: "200ms" }}>
           <LiveFrame
+            preloadId={`chamber-${c.index}`}
             src={demo.path}
             label={label}
             title={`${c.title}, live for ${DEMO_COUNTRY}`}
@@ -456,6 +456,14 @@ function ChamberStep({ c }: { c: Chamber }) {
 }
 
 export function PresentDeck() {
+  return (
+    <ViewerPreloadProvider>
+      <PresentDeckContent />
+    </ViewerPreloadProvider>
+  );
+}
+
+function PresentDeckContent() {
   const [stepIndex, setStepIndex] = useState(0);
   const [stepCount, setStepCount] = useState(0);
   // Where a smooth scroll is heading. Lets two quick arrow presses count as two

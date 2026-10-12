@@ -47,7 +47,12 @@ export function AntiguaBrainStep() {
   const rows: BrainRow[] = (admin && full.data) || shape.data || [];
 
   return (
-    <div className={cn("grid w-full min-w-0 items-center gap-10 lg:gap-0", wide ? "grid-cols-1" : "lg:grid-cols-2")}>
+    <div
+      className={cn(
+        "grid w-full min-w-0 items-center gap-10 lg:gap-0",
+        wide ? "grid-cols-1" : "lg:grid-cols-2",
+      )}
+    >
       <div className={cn("lg:pl-24 lg:pr-10", wide && "hidden")}>
         <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
           06 · Antigua &amp; Barbuda · the Second Brain
@@ -77,6 +82,7 @@ export function AntiguaBrainStep() {
       </div>
       <div className="prs-rise min-w-0 w-full" style={{ animationDelay: "200ms" }}>
         <LiveFrame
+          preloadId="antigua-brain"
           src={`/admin/countries/${DEMO_COUNTRY}/onboard`}
           label={`gdpvision.com/admin/countries/${DEMO_COUNTRY}/onboard`}
           title={`Data sources for ${DEMO_COUNTRY}, live`}

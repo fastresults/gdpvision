@@ -10137,6 +10137,36 @@ export type Database = {
         }
         Relationships: []
       }
+      site_gallery_images: {
+        Row: {
+          alt: string
+          caption: string | null
+          created_at: string
+          id: string
+          sort_order: number
+          storage_path: string
+          url: string
+        }
+        Insert: {
+          alt?: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          sort_order?: number
+          storage_path: string
+          url: string
+        }
+        Update: {
+          alt?: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          sort_order?: number
+          storage_path?: string
+          url?: string
+        }
+        Relationships: []
+      }
       source_candidates: {
         Row: {
           approved_at: string | null

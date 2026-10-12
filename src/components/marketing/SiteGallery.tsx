@@ -171,12 +171,11 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
       <div
         className={cn("mt-8 overflow-x-auto", !editing && "journey-scroll")}
         onClick={() => !editing && setPaused((v) => !v)}
-        onMouseEnter={(e) => {
-          if (e.pointerType !== "mouse") return;
-          if (editing) return;
+        onPointerEnter={(e) => {
+          if (e.pointerType !== "mouse" || editing) return;
           setHoverPaused(true);
         }}
-        onMouseLeave={() => setHoverPaused(false)}
+        onPointerLeave={() => setHoverPaused(false)}
         data-held={paused || hoverPaused || undefined}
       >
         <div

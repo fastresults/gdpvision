@@ -51,6 +51,17 @@ export function SignalTriageRail({
 
   const levelList = useMemo(() => [...activeLevels].sort(), [activeLevels]);
   const fetchAtPriority = useServerFn(listSignalsAtPriority);
+  // Urgent levels (P1, P2) are always loaded in full so their groups match the tiles.
+  const urgentQuery = useQuery({
+    queryKey: ["narrative-signals-at-priority", code, [1, 2]],
+    queryFn: () => fetchAtPriority({ data: { countryCode: code, levels: [1, 2] } }),
+    staleTime: 30_000,
+  });
+  const mergedDefault = useMemo(() => {
+    if (!urgentQuery.data?.length) return signals;
+    const seen = new Set(signals.map((s) => s.id));
+    return [...signals, ...urgentQuery.data.filter((s) => !seen.has(s.id))];
+  }, [signals, urgentQuery.data]);
   const levelQuery = useQuery({
     queryKey: ["narrative-signals-at-priority", code, levelList],
     queryFn: () => fetchAtPriority({ data: { countryCode: code, levels: levelList } }),
@@ -63,7 +74,7 @@ export function SignalTriageRail({
   const source: Signal[] =
     levelList.length > 0
       ? (levelQuery.data ?? signals.filter((s) => activeLevels.has(priorityFor(s).level)))
-      : signals;
+      : mergedDefault;
 
   const filtered = useMemo(() => {
     const q = filterSignals(source, query);
@@ -176,7 +187,7 @@ export function SignalTriageRail({
             ? "Loading every signal at this priority…"
             : `Showing ${Math.min(levelTotal, 200).toLocaleString()} of ${levelTotal.toLocaleString()} at this priority${levelTotal > 200 ? " (newest 200)" : ""}`
           : fullTotal > signals.length
-            ? `Showing newest ${signals.length.toLocaleString()} of ${fullTotal.toLocaleString()}. Choose a priority to see all of that level.`
+            ? "All urgent signals shown. Other levels show the newest; open a level to see all."
             : `${fullTotal.toLocaleString()} active signals`}
       </p>
 
@@ -206,7 +217,11 @@ export function SignalTriageRail({
                     {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
                     {meta.label}
                   </span>
-                  <span className="text-ink-500">{rows.length}</span>
+                  <span className="text-ink-500 tabular-nums">
+                    {!query && rows.length < counts[lvl]
+                      ? `${rows.length.toLocaleString()} of ${counts[lvl].toLocaleString()}`
+                      : rows.length.toLocaleString()}
+                  </span>
                 </button>
                 {!isCollapsed && (
                   <ul className="mt-1 space-y-1">
@@ -214,6 +229,14 @@ export function SignalTriageRail({
                       <SignalRow key={s.id} signal={s} code={code} active={activeId === s.id} />
                     ))}
                   </ul>
+                )}
+                {!isCollapsed && !query && !activeLevels.has(lvl) && rows.length < counts[lvl] && (
+                  <button
+                    onClick={() => toggleLevel(lvl)}
+                    className="mt-1 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500 underline hover:text-ink-950"
+                  >
+                    Show all {counts[lvl].toLocaleString()}
+                  </button>
                 )}
               </div>
             );

@@ -140,7 +140,7 @@ const FLOW_STAGE_HEIGHT = 760;
 
 function PresentationFlowStage() {
   const hostRef = useRef<HTMLDivElement>(null);
-  const [fit, setFit] = useState({ scale: 0.8, left: 0 });
+  const [fit, setFit] = useState({ scale: 0.6, left: 0 });
 
   useLayoutEffect(() => {
     const host = hostRef.current;

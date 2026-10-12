@@ -180,7 +180,8 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
       >
         <div
           ref={trackRef}
-          className={cn("flex w-max gap-4 px-6", moving && "journey-track")}
+          className={cn("flex w-max gap-4 px-6", !editing && photos.length > 0 && "journey-track")}
+          style={{ animationPlayState: moving ? "running" : "paused" }}
         >
           {(editing ? photos : [...photos, ...photos]).map((p, i) => {
             const idx = i % Math.max(photos.length, 1);

@@ -129,7 +129,7 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
     trackRef.current?.parentElement?.scrollBy({ left: dir * 420, behavior: "smooth" });
   };
 
-  const moving = !editing && !paused && photos.length > 0;
+  const moving = !editing && !paused && !hoverPaused && photos.length > 0;
 
   return (
     <section

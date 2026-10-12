@@ -36,12 +36,17 @@ export interface SignalRow {
   created_at: string;
 }
 
+export type PriorityCounts = Record<1 | 2 | 3 | 4 | 5, number>;
+
 export interface SignalListResult {
   signals: SignalRow[];
   total: number;
+  /** Counts per response-priority level across ALL active signals (not just the loaded 200). */
+  priorityCounts?: PriorityCounts;
 }
 
-// ─── List / Get ──────────────────────────────────────────────────────────────
+const SIGNAL_COLUMNS =
+  "id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,scope,severity,reach,sentiment,recommendation,metadata,created_at";
 
 export const listSignals = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -56,9 +61,7 @@ export const listSignals = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<SignalListResult> => {
     let q = context.supabase
       .from("intake_items")
-      .select(
-        "id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,scope,severity,reach,sentiment,recommendation,metadata,created_at",
-      )
+      .select(SIGNAL_COLUMNS)
       .eq("scope_key", data.countryCode)
       // Hide clustered siblings — only primary signals show in the rail.
       .or("story_primary.is.true,story_primary.is.null")
@@ -75,10 +78,56 @@ export const listSignals = createServerFn({ method: "GET" })
       q = q.eq("state", data.state);
       countQ = countQ.eq("state", data.state);
     }
-    const [{ data: rows, error }, { count, error: countError }] = await Promise.all([q, countQ]);
+    const [{ data: rows, error }, { count, error: countError }, prio] = await Promise.all([
+      q,
+      countQ,
+      data.state
+        ? Promise.resolve({ data: null, error: null })
+        : context.supabase.rpc("narrative_priority_counts", { _country_code: data.countryCode }),
+    ]);
     if (error) throw new Error(error.message);
     if (countError) throw new Error(countError.message);
-    return { signals: (rows ?? []) as unknown as SignalRow[], total: count ?? 0 };
+    let priorityCounts: PriorityCounts | undefined;
+    if (!prio.error && Array.isArray(prio.data)) {
+      priorityCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      for (const r of prio.data as { level: number; n: number }[]) {
+        if (r.level >= 1 && r.level <= 5) priorityCounts[r.level as 1] = Number(r.n) || 0;
+      }
+    }
+    return {
+      signals: (rows ?? []) as unknown as SignalRow[],
+      total: count ?? 0,
+      priorityCounts,
+    };
+  });
+
+/** Newest signals at the chosen priority levels, across ALL active signals. */
+export const listSignalsAtPriority = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        countryCode: z.string().min(2).max(16),
+        levels: z.array(z.number().int().min(1).max(5)).min(1).max(5),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }): Promise<SignalRow[]> => {
+    const { data: ids, error } = await context.supabase.rpc("narrative_signal_ids_at_priority", {
+      _country_code: data.countryCode,
+      _levels: data.levels,
+      _limit: 200,
+    });
+    if (error) throw new Error(error.message);
+    const idList = ((ids ?? []) as { id: string }[]).map((r) => r.id);
+    if (idList.length === 0) return [];
+    const { data: rows, error: rowsError } = await context.supabase
+      .from("intake_items")
+      .select(SIGNAL_COLUMNS)
+      .in("id", idList)
+      .order("created_at", { ascending: false });
+    if (rowsError) throw new Error(rowsError.message);
+    return (rows ?? []) as unknown as SignalRow[];
   });
 
 export const getSignal = createServerFn({ method: "GET" })

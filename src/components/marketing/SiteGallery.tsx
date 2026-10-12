@@ -3,7 +3,7 @@
 // write is admin-only, enforced by row-level security and storage policies.
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ImagePlus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, GripVertical, ImagePlus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -127,6 +127,13 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
     refresh();
   }
 
+  async function reorder(ids: string[]) {
+    await Promise.all(
+      ids.map((id, i) => supabase.from("site_gallery_images").update({ sort_order: (i + 1) * 10 }).eq("id", id)),
+    );
+    refresh();
+  }
+
   const nudge = (dir: -1 | 1) => {
     setPaused(true);
     trackRef.current?.parentElement?.scrollBy({ left: dir * 420, behavior: "smooth" });
@@ -225,6 +232,7 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
         onMove={move}
         onCaption={caption}
         onAlt={altText}
+        onReorder={reorder}
       />
 
       <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
@@ -254,10 +262,33 @@ type ManagerProps = {
   onMove: (i: number, dir: -1 | 1) => void;
   onCaption: (p: Photo, v: string) => void;
   onAlt: (p: Photo, v: string) => void;
+  onReorder: (ids: string[]) => void;
 };
 
 /** Admin-only manager: drop zone + a numbered list where each row shows the exact photo it edits. */
-function GalleryManager({ open, onOpenChange, photos, busy, err, onFiles, onRemove, onMove, onCaption, onAlt }: ManagerProps) {
+function GalleryManager({ open, onOpenChange, photos, busy, err, onFiles, onRemove, onMove, onCaption, onAlt, onReorder }: ManagerProps) {
+  const [list, setList] = useState(photos);
+  const [dragId, setDragId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!dragId) setList(photos);
+  }, [photos, dragId]);
+  const over = (targetId: string) => {
+    if (!dragId || dragId === targetId) return;
+    setList((cur) => {
+      const from = cur.findIndex((x) => x.id === dragId);
+      const to = cur.findIndex((x) => x.id === targetId);
+      if (from < 0 || to < 0) return cur;
+      const next = [...cur];
+      const [m] = next.splice(from, 1);
+      next.splice(to, 0, m);
+      return next;
+    });
+  };
+  const drop = () => {
+    if (!dragId) return;
+    setDragId(null);
+    if (list.some((p, i) => p.id !== photos[i]?.id)) onReorder(list.map((p) => p.id));
+  };
   const fileRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -274,14 +305,14 @@ function GalleryManager({ open, onOpenChange, photos, busy, err, onFiles, onRemo
         <div>
           <DialogTitle className="font-display text-2xl text-ink-950">Manage Our Journey</DialogTitle>
           <DialogDescription className="mt-1 text-sm text-ink-700">
-            Add photos by dropping them below. Each numbered row is one photo, in the order visitors see them. Changes save as soon as you leave a field.
+            Add photos by dropping them below. Each numbered row is one photo, in the order visitors see them. Drag a photo by its picture to move it up or down. Changes save automatically.
           </DialogDescription>
         </div>
 
         <label
-          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+          onDragOver={(e) => { if (dragId) return; e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
-          onDrop={(e) => { e.preventDefault(); setDrag(false); if (!busy) take(e.dataTransfer.files); }}
+          onDrop={(e) => { if (dragId) return; e.preventDefault(); setDrag(false); if (!busy) take(e.dataTransfer.files); }}
           className={cn(
             "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors",
             drag ? "border-gold-500 bg-paper-100" : "border-line-200 bg-paper-50",
@@ -299,18 +330,42 @@ function GalleryManager({ open, onOpenChange, photos, busy, err, onFiles, onRemo
 
         <div className={MICRO}>{photos.length} photos</div>
         <ol className="-mr-2 min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
-          {photos.map((p, i) => (
-            <li key={p.id} className={cn("flex gap-4 rounded-lg border p-3", confirmId === p.id ? "border-signal-negative bg-paper-100" : "border-line-200 bg-paper-0")}>
+          {list.map((p, i) => (
+            <li
+              key={p.id}
+              onDragOver={(e) => {
+                if (!dragId) return;
+                e.preventDefault();
+                over(p.id);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                drop();
+              }}
+              className={cn("flex gap-4 rounded-lg border p-3 transition-shadow", dragId === p.id && "opacity-50 shadow-lg", confirmId === p.id ? "border-signal-negative bg-paper-100" : "border-line-200 bg-paper-0")}>
               <div className="flex w-8 shrink-0 flex-col items-center gap-1">
                 <span className="font-mono text-sm text-ink-950">{i + 1}</span>
                 <button type="button" className="btn-ghost" aria-label={`Move photo ${i + 1} earlier`} disabled={i === 0} onClick={() => onMove(i, -1)}>
                   <ArrowUp className="h-4 w-4" />
                 </button>
-                <button type="button" className="btn-ghost" aria-label={`Move photo ${i + 1} later`} disabled={i === photos.length - 1} onClick={() => onMove(i, 1)}>
+                <button type="button" className="btn-ghost" aria-label={`Move photo ${i + 1} later`} disabled={i === list.length - 1} onClick={() => onMove(i, 1)}>
                   <ArrowDown className="h-4 w-4" />
                 </button>
               </div>
-              <img src={p.url} alt={p.alt} className="aspect-[3/2] w-40 shrink-0 rounded border border-line-200 object-cover sm:w-52" />
+              <div
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", p.id);
+                  setDragId(p.id);
+                }}
+                onDragEnd={drop}
+                title="Drag to reorder"
+                className="relative shrink-0 cursor-grab active:cursor-grabbing"
+              >
+                <GripVertical className="absolute left-1 top-1 h-5 w-5 rounded bg-paper-0 text-ink-700" />
+              <img src={p.url} alt={p.alt} draggable={false} className="aspect-[3/2] w-40 shrink-0 rounded border border-line-200 object-cover sm:w-52" />
+              </div>
               <div className="min-w-0 flex-1 space-y-2">
                 <label className="block">
                   <span className={MICRO}>Caption shown to visitors</span>

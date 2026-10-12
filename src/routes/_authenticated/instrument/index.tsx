@@ -108,7 +108,7 @@ function InstanceHome() {
           <h2 className="text-xs uppercase tracking-widest text-ink-500">
             <span id="sector-composition-heading">National Ledger — sector composition</span>
           </h2>
-          <div className="mt-6 overflow-x-auto">
+          <div className="mt-6 w-full min-w-0 max-w-full overflow-x-auto">
             <table className="w-full min-w-[560px] text-sm" data-numeric>
               <thead>
                 <tr className="border-b border-line-200 text-left text-xs uppercase tracking-widest text-ink-500">

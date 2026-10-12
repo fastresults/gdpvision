@@ -344,7 +344,7 @@ function MinistrySectorMatrix({ ministries }: { ministries: LedgerEnrichment["mi
       {ministries.length === 0 ? (
         <p className="mt-4 text-sm text-ink-500">No ministries committed for this instance yet.</p>
       ) : (
-        <div className="mt-4 overflow-auto">
+        <div className="mt-4 w-full min-w-0 max-w-full overflow-auto">
           <table className="min-w-full border-collapse text-[11px]">
             <thead>
               <tr>

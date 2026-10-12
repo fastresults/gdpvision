@@ -64,13 +64,16 @@ function InstanceHome() {
   const reconciliationDelta = 100 - compositionTotal;
 
   return (
-    <main className={`mx-auto max-w-7xl px-8 py-16 ${pressSafe ? "press-safe" : ""}`}>
-      <div className="mb-6 flex items-center justify-between">
+    <main
+      className={`mx-auto max-w-7xl px-4 py-10 sm:px-8 sm:py-14 lg:py-16 ${pressSafe ? "press-safe" : ""}`}
+    >
+      <div className="grid grid-cols-1 items-start gap-6 border-b border-line-200 pb-10 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-8 sm:pb-12">
         <SectionHeader
           eyebrow={overview.country.isCbiState ? "CBI Pilot Instance" : "Sovereign Instance"}
           title={`The ${overview.country.name} Instrument`}
+          className="min-w-0"
         />
-        <label className="flex cursor-pointer select-none items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+        <label className="flex shrink-0 cursor-pointer select-none items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 sm:pt-0.5">
           <input
             type="checkbox"
             checked={pressSafe}
@@ -96,19 +99,27 @@ function InstanceHome() {
         </div>
       )}
 
-      <div className="mt-16 grid grid-cols-1 gap-16 lg:grid-cols-[520px_1fr]">
-        <div>
-          <SignatureRing size={520} animate={true} />
-          <p className="mt-6 text-xs uppercase tracking-widest text-ink-500">
+      <div className="mt-10 grid min-w-0 grid-cols-1 items-start gap-14 lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)] lg:gap-16">
+        <section className="min-w-0" aria-labelledby="national-signature-heading">
+          <h2
+            id="national-signature-heading"
+            className="text-xs uppercase tracking-widest text-ink-500"
+          >
             National Signature — 12 sector composition
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xs uppercase tracking-widest text-ink-500">
-            National Ledger — sector composition
           </h2>
-          <table className="mt-6 w-full text-sm" data-numeric>
+          <SignatureRing
+            size={520}
+            animate={true}
+            className="mx-auto mt-6 translate-y-0 lg:mx-0"
+          />
+        </section>
+
+        <section className="min-w-0" aria-labelledby="sector-composition-heading">
+          <h2 className="text-xs uppercase tracking-widest text-ink-500">
+            <span id="sector-composition-heading">National Ledger — sector composition</span>
+          </h2>
+          <div className="mt-6 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm" data-numeric>
             <thead>
               <tr className="border-b border-line-200 text-left text-xs uppercase tracking-widest text-ink-500">
                 <th className="py-2 font-normal">Sector</th>
@@ -166,6 +177,7 @@ function InstanceHome() {
               })}
             </tbody>
           </table>
+          </div>
 
           <div className="mt-12 border-l-2 border-gold-500 pl-6">
             <div className="flex items-baseline justify-between gap-3">
@@ -210,7 +222,7 @@ function InstanceHome() {
               </p>
             )}
           </div>
-        </div>
+        </section>
       </div>
 
       <TrustSignals countryCode={overview.country.code} />

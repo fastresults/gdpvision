@@ -13,6 +13,8 @@ import { SiteGallery } from "@/components/marketing/SiteGallery";
 import { EgovPipeline } from "./EgovPipeline";
 import { ChamberGlyph } from "./ChamberGlyph";
 import { cn } from "@/lib/utils";
+import { Illustration } from "@/components/marketing/Illustration";
+import floorFirstAsset from "@/assets/illustrations/floor-first-masterpiece.jpg.asset.json";
 import { DataDecisionFlow } from "@/components/marketing/DataDecisionFlow";
 import { ChamberDecisionJourneys } from "@/components/marketing/ChamberDecisionJourneys";
 
@@ -832,17 +834,27 @@ export function PresentDeck() {
         </Step>
 
         {/* 29 Close */}
-        <Step id="close" label="Close">
+        <Step id="close" label="Close" className="overflow-hidden justify-start max-md:pt-0 md:pt-16">
+          <div className="relative -mx-6 mb-8 aspect-[16/9] md:absolute md:inset-0 md:mx-0 md:mb-0 md:aspect-auto">
+            <Illustration
+              variant="plate"
+              src={floorFirstAsset.url}
+              alt="Engraving: on the left, a mature economy's observatory stands on deep foundations of ledgers and records, its instruments feeding markets; in the centre, an island nation's instruments topple on bare, cracked ground; on the right, surveyors lay a level, sealed foundation so a first instrument can stand true and readable."
+            />
+          </div>
+          <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-[34%] bg-gradient-to-b from-paper-0/90 to-transparent md:block" aria-hidden />
+          <div className="relative z-10 md:max-w-[60%]">
           <Reveal>
             <div className={MICRO}>GDPVision</div>
           </Reveal>
           <Reveal delay={120}>
-            <h2 className="mt-6 font-display text-[clamp(3rem,7vw,7rem)] leading-[0.98] tracking-[-0.02em] text-ink-950">
+            <h2 className="mt-6 font-display text-[clamp(2.4rem,4.2vw,4.4rem)] leading-[0.98] tracking-[-0.02em] text-ink-950">
               Build the floor first. <i>Then measure.</i>
             </h2>
           </Reveal>
+          <div className="mt-6 inline-block rounded-lg bg-paper-0/90 px-5 py-4 shadow-sm">
           <Reveal delay={320}>
-            <div className={cn(MICRO, "mt-10 leading-7")}>
+            <div className={cn(MICRO, "leading-7 text-ink-900")}>
               Adam Anderson · adam@madebyopen.com · OPEN Interactive, St. Kitts &amp; Nevis · EVOVE
               LLC, Atlanta
               <br />
@@ -850,7 +862,7 @@ export function PresentDeck() {
             </div>
           </Reveal>
           <Reveal delay={480}>
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-3">
               <Link to="/" className="btn-secondary">
                 Back to gdpvision.com
               </Link>
@@ -859,6 +871,8 @@ export function PresentDeck() {
               </a>
             </div>
           </Reveal>
+          </div>
+          </div>
         </Step>
       </main>
     </div>

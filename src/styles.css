@@ -1922,3 +1922,6 @@
 .journey-scroll { scrollbar-width: none; }
 .journey-scroll::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) { .journey-track { animation: none; } }
+@keyframes prs-plate-push { from { transform: scale(1); } to { transform: scale(1.06); } }
+.is-on .prs-plate { animation: prs-plate-push 40s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) { .is-on .prs-plate { animation: none; } }

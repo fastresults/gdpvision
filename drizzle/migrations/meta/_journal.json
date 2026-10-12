@@ -225,6 +225,13 @@
       "when": 1791807987278,
       "tag": "0031_user_roles_nulls_not_distinct",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791810186503,
+      "tag": "0032_narrative_priority_counts",
+      "breakpoints": true
     }
   ]
 }

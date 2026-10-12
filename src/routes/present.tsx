@@ -33,7 +33,11 @@ export const Route = createFileRoute("/present")({
     ],
     links: [
       { rel: "canonical", href: `${SITE_URL}/present` },
-      ...VIEWER_ORIGINS.map((href) => ({ rel: "preconnect", href, crossOrigin: "anonymous" })),
+      ...VIEWER_ORIGINS.map((href) => ({
+        rel: "preconnect",
+        href,
+        crossOrigin: "anonymous" as const,
+      })),
     ],
   }),
   component: PresentDeck,

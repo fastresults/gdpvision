@@ -37,6 +37,8 @@ export function ViewerPreloadProvider({ children }: { children: ReactNode }) {
   return <ViewerPreloadContext.Provider value={value}>{children}</ViewerPreloadContext.Provider>;
 }
 
+// Provider and its paired hook intentionally share this small module.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useViewerPreload() {
   const context = useContext(ViewerPreloadContext);
   if (!context) throw new Error("useViewerPreload must be used inside ViewerPreloadProvider");

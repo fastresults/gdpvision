@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, Maximize2, Minimize2, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useViewerPreload, type ViewerPreloadState } from "./ViewerPreloadCoordinator";
@@ -39,9 +39,10 @@ export function LiveFrame({
   const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState<"loading" | "ready" | "slow" | "signin">("loading");
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const settledRef = useRef(false);
   const { update } = useViewerPreload();
 
-  const settle = () => {
+  const settle = useCallback(() => {
     const frame = frameRef.current;
     if (!frame) return;
     let next: ViewerPreloadState = "ready";
@@ -55,8 +56,9 @@ export function LiveFrame({
     }
     setLoaded(true);
     setStatus(next === "signin" ? "signin" : "ready");
+    settledRef.current = true;
     update(preloadId, next);
-  };
+  }, [preloadId, update]);
 
   // Reconcile cached/restored documents after hydration. The iframe's onLoad
   // below is the primary signal and is attached in the initial React commit.
@@ -76,7 +78,7 @@ export function LiveFrame({
     check();
     const early = window.setInterval(check, 500);
     const watchdog = window.setTimeout(() => {
-      if (!loaded) {
+      if (!settledRef.current) {
         setStatus("slow");
         update(preloadId, "slow");
       }
@@ -85,7 +87,7 @@ export function LiveFrame({
       window.clearInterval(early);
       window.clearTimeout(watchdog);
     };
-  }, [loaded, preloadId, update]);
+  }, [preloadId, settle, update]);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
 
@@ -107,6 +109,7 @@ export function LiveFrame({
   return (
     <div
       data-live-frame
+      data-preload-id={preloadId}
       data-state={status}
       className={cn(
         "relative w-full min-w-0 overflow-hidden rounded-xl border border-line-200 bg-paper-0 shadow-[0_24px_60px_-30px_rgba(8,17,31,0.35)]",
@@ -141,6 +144,7 @@ export function LiveFrame({
             onClick={() => {
               setLoaded(false);
               setStatus("loading");
+              settledRef.current = false;
               update(preloadId, "requested");
               const frame = frameRef.current;
               if (frame) frame.src = src;

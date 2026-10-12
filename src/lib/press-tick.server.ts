@@ -182,7 +182,14 @@ export async function runPressTick(opts: {
         const it = pool[idx];
         const c = seenPerCountry.get(it.country_code) ?? 0;
         if (c >= perCountryCap) continue;
-        if (it.url && canonSet.has(canonicalUrl(it.url))) continue;
+        if (it.url && canonSet.has(canonicalUrl(it.url))) {
+          await supabaseAdmin
+            .from("narrative_feed_items")
+            .update({ state: "duplicate" })
+            .eq("id", it.id);
+          clustersMerged++;
+          continue;
+        }
         seenPerCountry.set(it.country_code, c + 1);
         toClassify.push(it);
       }

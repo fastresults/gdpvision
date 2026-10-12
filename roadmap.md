@@ -1,4 +1,4 @@
-- [ ] Refresh and ingest the latest Antigua press mentions with resilient classification
+- [x] Refresh and ingest the latest Antigua press mentions with resilient classification
 
 # Roadmap
 

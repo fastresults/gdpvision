@@ -1,4 +1,12 @@
-import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, ExternalLink } from "lucide-react";
 import { CHAMBERS, type Chamber } from "@/lib/chambers";
@@ -132,9 +140,9 @@ const FLOW_STAGE_HEIGHT = 760;
 
 function PresentationFlowStage() {
   const hostRef = useRef<HTMLDivElement>(null);
-  const [fit, setFit] = useState({ scale: 1, left: 0 });
+  const [fit, setFit] = useState({ scale: 0.8, left: 0 });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const host = hostRef.current;
     if (!host) return;
     const update = () => {
@@ -144,9 +152,13 @@ function PresentationFlowStage() {
       setFit({ scale, left: Math.max(0, (width - FLOW_STAGE_WIDTH * scale) / 2) });
     };
     update();
+    const frame = requestAnimationFrame(update);
     const observer = new ResizeObserver(update);
     observer.observe(host);
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, []);
 
   return (

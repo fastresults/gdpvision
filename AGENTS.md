@@ -1,129 +1,31 @@
 # AGENTS.md — GDPVision navigation index
 
-**Read this before searching.** For domain work, open the matching `docs/map/<domain>.md` next. This file is the AI's front door: it answers "where does X live?" without a grep.
+Read this first, then the matching `docs/map/<domain>.md` (`chambers`, `onboarding`, `corpus`, `routes`, `server-fns`, `tables`). Full tables of chambers, onboarding stages, routes and troubleshooting: `docs/map/agents-full-reference.md`.
 
 Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 · Supabase (Lovable Cloud) · AI SDK via Lovable AI Gateway.
 
----
+## Cardinal rules
+- **Buttons**: `btn-primary`/`btn-secondary`/`btn-ghost`/`btn-accent` from `src/styles.css`; never inline `bg-ink-* text-paper-*`. Only `@theme inline` colour tokens exist.
+- **JSON in UI**: `<PrettyJson>` from `@/components/data/PrettyJson`; raw `JSON.stringify` in JSX only in a `<textarea>` or collapsed `<details>`.
+- **Illustrations**: monochrome engraved graphite via `<Illustration>`; variants `mark`/`spot`/`aside`/`rule`, one per section, never full-bleed. Exceptions: marketing hero, and the `/present` closing `plate`. Spec: `docs/illustration-contract.md`.
+- **Header logo**: every header Wordmark link/button calls `scrollToTop()` from `@/lib/utils`.
+- **Second brain no-dup**: every ingest/commit path upserts on a normalized key (`docs/map/corpus.md`).
+- **Explain**: derived figures use `<Explain>` + registered rationale, never bare tooltips. Homepage and Brief share `proposedInputForCountry`.
+- **Public tables**: every `CREATE TABLE public.*` has GRANTs + RLS + policies in the same migration.
+- **Server fns**: `createServerFn` in `src/lib/<domain>/*.functions.ts` with `@domain/@tables/@ui` header; `.server.ts` is server-only; admin client via `await import('@/integrations/supabase/client.server')` inside handlers.
+- **Auth**: protected fns use `requireSupabaseAuth`; call from components (`useServerFn` + `useQuery`), never public loaders.
+- **Impersonation**: `useImpersonation()` → `viewAs.country_code` for super-admins.
+- **AI research**: go through the corpus gateway + fallback waterfall (`fallback.server.ts` → Perplexity → Gemini → infer); never call providers from components.
+- **Briefing data**: `/present` gets only aggregate corpus counts via `getCorpusSnapshot`; never rows or text. `CorpusMark` is the single Second Brain drawing in briefing circuits.
 
-## 1. Cardinal rules (always apply)
+## Do not edit
+`src/routeTree.gen.ts`, `src/integrations/supabase/{client,client.server,auth-middleware,auth-attacher,types}.ts`, `.env`, `supabase/config.toml`.
 
-- **Buttons**: use `btn-primary`/`btn-secondary`/`btn-ghost`/`btn-accent` utilities from `src/styles.css`. Never inline `bg-ink-* text-paper-*` on `<button>`/`<a>`. Legal color tokens are the ones registered in `@theme inline`.
-- **JSON in UI**: render via `<PrettyJson>` from `@/components/data/PrettyJson`. Raw `JSON.stringify` in JSX is banned by ESLint except in a `<textarea>` editor or a collapsed `<details>` debug block.
-- **Illustrations**: one house style everywhere (UI + print) — monochrome hand-drawn engraved graphite sketch, rendered through `<Illustration>` from `@/components/marketing/Illustration`. Never a bare `<img>` for an illustration, never colour. Illustrations are marginalia: variants are `mark` (≤128px), `spot` (≤288px), `aside` (≤520px), `rule` (≤720px divider) — **one per section, never full-bleed, never in the reading column**. The `band` slab is retired. Sole exception: the marketing hero. Spec + prompt template: `docs/illustration-contract.md`. Assets: `src/assets/illustrations/*.asset.json`, `src/assets/chambers/*.asset.json`.
-- **Header logo**: the top-left `Wordmark` is a scroll-to-top control on every shell. Every header logo `Link` or button must call `scrollToTop()` from `@/lib/utils` so pressing it always returns the user to the very top of the page.
-- **Second brain no-dup**: every ingest/commit path upserts on a normalized key. See `docs/map/corpus.md`.
-- **Explain this**: interrogate derived/model figures with `<Explain>` + registered rationale; never use bare tooltips. Homepage and Brief value inputs share `proposedInputForCountry`.
+## Where things live
+- Chambers 01–10: admin routes `admin/countries/$code/<chamber>`; components/server fns per chamber in `docs/map/chambers.md`. New chamber section → update that map.
+- Onboarding: stage order in `src/lib/country-onboarding/stages.ts`, orchestrator `orchestrator.functions.ts`. New stage → update `docs/map/onboarding.md`.
+- Corpus: types `src/lib/corpus/types.ts`, gateway `corpus/gateway.server.ts`, writers `corpus/writers.server.ts`, searchers `corpus/searchers/*`. RLS via `has_country_access`.
+- Shells: `__root.tsx`; `_authenticated/route.tsx` (auth gate); `admin/route.tsx` (super-admin); `console.tsx` (country users); `instrument/route.tsx`; `narrative/route.tsx`; `index.tsx` (`MarketingHome`).
 
-- **Public tables**: every `CREATE TABLE public.*` needs GRANTs in the same migration (see `public-schema-grants` in project knowledge).
-- **Server functions**: `createServerFn` from `@tanstack/react-start` in `*.functions.ts` (client-safe path). `.server.ts` helpers are server-only. Admin client is loaded via `await import('@/integrations/supabase/client.server')` inside handlers.
-- **Auth**: protected server fns use `.middleware([requireSupabaseAuth])`. Do NOT call them from public route loaders — call from components via `useServerFn` + `useQuery`.
-- **Impersonation**: `useImpersonation()` provides `viewAs.country_code` for super-admins acting as a country.
-
----
-
-## 2. DO NOT edit (generated / integration-managed)
-
-- `src/routeTree.gen.ts` — regenerated by TanStack Router Vite plugin.
-- `src/integrations/supabase/{client,client.server,auth-middleware,auth-attacher,types}.ts` — auto-gen.
-- `.env`, `supabase/config.toml`.
-
----
-
-## 3. Chambers (7 sovereign workspaces)
-
-| #   | Name                      | Admin route                                                        | Console route      | Primary components                                                                              | Server fns                                                                                                            |
-| --- | ------------------------- | ------------------------------------------------------------------ | ------------------ | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| 01  | National Ledger           | `admin/countries/$code/ledger`                                     | `console/$code`    | `AskTheLedger`, `WhyThisNumberPanel`, `LedgerEnrichments`                                       | `ledger.functions.ts`, `ledger-qa/*`                                                                                  |
-| 02  | Portfolios                | `admin/countries/$code/portfolio`                                  | —                  | `MinistrySectorHeatmap`, `SectorProfilingMatrix`                                                | `mandate.functions.ts`, `sector-dossier/*`                                                                            |
-| 03  | Scenarios                 | `admin/countries/$code/scenarios`                                  | —                  | `GdpFanChart`, `LeversDrawer`, `PlaybookChips`                                                  | `scenarios/*.functions.ts`                                                                                            |
-| 04  | FDI Transition Studio     | `admin/countries/$code/studio`                                     | —                  | `WorkbenchJourney`, `ThreatComposer`, `ExposureLedger`                                          | `fdi-resilience.functions.ts`, `goalseek.functions.ts`                                                                |
-| 05  | Narrative                 | `admin/countries/$code/narrative`                                  | —                  | `SignalTriageRail`, `DraftStudio`, opposition wizard                                            | `narrative.functions.ts`, `narrative/opposition-*.ts`                                                                 |
-| 06  | Cabinet Room              | `admin/countries/$code/cabinet`                                    | —                  | `SituationBoard`, `DecisionQueue`, `CommitmentsCockpit`                                         | `cabinet.functions.ts`                                                                                                |
-| 07  | Persona Lab               | `admin/countries/$code/personas` (+ `/portfolios` Ministers track) | —                  | `StudyWizard/*`, `MultimodalInput`, `portfolio/*` (Ideal Minister)                              | `personas/*.functions.ts`, `personas/portfolio/{studio,run,convene}.functions.ts`                                     |
-| 08  | Mandate Compact           | `admin/countries/$code/mandate-compact`                            | —                  | `Stepper`, `IngestPanel`, `CompactList`                                                         | `mandate-compact/{ingest,list}.functions.ts`                                                                          |
-| 09  | Digital Government Studio | `admin/countries/$code/egov`                                       | public `/e/$token` | `egov/{NewPrdPanel,SectionEditor,ApprovalPanel,BrandPreview,SharePanel,PrdDocument}`            | `egov/{prd,draft,share-links,public-prd}.functions.ts`, `egov/context.server.ts`                                      |
-| 10  | Sector Studio             | `admin/countries/$code/sector`                                     | —                  | `sector/{SectorBoard,NewPlanPanel,labels}` (+ `egov/{SectionEditor,ApprovalPanel,PrdDocument}`) | `sector/{plan,draft,scout}.functions.ts`, `sector/context.server.ts`, method in `docs/prd/sector-studio-framework.md` |
-
-Full chamber map: `docs/map/chambers.md`.
-
----
-
-## 4. Country onboarding (20 stages)
-
-Order + committer + tables live in `src/lib/country-onboarding/stages.ts`. Orchestrator: `orchestrator.functions.ts`. Research fallbacks: `fallback.server.ts` → Perplexity → Gemini → infer.
-
-Notable stages:
-
-| Stage | Purpose          | Research                      | Commit                        | Tables                                     |
-| ----- | ---------------- | ----------------------------- | ----------------------------- | ------------------------------------------ |
-| 05    | Ministries       | `minister-research.server.ts` | `agents.functions.ts`         | `ministry_profiles`                        |
-| 09    | Ministry×Sector  | `ministry-deep-dive-flow.ts`  | `agents.functions.ts`         | `ministry_sectors`                         |
-| 12    | Capital flows    | `capital-flows.server.ts`     | `agents.functions.ts`         | `capital_flow_nodes`, `capital_flow_edges` |
-| —     | Parties backfill | `party-research.server.ts`    | `party-backfill.functions.ts` | `political_parties`, `party_manifestos`    |
-
-Full stage map: `docs/map/onboarding.md`.
-
----
-
-## 5. Corpus / second brain
-
-Central types: `src/lib/corpus/types.ts`. Gateway: `corpus/gateway.server.ts`. Writers: `corpus/writers.server.ts`. Domain searchers: `corpus/searchers/{citation,sector,...}.server.ts`. Ideal Minister Profiles (chamber 07, approved only): `corpus/searchers/portfolio-persona.server.ts`.
-
-Tables in the corpus: `country_sources`, `country_source_documents`, `country_source_chunks`, `memory_objects`, `country_kpis`, `country_kpi_points`, `ministry_profiles`, `sector_dossiers`, `onboarding_citations`. All deduped — see `docs/map/corpus.md`.
-
-Public vs. private: every corpus row carries `visibility` + ownership; RLS enforced via the `has_country_access` SQL helper.
-
----
-
-## 6. Personas / routes / layouts
-
-- `src/routes/__root.tsx` — shell.
-- `src/routes/_authenticated/route.tsx` — auth gate (client-side `getUser`).
-- `src/routes/_authenticated/admin/route.tsx` — super-admin surfaces.
-- `src/routes/_authenticated/console.tsx` — country-user mobile-first shell (3-tab bottom bar: Study / Ask / Send).
-- `src/routes/_authenticated/instrument/route.tsx` — power-user "instrument" workspace (super admins).
-- `src/routes/_authenticated/narrative/route.tsx` — cross-country narrative surfaces.
-- `src/routes/index.tsx` — public marketing (`MarketingHome`).
-
-Full route map: `docs/map/routes.md` (Phase 2, generated).
-
----
-
-## 7. Standing conventions when adding features
-
-1. **New server fn** → put it in `src/lib/<domain>/<thing>.functions.ts`. Add a header docblock:
-   ```ts
-   // @domain <domain>
-   // @tables <comma,list>
-   // @ui <route or component owner>
-   ```
-2. **New table** → migration includes GRANTs + RLS + policies (see `public-schema-grants`).
-3. **New route** → filename dots become slashes; `createFileRoute` string must match generated route ID.
-4. **New chamber section** → update this file + `docs/map/chambers.md`.
-5. **New onboarding stage** → update `stages.ts` + `docs/map/onboarding.md`.
-6. **AI research** → use the corpus gateway + fallback waterfall; never call Perplexity/Gemini directly from components.
-
----
-
-## 8. Where to look when things break
-
-| Symptom                        | First place                                                                                                  |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| Onboarding stuck / stale       | `country-onboarding/stages.ts`, `orchestrator.functions.ts`, self-heal in `ledger-qa/self-heal.functions.ts` |
-| 500 on route load              | Check RLS + GRANTs on tables the loader queries                                                              |
-| "Unauthorized" in `build:dev`  | Protected server fn called from public loader — move to component                                            |
-| Missing citations              | `onboarding_citations` write path in the relevant stage committer                                            |
-| Wrong country data cross-shown | Route must include `$code` param; check `useImpersonation` context                                           |
-
----
-
-## 9. Keeping the map fresh (Phase 4 drift guard)
-
-- `bun run map` — regenerate `docs/map/{server-fns,routes,tables}.md`.
-- `bun run headers` — backfill `@domain / @tables / @ui` docblocks on `*.functions.ts`.
-- `bun run check:maps` — CI guard: fails if generated maps are stale OR any server-fn module is missing header tags. Wired into `.github/workflows/map-check.yml` on every PR touching `src/**`, `supabase/migrations/**`, or the map scripts.
-
-When you add a new server function, migration, or route: run `bun run headers && bun run map` before committing, or CI will reject the PR.
-
-- **Briefing corpus data**: `/present` reads only aggregate corpus row counts via `getCorpusSnapshot` (`src/lib/present/corpus-snapshot.functions.ts`) — the public briefing must never receive corpus rows or text. `CorpusMark` is the single Second Brain drawing for briefing circuits.
+## Map drift guard
+After adding a server fn, migration or route: `bun run headers && bun run map`. CI runs `bun run check:maps`.

@@ -31,7 +31,6 @@ import { EXISTENTIAL_THREATS } from "@/lib/existential-threats";
 import { MOMENT_VARIANTS } from "@/lib/moment-variants";
 import { SignatureRing } from "./SignatureRing";
 import { DataDecisionFlowDialog } from "./DataDecisionFlowDialog";
-import { SiteGallery } from "./SiteGallery";
 import { NumberTile } from "./NumberTile";
 import { ChamberPanel } from "./ChamberPanel";
 import { IndexBand } from "./IndexBand";
@@ -349,9 +348,6 @@ export function MarketingHome() {
           </div>
         </div>
       </section>
-
-      {/* OUR JOURNEY ------------------------------------------------------ */}
-      <SiteGallery />
 
       {/* MEASURES --------------------------------------------------------- */}
       <IndexBand />

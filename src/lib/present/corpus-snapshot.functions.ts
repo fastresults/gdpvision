@@ -47,3 +47,47 @@ export const getCorpusSnapshot = createServerFn({ method: "GET" }).handler(
     }
   },
 );
+
+export type BrainShapeRow = {
+  id: string;
+  title: string;
+  kind: string;
+  sector_code: string | null;
+  scope_key: string;
+  weight: number;
+  verified: boolean;
+  updated_at: string;
+};
+
+/**
+ * Public, anonymous shape of one country's Second Brain: each memory's
+ * sector, kind, weight and verified flag only. No titles, ids or content.
+ */
+export const getCountryBrainShape = createServerFn({ method: "GET" })
+  .inputValidator((d: { country: string }) => ({
+    country: String(d?.country ?? "").toUpperCase().slice(0, 4),
+  }))
+  .handler(async ({ data }): Promise<BrainShapeRow[]> => {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: rows, error } = await supabaseAdmin
+        .from("memory_objects")
+        .select("kind,sector_code,weight,verified,updated_at")
+        .eq("scope_key", data.country)
+        .limit(2000);
+      if (error) throw error;
+      return (rows ?? []).map((r, i) => ({
+        id: `m${i}`,
+        title: "",
+        kind: r.kind,
+        sector_code: r.sector_code,
+        scope_key: data.country,
+        weight: Number(r.weight ?? 1),
+        verified: Boolean(r.verified),
+        updated_at: r.updated_at,
+      }));
+    } catch (e) {
+      console.error("brain shape failed", e);
+      return [];
+    }
+  });

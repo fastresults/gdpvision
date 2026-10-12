@@ -96,7 +96,6 @@ function Reveal({
 }
 
 function DecisionEngineStep() {
-  const [ref, seen] = useInView<HTMLDivElement>(0.15);
   return (
     <Step
       id="engine"
@@ -121,11 +120,8 @@ function DecisionEngineStep() {
           </Reveal>
         </div>
       </div>
-      <div
-        ref={ref}
-        className="mt-4 flex min-h-[70dvh] w-full min-w-0 md:mt-2 md:min-h-0 md:overflow-hidden"
-      >
-        {seen ? <PresentationFlowStage /> : null}
+      <div className="mt-4 flex min-h-[70dvh] w-full min-w-0 md:mt-2 md:min-h-0 md:overflow-hidden">
+        <PresentationFlowStage />
       </div>
     </Step>
   );

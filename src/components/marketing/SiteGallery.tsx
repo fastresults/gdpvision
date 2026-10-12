@@ -284,11 +284,68 @@ function GalleryManager({ open, onOpenChange, photos, busy, err, onFiles, onRemo
       return next;
     });
   };
+  const listRef = useRef<HTMLOListElement>(null);
+  const pointerY = useRef(0);
+  const listSnap = useRef(list);
+  listSnap.current = list;
   const drop = () => {
     if (!dragId) return;
     setDragId(null);
-    if (list.some((p, i) => p.id !== photos[i]?.id)) onReorder(list.map((p) => p.id));
+    const cur = listSnap.current;
+    if (cur.some((p, i) => p.id !== photos[i]?.id)) onReorder(cur.map((p) => p.id));
   };
+  // While dragging: follow the pointer, swap with whichever row it is over,
+  // and keep scrolling the list when the pointer sits near its top/bottom edge.
+  useEffect(() => {
+    if (!dragId) return;
+    const hit = () => {
+      const ol = listRef.current;
+      if (!ol) return;
+      for (const li of Array.from(ol.children) as HTMLElement[]) {
+        const r = li.getBoundingClientRect();
+        if (pointerY.current >= r.top && pointerY.current <= r.bottom) {
+          const id = li.dataset.id;
+          if (id) over(id);
+          return;
+        }
+      }
+    };
+    const move = (e: PointerEvent) => {
+      pointerY.current = e.clientY;
+      hit();
+    };
+    let raf = 0;
+    const tick = () => {
+      const ol = listRef.current;
+      if (ol) {
+        const r = ol.getBoundingClientRect();
+        const edge = 80;
+        const y = pointerY.current;
+        let dy = 0;
+        if (y < r.top + edge) dy = -Math.ceil(((r.top + edge - y) / edge) * 18);
+        else if (y > r.bottom - edge) dy = Math.ceil(((y - (r.bottom - edge)) / edge) * 18);
+        if (dy) {
+          ol.scrollTop += dy;
+          hit();
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    const up = () => drop();
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    document.body.style.userSelect = "none";
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      document.body.style.userSelect = "";
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragId]);
   const fileRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -310,9 +367,9 @@ function GalleryManager({ open, onOpenChange, photos, busy, err, onFiles, onRemo
         </div>
 
         <label
-          onDragOver={(e) => { if (dragId) return; e.preventDefault(); setDrag(true); }}
+          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
-          onDrop={(e) => { if (dragId) return; e.preventDefault(); setDrag(false); if (!busy) take(e.dataTransfer.files); }}
+          onDrop={(e) => { e.preventDefault(); setDrag(false); if (!busy) take(e.dataTransfer.files); }}
           className={cn(
             "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors",
             drag ? "border-gold-500 bg-paper-100" : "border-line-200 bg-paper-50",
@@ -329,19 +386,11 @@ function GalleryManager({ open, onOpenChange, photos, busy, err, onFiles, onRemo
         {err ? <p className="text-sm text-signal-negative">{err}</p> : null}
 
         <div className={MICRO}>{photos.length} photos</div>
-        <ol className="-mr-2 min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
+        <ol ref={listRef} className="-mr-2 min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
           {list.map((p, i) => (
             <li
               key={p.id}
-              onDragOver={(e) => {
-                if (!dragId) return;
-                e.preventDefault();
-                over(p.id);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                drop();
-              }}
+              data-id={p.id}
               className={cn("flex gap-4 rounded-lg border p-3 transition-shadow", dragId === p.id && "opacity-50 shadow-lg", confirmId === p.id ? "border-signal-negative bg-paper-100" : "border-line-200 bg-paper-0")}>
               <div className="flex w-8 shrink-0 flex-col items-center gap-1">
                 <span className="font-mono text-sm text-ink-950">{i + 1}</span>
@@ -353,15 +402,14 @@ function GalleryManager({ open, onOpenChange, photos, busy, err, onFiles, onRemo
                 </button>
               </div>
               <div
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.effectAllowed = "move";
-                  e.dataTransfer.setData("text/plain", p.id);
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return;
+                  e.preventDefault();
+                  pointerY.current = e.clientY;
                   setDragId(p.id);
                 }}
-                onDragEnd={drop}
                 title="Drag to reorder"
-                className="relative shrink-0 cursor-grab active:cursor-grabbing"
+                className="relative shrink-0 cursor-grab touch-none select-none active:cursor-grabbing"
               >
                 <GripVertical className="absolute left-1 top-1 h-5 w-5 rounded bg-paper-0 text-ink-700" />
               <img src={p.url} alt={p.alt} draggable={false} className="aspect-[3/2] w-40 shrink-0 rounded border border-line-200 object-cover sm:w-52" />

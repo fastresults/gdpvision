@@ -190,7 +190,7 @@ function Sparkline({
     })
     .join(" ");
   const hx = highlightIndex * step;
-  const hy = H - ((points[highlightIndex]?.y ?? min - min) - min) / span * H;
+  const hy = H - (((points[highlightIndex]?.y ?? min - min) - min) / span) * H;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="mt-4 h-24 w-full">
       <path d={path} fill="none" stroke="var(--ink-950)" strokeWidth={1.5} />
@@ -279,7 +279,9 @@ function CapitalFlowsSummary({
         <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_auto_1fr]">
           <FlowsColumn title="Inputs" total={flows.totals.inputs} rows={inputs} scale={total} />
           <div className="hidden self-center border-l border-line-200 pl-4 text-center font-mono text-[10px] uppercase tracking-widest text-ink-500 lg:block">
-            Consolidated<br />Treasury
+            Consolidated
+            <br />
+            Treasury
           </div>
           <FlowsColumn title="Outputs" total={flows.totals.outputs} rows={outputs} scale={total} />
         </div>
@@ -301,7 +303,10 @@ function FlowsColumn({
 }: {
   title: string;
   total: number;
-  rows: Array<{ v: { node_key: string; value_usd_m: number; confidence_grade: string }; n?: { label: string } }>;
+  rows: Array<{
+    v: { node_key: string; value_usd_m: number; confidence_grade: string };
+    n?: { label: string };
+  }>;
   scale: number;
 }) {
   return (
@@ -335,8 +340,7 @@ function FlowsColumn({
 
 function MinistrySectorMatrix({ ministries }: { ministries: LedgerEnrichment["ministries"] }) {
   const sectorMap = new Map(CANONICAL_SECTORS.map((s) => [s.slug, s]));
-  const maxWeight =
-    Math.max(1, ...ministries.flatMap((m) => m.sectors.map((s) => s.weight))) || 1;
+  const maxWeight = Math.max(1, ...ministries.flatMap((m) => m.sectors.map((s) => s.weight))) || 1;
 
   return (
     <div>
@@ -352,11 +356,7 @@ function MinistrySectorMatrix({ ministries }: { ministries: LedgerEnrichment["mi
                   Ministry
                 </th>
                 {CANONICAL_SECTORS.map((s) => (
-                  <th
-                    key={s.slug}
-                    className="px-1 py-2 text-center align-bottom"
-                    title={s.label}
-                  >
+                  <th key={s.slug} className="px-1 py-2 text-center align-bottom" title={s.label}>
                     <div
                       className="mx-auto mb-1 h-2 w-2 rounded-full"
                       style={{ backgroundColor: `var(${s.cssVar})` }}

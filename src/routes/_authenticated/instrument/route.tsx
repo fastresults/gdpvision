@@ -62,11 +62,7 @@ function InstrumentShell() {
     <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 overflow-hidden border-b border-line-200 px-4 py-4 sm:px-8 lg:flex lg:justify-between lg:gap-8 lg:py-5">
         <div className="flex min-w-0 items-center gap-4 lg:gap-10">
-          <Link
-            to="/instrument"
-            onClick={() => scrollToTop()}
-            className="hidden shrink-0 xl:block"
-          >
+          <Link to="/instrument" onClick={() => scrollToTop()} className="hidden shrink-0 xl:block">
             <Wordmark />
           </Link>
           <NavControls className="shrink-0" />

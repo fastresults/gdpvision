@@ -9,6 +9,7 @@ import sealAsset from "@/assets/favicon-seal.png.asset.json";
 import { SecondBrainFeed } from "./SecondBrainFeed";
 import { ChamberCircuit } from "./ChamberCircuit";
 import { LiveFrame } from "./LiveFrame";
+import { SiteGallery } from "@/components/marketing/SiteGallery";
 import { EgovPipeline } from "./EgovPipeline";
 import { ChamberGlyph } from "./ChamberGlyph";
 import { cn } from "@/lib/utils";
@@ -514,6 +515,12 @@ export function PresentDeck() {
             </div>
           </Reveal>
         </Step>
+
+        {/* Our Journey gallery (shared with the homepage) */}
+        <Step id="journey" label="Our Journey">
+          <SiteGallery variant="present" />
+        </Step>
+
 
         {/* 02 What */}
         <Step id="what" label="What it is">

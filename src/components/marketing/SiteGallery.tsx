@@ -138,7 +138,12 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
       <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-4 px-6">
         <div>
           <div className={MICRO}>Our Journey</div>
-          <h2 className={cn("mt-3 font-display leading-tight text-ink-950", present ? "text-[clamp(2.4rem,4.5vw,4rem)]" : "text-[clamp(1.8rem,3vw,2.6rem)]")}>{/* */}</h2><h2 hidden className=" leading-tight text-ink-950">
+          <h2
+            className={cn(
+              "mt-3 font-display leading-tight text-ink-950",
+              present ? "text-[clamp(2.4rem,4.5vw,4rem)]" : "text-[clamp(1.8rem,3vw,2.6rem)]",
+            )}
+          >
             Where the work has taken us
           </h2>
         </div>

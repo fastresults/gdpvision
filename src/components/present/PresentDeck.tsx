@@ -763,19 +763,20 @@ function PresentDeckContent() {
         {/* 05 Corpus: the Second Brain, fed */}
         <Step id="corpus" label="The corpus" tone="tint">
           <Reveal>
-            <div className={MICRO}>04 · The corpus · the Second Brain</div>
+            <div className={MICRO}>04 · At the core · Second Brain 2.0</div>
           </Reveal>
           <Reveal delay={100}>
             <h2 className={cn(H2, "mt-4 text-[clamp(2rem,4vw,3.6rem)]")}>
-              How the Second Brain is fed.
+              At GDPVision’s core is Second Brain 2.0.
             </h2>
           </Reveal>
           <Reveal delay={240}>
             <p className={cn(LEDE, "mt-4 max-w-4xl text-[clamp(1rem,1.3vw,1.2rem)]")}>
-              Public measuring bodies stream in from the left. Private national data sits behind the
-              sovereign wall on the right, on hardware the government holds, and never leaves. Only
-              findings approved by two named officials cross into the brain. Every figure inside
-              carries its source, method, grade and date.
+              An advanced sovereign intelligence layer that connects live global sources with
+              protected national records. It organises evidence across the ten Chambers, carries the
+              source, method, confidence and date of every figure, and keeps sensitive data under
+              government control—so Cabinet can work from evidence that is current, explainable and
+              ready for decision.
             </p>
           </Reveal>
           <div className="mx-auto mt-4 max-w-[1000px]">

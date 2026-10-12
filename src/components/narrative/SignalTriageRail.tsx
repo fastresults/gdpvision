@@ -61,13 +61,13 @@ export function SignalTriageRail({
   // With a priority chosen, the list comes from the server across ALL signals;
   // otherwise it is the newest-200 sample.
   const source: Signal[] =
-    levelList.length > 0 ? (levelQuery.data ?? signals.filter((s) => activeLevels.has(priorityFor(s).level))) : signals;
+    levelList.length > 0
+      ? (levelQuery.data ?? signals.filter((s) => activeLevels.has(priorityFor(s).level)))
+      : signals;
 
   const filtered = useMemo(() => {
     const q = filterSignals(source, query);
-    const byLevel = activeLevels.size
-      ? q.filter((s) => activeLevels.has(priorityFor(s).level))
-      : q;
+    const byLevel = activeLevels.size ? q.filter((s) => activeLevels.has(priorityFor(s).level)) : q;
     return sortSignals(byLevel, sort);
   }, [source, query, sort, activeLevels]);
 
@@ -82,7 +82,8 @@ export function SignalTriageRail({
     const turningOn = !activeLevels.has(lvl);
     setActiveLevels((prev) => {
       const next = new Set(prev);
-      if (next.has(lvl)) next.delete(lvl); else next.add(lvl);
+      if (next.has(lvl)) next.delete(lvl);
+      else next.add(lvl);
       return next;
     });
     if (turningOn) {
@@ -96,7 +97,8 @@ export function SignalTriageRail({
   const toggleCollapse = (lvl: PriorityLevel) => {
     setCollapsed((prev) => {
       const next = new Set(prev);
-      if (next.has(lvl)) next.delete(lvl); else next.add(lvl);
+      if (next.has(lvl)) next.delete(lvl);
+      else next.add(lvl);
       return next;
     });
   };
@@ -112,7 +114,10 @@ export function SignalTriageRail({
   return (
     <div className="space-y-3">
       <div className="relative">
-        <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-ink-500" />
+        <Search
+          size={12}
+          className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-ink-500"
+        />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -138,7 +143,9 @@ export function SignalTriageRail({
           className="flex-1 border border-line-200 bg-paper-0 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-950 focus:border-ink-950 focus:outline-none"
         >
           {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
           ))}
         </select>
       </div>
@@ -172,7 +179,6 @@ export function SignalTriageRail({
             ? `Showing newest ${signals.length.toLocaleString()} of ${fullTotal.toLocaleString()}. Choose a priority to see all of that level.`
             : `${fullTotal.toLocaleString()} active signals`}
       </p>
-
 
       {filtered.length === 0 && (
         <p className="border border-dashed border-line-200 p-3 text-xs text-ink-500">
@@ -222,7 +228,7 @@ export function SignalTriageRail({
       )}
 
       <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-        {filtered.length} of {signals.length} shown
+        {filtered.length.toLocaleString()} shown
       </p>
     </div>
   );

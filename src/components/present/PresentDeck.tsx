@@ -10,6 +10,7 @@ import { SecondBrainFeed } from "./SecondBrainFeed";
 import { ChamberCircuit } from "./ChamberCircuit";
 import { LiveFrame } from "./LiveFrame";
 import { SovereignCorpusStep } from "./SovereignCorpusStep";
+import { AntiguaBrainStep } from "./AntiguaBrainStep";
 import { SiteGallery } from "@/components/marketing/SiteGallery";
 import { EgovPipeline } from "./EgovPipeline";
 import { ChamberGlyph } from "./ChamberGlyph";
@@ -694,6 +695,10 @@ export function PresentDeck() {
 
         <Step id="sovereign-corpus" label="The sovereign corpus" className="lg:px-0">
           <SovereignCorpusStep />
+        </Step>
+
+        <Step id="antigua-brain" label="Antigua's Second Brain" className="lg:px-0">
+          <AntiguaBrainStep />
         </Step>
 
         <DecisionEngineStep />

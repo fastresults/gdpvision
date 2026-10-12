@@ -147,6 +147,35 @@ function ChamberJourneyStep() {
   );
 }
 
+/** "Viewers 14 / 19 ready" — counts every live viewer that has shown its page. */
+function ViewerReadiness() {
+  const [state, setState] = useState({ ready: 0, total: 0 });
+  useEffect(() => {
+    const tick = () => {
+      const all = document.querySelectorAll("[data-live-frame]");
+      const ready = document.querySelectorAll('[data-live-frame][data-state="ready"]');
+      setState((s) =>
+        s.ready === ready.length && s.total === all.length
+          ? s
+          : { ready: ready.length, total: all.length },
+      );
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  if (!state.total) return null;
+  const done = state.ready === state.total;
+  return (
+    <span
+      className={cn(MICRO, "hidden tabular-nums sm:inline", done && "text-gold-500")}
+      aria-live="polite"
+    >
+      Viewers {state.ready} / {state.total} ready
+    </span>
+  );
+}
+
 const LADDER = [
   { n: 6, label: "Real-time measurement", note: "developed economies" },
   { n: 5, label: "Quarterly target, regional pooling", note: "" },
@@ -377,6 +406,7 @@ export function PresentDeck() {
           <span className={MICRO}>Briefing</span>
         </Link>
         <div className="flex items-center gap-4">
+          <ViewerReadiness />
           <span className={cn(MICRO, "tabular-nums")}>
             {String(stepIndex + 1).padStart(2, "0")} / {String(stepCount).padStart(2, "0")}
           </span>

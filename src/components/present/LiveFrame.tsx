@@ -35,6 +35,63 @@ export function LiveFrame({
 }: LiveFrameProps) {
   const [loaded, setLoaded] = useState(false);
   const [gen, setGen] = useState(0);
+  const [status, setStatus] = useState<"loading" | "ready" | "slow" | "signin">("loading");
+  const retried = useRef(false);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+
+  // Detect a finished page even if it finished before React was listening:
+  // the early stamp from PresentDeck, the same-origin ready state, or a live
+  // load event. A 45s watchdog reloads once, then reports "slow".
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    let done = false;
+    const settle = () => {
+      let signin = false;
+      try {
+        const path = frame.contentWindow?.location.pathname;
+        signin = !!path && path.startsWith("/auth");
+      } catch {
+        // cross-origin: cannot read, treat as loaded
+      }
+      done = true;
+      setLoaded(true);
+      setStatus(signin ? "signin" : "ready");
+    };
+    const check = () => {
+      if (frame.hasAttribute("data-loaded")) return settle();
+      try {
+        // Same origin: readable once the page exists.
+        const href = frame.contentWindow?.location.href;
+        const doc = frame.contentDocument;
+        if (href && href !== "about:blank" && doc?.readyState === "complete") settle();
+      } catch {
+        // Reading throws only once a cross-origin page has replaced the blank
+        // frame, which means the target site has loaded into the viewer.
+        settle();
+      }
+    };
+    check();
+    const early = window.setInterval(() => (done ? window.clearInterval(early) : check()), 500);
+    frame.addEventListener("load", settle);
+    // Same-origin apps change route after load (e.g. to sign-in); re-check.
+    const poll = window.setInterval(() => done && settle(), 3000);
+    const watchdog = window.setTimeout(() => {
+      if (done) return;
+      if (!retried.current) {
+        retried.current = true;
+        setGen((g) => g + 1);
+      } else {
+        setStatus("slow");
+      }
+    }, 45000);
+    return () => {
+      frame.removeEventListener("load", settle);
+      window.clearInterval(poll);
+      window.clearInterval(early);
+      window.clearTimeout(watchdog);
+    };
+  }, [gen]);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
 
@@ -55,6 +112,8 @@ export function LiveFrame({
 
   return (
     <div
+      data-live-frame
+      data-state={status}
       className={cn(
         "relative w-full min-w-0 overflow-hidden rounded-xl border border-line-200 bg-paper-0 shadow-[0_24px_60px_-30px_rgba(8,17,31,0.35)]",
         className,
@@ -65,11 +124,17 @@ export function LiveFrame({
           <span
             className={cn(
               "h-2 w-2 shrink-0 rounded-full",
-              loaded ? "bg-signal-positive" : "bg-line-200",
+              status === "ready" ? "bg-signal-positive" : status === "loading" ? "bg-line-200" : "bg-gold-500",
             )}
             aria-hidden
           />
-          <span className={cn(MICRO, "truncate")}>{label}</span>
+          <span className={cn(MICRO, "truncate")}>
+            {status === "signin"
+              ? "Sign in to show live Chamber"
+              : status === "slow"
+                ? "Taking longer than usual — Reload"
+                : label}
+          </span>
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <button
@@ -77,6 +142,8 @@ export function LiveFrame({
             className="btn-ghost"
             onClick={() => {
               setLoaded(false);
+              setStatus("loading");
+              retried.current = false;
               setGen((g) => g + 1);
             }}
             aria-label="Reload this page"
@@ -120,6 +187,7 @@ export function LiveFrame({
       <div ref={viewportRef} className="relative aspect-[9/12] w-full overflow-hidden bg-paper-100">
         <iframe
           key={gen}
+          ref={frameRef}
           title={title}
           src={src}
           className={cn(
@@ -134,7 +202,6 @@ export function LiveFrame({
           loading="eager"
           referrerPolicy="no-referrer-when-downgrade"
           allow="fullscreen; clipboard-read; clipboard-write"
-          onLoad={() => setLoaded(true)}
         />
         {!loaded ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">

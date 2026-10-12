@@ -121,7 +121,7 @@ function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
       ref={ref}
       data-step
       className={cn(
-        "prs-step relative flex min-h-dvh snap-start flex-col justify-center border-b border-line-200 px-6 py-16 md:px-16 lg:px-24",
+        "prs-step relative flex min-h-dvh snap-start flex-col justify-center border-b border-line-200 px-6 py-16 md:px-16 lg:px-0 lg:pt-[57px] lg:pb-2",
         on && "is-on",
       )}
     >
@@ -131,11 +131,11 @@ function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
       />
       <div
         className={cn(
-          "mx-auto grid w-full max-w-[1400px] items-center gap-10",
-          wide ? "grid-cols-1" : "lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]",
+          "grid w-full items-center gap-10 lg:gap-0",
+          wide ? "grid-cols-1" : "lg:grid-cols-2",
         )}
       >
-        <div className={cn("prs-rise", wide && "hidden")}>
+        <div className={cn("prs-rise lg:pl-24 lg:pr-10", wide && "hidden")}>
           <div className={MICRO}>
             Event {String(index + 1).padStart(2, "0")} · {ev.dates}
             {ev.apex ? " · The apex" : ""}
@@ -204,7 +204,7 @@ function ChamberStep({ c }: { c: Chamber }) {
       ref={ref}
       data-step
       className={cn(
-        "prs-step relative flex min-h-dvh snap-start flex-col justify-center border-b border-line-200 px-6 py-16 md:px-16 lg:px-24",
+        "prs-step relative flex min-h-dvh snap-start flex-col justify-center border-b border-line-200 px-6 py-16 md:px-16 lg:px-0 lg:pt-[57px] lg:pb-2",
         on && "is-on",
       )}
     >
@@ -214,11 +214,11 @@ function ChamberStep({ c }: { c: Chamber }) {
       />
       <div
         className={cn(
-          "mx-auto grid w-full max-w-[1400px] items-center gap-10",
-          wide ? "grid-cols-1" : "lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]",
+          "grid w-full items-center gap-10 lg:gap-0",
+          wide ? "grid-cols-1" : "lg:grid-cols-2",
         )}
       >
-        <div className={cn(wide && "hidden")}>
+        <div className={cn("lg:pl-24 lg:pr-10", wide && "hidden")}>
           <Reveal>
             <div className="flex items-center gap-3">
               <ChamberGlyph index={c.index} accentVar={c.accentVar} size={36} />

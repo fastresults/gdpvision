@@ -604,33 +604,48 @@ function PresentDeckContent() {
         {/* 02 What */}
         <Step id="what" label="What it is">
           <Reveal>
-            <div className={MICRO}>01 · What it is</div>
+            <div className={MICRO}>01 · The case for GDPVision</div>
           </Reveal>
           <Reveal delay={100}>
-            <h2 className={cn(H2, "mt-5 max-w-5xl")}>
-              One trusted picture of the country. A way to rehearse a decision. A record of what was
-              decided.
+            <h2 className={cn(H2, "mt-5 max-w-6xl")}>
+              Turn fragmented national evidence into decisions government can defend and deliver.
             </h2>
           </Reveal>
-          <div className="mt-14 grid gap-8 md:grid-cols-3">
+          <div className="relative mt-14 grid gap-10 md:grid-cols-3 md:gap-8">
+            <div
+              className="absolute left-3 top-0 bottom-0 w-px bg-line-200 md:left-0 md:right-0 md:top-3 md:h-px md:w-auto"
+              aria-hidden
+            />
             {[
               [
-                "See",
-                "Every number a Cabinet relies on, with where it came from, how it was made, how much to trust it, and how old it is.",
+                "01",
+                "Know what is true",
+                "Bring public records and protected government data into one trusted national picture.",
+                "Every figure carries its source, method, confidence and date.",
               ],
               [
-                "Rehearse",
-                "Compare credible choices before committing, in a space the government owns and controls.",
+                "02",
+                "Choose before committing",
+                "Compare credible options, consequences and trade-offs before Cabinet commits.",
+                "Test public money, political capital and implementation capacity in a government-controlled space.",
               ],
               [
-                "Deliver",
-                "Turn the chosen course into owned commitments, and keep the record through delivery and across elections.",
+                "03",
+                "Deliver what was decided",
+                "Turn the chosen course into named ownership, milestones and an enduring record.",
+                "Carry decisions through delivery and across elections.",
               ],
-            ].map(([h, b], i) => (
-              <Reveal key={h} delay={300 + i * 140}>
-                <div className="border-t-2 border-ink-950 pt-6">
+            ].map(([n, h, lead, proof], i) => (
+              <Reveal key={h} delay={300 + i * 140} className="relative pl-10 md:pl-0 md:pt-8">
+                <div className="absolute left-0 top-0 flex h-6 w-6 items-center justify-center rounded-full border border-ink-950 bg-paper-0 font-mono text-[9px] text-ink-950 md:left-0">
+                  {n}
+                </div>
+                <div>
                   <div className="font-display text-3xl text-ink-950">{h}</div>
-                  <p className={cn(LEDE, "mt-3")}>{b}</p>
+                  <p className={cn(LEDE, "mt-4 font-medium text-ink-950")}>{lead}</p>
+                  <p className="mt-3 text-[clamp(1rem,1.25vw,1.15rem)] leading-relaxed text-ink-500">
+                    {proof}
+                  </p>
                 </div>
               </Reveal>
             ))}

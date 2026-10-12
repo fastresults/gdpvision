@@ -39,3 +39,25 @@ Below the steps, three short outcome lines: "Always current, no re-typing", "Eve
 - The endpoint path matches the existing route `src/routes/api/public/v1/countries.$code.$resource.ts`. The sample data shown is illustrative and labelled as such.
 - Renumber the later `MICRO` labels. `ViewerReadiness` counts frames automatically.
 - Verify at 1397×857 and 390×844: atg.gdpvision.com loads in the viewer (if the site refuses to be embedded, fall back to the new-tab control and report it), no overflow, no console errors.
+
+---
+
+# Second request: a scrolling photo gallery, managed on the page itself
+
+## Recommendation
+
+Add a "From the field" photo section to the homepage, near the bottom above the closing call to action. The ten photos you supplied are loaded in.
+
+- **For visitors:** one row of photos that drifts slowly sideways and loops without end. It pauses when you click it, like the other animations, and has left and right arrows. Clicking a photo opens it full size with its caption. With reduced motion turned on, the row stays still and scrolls by hand.
+- **For admins, on the same page:** signed-in admins see an "Edit gallery" switch on the section. When it's on, the row stops moving and each photo shows a **Remove** button, plus up and down arrows to change the order and a field to edit its caption. An **Add photos** tile accepts several JPG, PNG or WebP files at once, up to 10 MB each, with an optional caption. Changes show up straight away for everyone.
+- Visitors never see the admin controls. The backend also refuses any change that doesn't come from an admin.
+
+Note: the house rule for engraved monochrome illustrations covers illustrations only. These are real photographs, so they appear in full colour as documentary images.
+
+## Technical details
+
+- New table `site_gallery_images` (id, storage_path, url, caption, alt, sort_order, created_at), with GRANTs, row-level security, public read and admin-only writes via `has_role(auth.uid(),'admin')`. It's kept separate from the kiosk `galleries`/`gallery_items` tables so the kiosk stays untouched.
+- Public storage bucket `site-gallery`. Uploads go through an admin-checked server function (`src/lib/site-gallery.functions.ts`: list / add / remove / reorder / caption). Removing a photo deletes its file as well as its row. Duplicates are rejected by storage path.
+- The ten uploads are seeded once: the files go into the bucket, then their rows are inserted. Captions start empty, with plain alt text.
+- `src/components/marketing/SiteGallery.tsx`: a CSS marquee using the duplicated-track technique, `useHoverIntent` for click-to-pause, a `Dialog` lightbox, and admin mode gated on a client-side role check. The server re-checks the role on every change.
+- Verify signed in as an admin: add a photo, remove it, reorder, check a phone width (390px), and confirm a signed-out visitor sees no controls.

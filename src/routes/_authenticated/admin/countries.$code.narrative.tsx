@@ -12,7 +12,6 @@ import { SignalTriageRail } from "@/components/narrative/SignalTriageRail";
 import { OppositionRail } from "@/components/narrative/opposition/OppositionRail";
 import { CoverageBadge } from "@/components/narrative/CoverageBadge";
 
-
 function signalsQuery(code: string) {
   return queryOptions({
     queryKey: ["narrative-signals", code],
@@ -58,7 +57,9 @@ function NarrativeLayout() {
   const { data: oppositionItems } = useSuspenseQuery(oppositionQuery(code));
   const params = useParams({ strict: false }) as { id?: string };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const mode: "opposition" | "signals" = pathname.includes("/narrative/opposition") ? "opposition" : "signals";
+  const mode: "opposition" | "signals" = pathname.includes("/narrative/opposition")
+    ? "opposition"
+    : "signals";
 
   return (
     <SuperAdminShell
@@ -71,16 +72,23 @@ function NarrativeLayout() {
       <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
         <aside className="min-w-0 space-y-4 border-r border-line-200 pr-6">
           <div>
-            <Illustration src={chamber_05Art.url} alt="Engraving for the Narrative Chamber" variant="mark" className="mb-3" />
+            <Illustration
+              src={chamber_05Art.url}
+              alt="Engraving for the Narrative Chamber"
+              variant="mark"
+              className="mb-3"
+            />
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
               Narrative Chamber
             </p>
             <h1 className="mt-1 font-serif text-2xl leading-tight text-ink-950">
-              Signal to statement.<br />Inside a working day.
+              Signal to statement.
+              <br />
+              Inside a working day.
             </h1>
             <p className="mt-3 text-sm text-ink-700">
-              Monitor local, regional and international narratives. Triage, position, and
-              publish — every step grounded in the country&rsquo;s second brain.
+              Monitor local, regional and international narratives. Triage, position, and publish —
+              every step grounded in the country&rsquo;s second brain.
             </p>
           </div>
 
@@ -92,7 +100,9 @@ function NarrativeLayout() {
           >
             <span className="flex items-center gap-2">
               <FolderOpen size={14} />
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em]">Comms Library</span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em]">
+                Comms Library
+              </span>
             </span>
             <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-paper-0/70">
               Drafts · Approved · Released
@@ -116,7 +126,9 @@ function NarrativeLayout() {
               to="/admin/countries/$code/narrative/opposition"
               params={{ code }}
               className={`flex-1 px-2 py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.18em] ${
-                mode === "opposition" ? "bg-ink-950 text-paper-0" : "text-ink-500 hover:text-ink-950"
+                mode === "opposition"
+                  ? "bg-ink-950 text-paper-0"
+                  : "text-ink-500 hover:text-ink-950"
               }`}
             >
               Opposition · {oppositionItems.length}
@@ -154,8 +166,6 @@ function NarrativeLayout() {
               </div>
             </div>
           )}
-
-
 
           <Link
             to="/admin/countries/$code/onboard"

@@ -23,7 +23,9 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
   loader: async ({ context, params }) => {
     await context.queryClient.ensureQueryData(signalsQuery(params.code));
   },
-  errorComponent: ({ error }) => <p className="text-sm text-rose-600">{(error as Error).message}</p>,
+  errorComponent: ({ error }) => (
+    <p className="text-sm text-rose-600">{(error as Error).message}</p>
+  ),
   notFoundComponent: () => <p className="text-sm text-ink-500">Not found.</p>,
   component: SignalRadarPage,
 });
@@ -61,11 +63,15 @@ function SignalRadarPage() {
       <SignalRadarScope signals={signals} total={signalTotal} />
 
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Act 1 · Monitor</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          Act 1 · Monitor
+        </p>
         <h2 className="mt-1 font-serif text-3xl text-ink-950">Signal Radar</h2>
         <p className="mt-2 max-w-xl text-sm text-ink-700">
-          A live map of every narrative touching {code} today — local, regional, international. The harvester
-          runs automatically twice a day; use <span className="font-mono uppercase tracking-widest">Run now</span> for an on-demand refresh.
+          A live map of every narrative touching {code} today — local, regional, international. The
+          harvester runs automatically twice a day; use{" "}
+          <span className="font-mono uppercase tracking-widest">Run now</span> for an on-demand
+          refresh.
         </p>
       </div>
 
@@ -76,7 +82,9 @@ function SignalRadarPage() {
             onClick={() => setTab(t)}
             className={cn(
               "border-b-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em]",
-              tab === t ? "border-ink-950 text-ink-950" : "border-transparent text-ink-500 hover:text-ink-950",
+              tab === t
+                ? "border-ink-950 text-ink-950"
+                : "border-transparent text-ink-500 hover:text-ink-950",
             )}
           >
             {t === "radar" ? "Radar" : "Signal sources"}
@@ -95,16 +103,25 @@ function SignalRadarPage() {
           </div>
 
           <div className="border border-line-200 p-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Response priority mix</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              Response priority mix
+            </p>
             <div className="mt-3 grid grid-cols-5 gap-2">
               {PRIORITY_ORDER.map((lvl) => {
                 const meta = PRIORITY_META[lvl];
                 const count = countsByPriority(signals)[lvl];
                 return (
-                  <div key={lvl} className={cn("border border-line-200 border-l-4 p-3", meta.borderClass)}>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">{meta.label}</p>
+                  <div
+                    key={lvl}
+                    className={cn("border border-line-200 border-l-4 p-3", meta.borderClass)}
+                  >
+                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+                      {meta.label}
+                    </p>
                     <p className="mt-1 font-serif text-2xl tabular-nums text-ink-950">{count}</p>
-                    <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-500">{meta.caption}</p>
+                    <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-500">
+                      {meta.caption}
+                    </p>
                   </div>
                 );
               })}
@@ -112,7 +129,9 @@ function SignalRadarPage() {
           </div>
 
           <div className="border border-line-200 p-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">AI recommendation mix</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              AI recommendation mix
+            </p>
             <div className="mt-3 grid grid-cols-4 gap-3">
               <RecTile label="Lead" value={byRec.lead} tone="ink" />
               <RecTile label="Amplify" value={byRec.amplify} tone="emerald" />
@@ -121,14 +140,17 @@ function SignalRadarPage() {
             </div>
           </div>
 
-
           {signals.length === 0 && (
             <div className="border border-dashed border-line-200 bg-paper-100/30 p-8 text-center">
               <Sparkles className="mx-auto text-ink-500" size={24} strokeWidth={1.5} />
               <h3 className="mt-3 font-serif text-xl text-ink-950">No signals yet</h3>
               <p className="mt-2 text-sm text-ink-700">
-                Add feeds in the <button onClick={() => setTab("sources")} className="underline">Signal sources</button> tab,
-                then hit <span className="font-mono uppercase tracking-widest">Run now</span> to harvest immediately.
+                Add feeds in the{" "}
+                <button onClick={() => setTab("sources")} className="underline">
+                  Signal sources
+                </button>{" "}
+                tab, then hit <span className="font-mono uppercase tracking-widest">Run now</span>{" "}
+                to harvest immediately.
               </p>
             </div>
           )}
@@ -140,7 +162,15 @@ function SignalRadarPage() {
   );
 }
 
-function ScopeCard({ label, icon: Icon, count }: { label: string; icon: typeof MapPin; count: number }) {
+function ScopeCard({
+  label,
+  icon: Icon,
+  count,
+}: {
+  label: string;
+  icon: typeof MapPin;
+  count: number;
+}) {
   return (
     <div className="border border-line-200 p-4">
       <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
@@ -151,8 +181,21 @@ function ScopeCard({ label, icon: Icon, count }: { label: string; icon: typeof M
   );
 }
 
-function RecTile({ label, value, tone }: { label: string; value: number; tone: "ink" | "emerald" | "rose" | "amber" }) {
-  const bg = { ink: "bg-ink-950 text-paper-0", emerald: "bg-emerald-50 text-emerald-800", rose: "bg-rose-50 text-rose-700", amber: "bg-amber-50 text-amber-800" }[tone];
+function RecTile({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "ink" | "emerald" | "rose" | "amber";
+}) {
+  const bg = {
+    ink: "bg-ink-950 text-paper-0",
+    emerald: "bg-emerald-50 text-emerald-800",
+    rose: "bg-rose-50 text-rose-700",
+    amber: "bg-amber-50 text-amber-800",
+  }[tone];
   return (
     <div className={`border border-line-200 p-3 ${bg}`}>
       <p className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-80">{label}</p>

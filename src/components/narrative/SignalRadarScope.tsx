@@ -68,7 +68,12 @@ export function SignalRadarScope({ signals, total }: { signals: SignalRow[]; tot
   return (
     <div className="flex flex-col gap-6 border border-line-200 bg-paper-0/40 p-5 lg:flex-row lg:items-center lg:gap-8">
       <div className="relative mx-auto w-full max-w-[300px] shrink-0 lg:mx-0">
-        <svg viewBox={`0 0 ${size} ${size}`} className="h-auto w-full" role="img" aria-label={`Signal radar: ${total} active signals; newest ${dots.length} plotted; ${urgent} urgent in the plotted sample`}>
+        <svg
+          viewBox={`0 0 ${size} ${size}`}
+          className="h-auto w-full"
+          role="img"
+          aria-label={`Signal radar: ${total} active signals; newest ${dots.length} plotted; ${urgent} urgent in the plotted sample`}
+        >
           <defs>
             <radialGradient id="radar-bg" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="var(--gold-500)" stopOpacity="0.10" />
@@ -81,17 +86,38 @@ export function SignalRadarScope({ signals, total }: { signals: SignalRow[]; tot
           </defs>
           <circle cx={c} cy={c} r={112} fill="url(#radar-bg)" />
           {RINGS.map((r) => (
-            <circle key={r.key} cx={c} cy={c} r={r.r1} fill="none" className="stroke-line-200" strokeDasharray={r.key === "international" ? undefined : "2 3"} />
+            <circle
+              key={r.key}
+              cx={c}
+              cy={c}
+              r={r.r1}
+              fill="none"
+              className="stroke-line-200"
+              strokeDasharray={r.key === "international" ? undefined : "2 3"}
+            />
           ))}
           {Array.from({ length: 7 }).map((_, i) => {
             const a = -Math.PI / 2 + (i / 7) * Math.PI * 2;
             return (
-              <line key={i} x1={q(c + 22 * Math.cos(a))} y1={q(c + 22 * Math.sin(a))} x2={q(c + 112 * Math.cos(a))} y2={q(c + 112 * Math.sin(a))} className="stroke-line-100" />
+              <line
+                key={i}
+                x1={q(c + 22 * Math.cos(a))}
+                y1={q(c + 22 * Math.sin(a))}
+                x2={q(c + 112 * Math.cos(a))}
+                y2={q(c + 112 * Math.sin(a))}
+                className="stroke-line-100"
+              />
             );
           })}
           {/* sweep */}
-          <g className="origin-center motion-safe:animate-[spin_6s_linear_infinite]" style={{ transformOrigin: `${c}px ${c}px` }}>
-            <path d={`M${c},${c} L${c},${c - 112} A112,112 0 0 1 ${q(c + 112 * Math.sin(0.6))},${q(c - 112 * Math.cos(0.6))} Z`} fill="url(#radar-sweep)" />
+          <g
+            className="origin-center motion-safe:animate-[spin_6s_linear_infinite]"
+            style={{ transformOrigin: `${c}px ${c}px` }}
+          >
+            <path
+              d={`M${c},${c} L${c},${c - 112} A112,112 0 0 1 ${q(c + 112 * Math.sin(0.6))},${q(c - 112 * Math.cos(0.6))} Z`}
+              fill="url(#radar-sweep)"
+            />
           </g>
           {dots.map((d) => (
             <circle
@@ -110,17 +136,47 @@ export function SignalRadarScope({ signals, total }: { signals: SignalRow[]; tot
             </circle>
           ))}
           <circle cx={c} cy={c} r={22} className="fill-paper-0 stroke-line-200" />
-          <text x={c} y={c + 2} textAnchor="middle" className="fill-ink-950 font-serif" fontSize="15">{total.toLocaleString()}</text>
-          <text x={c} y={c + 12} textAnchor="middle" className="fill-ink-500 font-mono" fontSize="6" letterSpacing="1">SIGNALS</text>
-          <text x={c} y={6} textAnchor="middle" className="fill-ink-500 font-mono" fontSize="7" letterSpacing="1">NOW</text>
+          <text
+            x={c}
+            y={c + 2}
+            textAnchor="middle"
+            className="fill-ink-950 font-serif"
+            fontSize="15"
+          >
+            {total.toLocaleString()}
+          </text>
+          <text
+            x={c}
+            y={c + 12}
+            textAnchor="middle"
+            className="fill-ink-500 font-mono"
+            fontSize="6"
+            letterSpacing="1"
+          >
+            SIGNALS
+          </text>
+          <text
+            x={c}
+            y={6}
+            textAnchor="middle"
+            className="fill-ink-500 font-mono"
+            fontSize="7"
+            letterSpacing="1"
+          >
+            NOW
+          </text>
         </svg>
       </div>
 
       <div className="min-w-0 flex-1 space-y-3">
         {active ? (
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">{active.p.label} · {active.s.scope}</p>
-            <p className="mt-1 line-clamp-3 font-serif text-base leading-snug text-ink-950">{active.s.topic}</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+              {active.p.label} · {active.s.scope}
+            </p>
+            <p className="mt-1 line-clamp-3 font-serif text-base leading-snug text-ink-950">
+              {active.s.topic}
+            </p>
             <p className="mt-1 font-mono text-[10px] text-ink-500">
               severity {active.s.severity ?? "—"} · reach {active.s.reach ?? "—"}
             </p>
@@ -133,10 +189,13 @@ export function SignalRadarScope({ signals, total }: { signals: SignalRow[]; tot
         )}
         <ul className="grid grid-cols-5 gap-2 border-t border-line-200 pt-3">
           {([1, 2, 3, 4, 5] as PriorityLevel[]).map((l) => (
-            <li key={l} className="border border-line-200 px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+            <li
+              key={l}
+              className="border border-line-200 px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500"
+            >
               <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full" style={{ background: PRIORITY_FILL[l] }} />
-                P{l}
+                <span className="h-2 w-2 rounded-full" style={{ background: PRIORITY_FILL[l] }} />P
+                {l}
               </span>
               <span className="mt-1 block font-serif text-lg tabular-nums text-ink-950">
                 {dots.filter((d) => d.p.level === l).length}
@@ -145,7 +204,8 @@ export function SignalRadarScope({ signals, total }: { signals: SignalRow[]; tot
           ))}
         </ul>
         <p className="font-mono text-[9px] leading-relaxed text-ink-500">
-          Newest {dots.length.toLocaleString()} of {total.toLocaleString()} active signals plotted. Rings: local → international. Clockwise from 12: older, up to 7 days. Size = reach.
+          Newest {dots.length.toLocaleString()} of {total.toLocaleString()} active signals plotted.
+          Rings: local → international. Clockwise from 12: older, up to 7 days. Size = reach.
         </p>
       </div>
     </div>
@@ -156,7 +216,14 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: "al
   return (
     <div>
       <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">{label}</p>
-      <p className={cn("font-serif text-2xl tabular-nums", tone === "alert" ? "text-signal-negative" : "text-ink-950")}>{value}</p>
+      <p
+        className={cn(
+          "font-serif text-2xl tabular-nums",
+          tone === "alert" ? "text-signal-negative" : "text-ink-950",
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }

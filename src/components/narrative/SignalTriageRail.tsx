@@ -79,11 +79,19 @@ export function SignalTriageRail({
   const levelTotal = levelList.reduce((n, l) => n + (counts[l] ?? 0), 0);
 
   const toggleLevel = (lvl: PriorityLevel) => {
+    const turningOn = !activeLevels.has(lvl);
     setActiveLevels((prev) => {
       const next = new Set(prev);
       if (next.has(lvl)) next.delete(lvl); else next.add(lvl);
       return next;
     });
+    if (turningOn) {
+      setCollapsed((prev) => {
+        const next = new Set(prev);
+        next.delete(lvl);
+        return next;
+      });
+    }
   };
   const toggleCollapse = (lvl: PriorityLevel) => {
     setCollapsed((prev) => {

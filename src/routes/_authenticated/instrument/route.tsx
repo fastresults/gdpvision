@@ -59,28 +59,28 @@ function InstrumentShell() {
   ] as const;
 
   return (
-    <div className="min-h-dvh bg-paper-0 text-ink-950">
-      <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
-        <div className="flex items-center gap-10">
-          <Link to="/instrument" onClick={() => scrollToTop()}>
+    <div className="min-h-dvh overflow-x-clip bg-paper-0 text-ink-950">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 overflow-hidden border-b border-line-200 px-4 py-4 sm:px-8 lg:flex lg:justify-between lg:gap-8 lg:py-5">
+        <div className="flex min-w-0 items-center gap-4 lg:gap-10">
+          <Link to="/instrument" onClick={() => scrollToTop()} className="hidden shrink-0 xl:block">
             <Wordmark />
           </Link>
-          <NavControls />
-          <nav className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
+          <NavControls className="shrink-0" />
+          <nav className="flex min-w-0 items-center gap-6 overflow-x-auto text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
             {nav.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
                 activeOptions={{ exact: n.to === "/instrument" }}
                 activeProps={{ className: "text-ink-950" }}
-                className="hover:text-ink-950"
+                className="shrink-0 hover:text-ink-950"
               >
                 {n.label}
               </Link>
             ))}
           </nav>
         </div>
-        <div className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
+        <div className="hidden shrink-0 items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500 xl:flex">
           {returnCode && (
             <Link
               to="/admin/countries/$code/onboard"

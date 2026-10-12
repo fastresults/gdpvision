@@ -3,7 +3,6 @@
 - [x] Put a "By Chamber" entry plate beside "Data & Decision Flow" on the homepage hero, above the fold
 - [x] Move the two entry plates below the animated circle, keeping the circle clear of the top bar and both plates in view
 
-
 - [x] Add Chamber Decision Journeys: a Federal Reserve-ready scenario presentation with all ten Chambers, six-act flows and Prime Minister benefits
 
 - [x] Replace the homepage Sovereignty engraving with the animated Sovereign Custody Seal
@@ -34,3 +33,4 @@
 - [x] Five decision journeys per Chamber (50 total) with richer Open the Chamber and Prime Minister value steps
 - [x] Deeper Select the Chamber (routing beats) and Open the Chamber (working-session dossier)
 - [x] Rebuild all six Chamber journey phases as one detailed, connected Sovereign Decision Theatre
+- [x] Realign the Instrument overview title, controls, signature and ledger without overlap

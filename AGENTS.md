@@ -19,6 +19,7 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 - **AI research**: go through the corpus gateway + fallback waterfall (`fallback.server.ts` → Perplexity → Gemini → infer); never call providers from components.
 - **Briefing data**: `/present` gives public visitors only aggregate counts or anonymous shape (`getCorpusSnapshot`, `getCountryBrainShape`), never titles or text; real rows only for signed-in admins via protected fns. `CorpusMark` is the default Second Brain drawing in briefing circuits; the sovereign-corpus circuit intentionally uses the compact Elevating GDP puzzle mark.
 - **Briefing flow fit**: `/present` renders the desktop Data & Decision Flow on a fixed reference canvas scaled to contain within the slide; mobile keeps the native stacked flow so the full map is never cropped or made illegible.
+- **Briefing viewer preload**: register every `/present` `LiveFrame` with `ViewerPreloadProvider`; mount each iframe eagerly once and report launched, loaded, sign-in and slow states separately so offscreen viewers preload without cold remounts.
 
 ## Do not edit
 

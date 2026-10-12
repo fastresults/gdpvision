@@ -77,6 +77,7 @@ export function AntiguaBrainStep() {
       </div>
       <div className="prs-rise min-w-0 w-full" style={{ animationDelay: "200ms" }}>
         <LiveFrame
+          preloadId="antigua-brain"
           src={`/admin/countries/${DEMO_COUNTRY}/onboard`}
           label={`gdpvision.com/admin/countries/${DEMO_COUNTRY}/onboard`}
           title={`Data sources for ${DEMO_COUNTRY}, live`}

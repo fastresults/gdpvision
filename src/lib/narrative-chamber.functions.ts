@@ -36,17 +36,24 @@ export interface SignalRow {
   created_at: string;
 }
 
+export interface SignalListResult {
+  signals: SignalRow[];
+  total: number;
+}
+
 // ─── List / Get ──────────────────────────────────────────────────────────────
 
 export const listSignals = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      countryCode: z.string().min(2).max(16),
-      state: z.string().optional(),
-    }).parse(data),
+    z
+      .object({
+        countryCode: z.string().min(2).max(16),
+        state: z.string().optional(),
+      })
+      .parse(data),
   )
-  .handler(async ({ data, context }): Promise<SignalRow[]> => {
+  .handler(async ({ data, context }): Promise<SignalListResult> => {
     let q = context.supabase
       .from("intake_items")
       .select(
@@ -58,10 +65,20 @@ export const listSignals = createServerFn({ method: "GET" })
       .neq("state", "duplicate")
       .order("created_at", { ascending: false })
       .limit(200);
-    if (data.state) q = q.eq("state", data.state);
-    const { data: rows, error } = await q;
+    let countQ = context.supabase
+      .from("intake_items")
+      .select("id", { count: "exact", head: true })
+      .eq("scope_key", data.countryCode)
+      .or("story_primary.is.true,story_primary.is.null")
+      .neq("state", "duplicate");
+    if (data.state) {
+      q = q.eq("state", data.state);
+      countQ = countQ.eq("state", data.state);
+    }
+    const [{ data: rows, error }, { count, error: countError }] = await Promise.all([q, countQ]);
     if (error) throw new Error(error.message);
-    return (rows ?? []) as unknown as SignalRow[];
+    if (countError) throw new Error(countError.message);
+    return { signals: (rows ?? []) as unknown as SignalRow[], total: count ?? 0 };
   });
 
 export const getSignal = createServerFn({ method: "GET" })
@@ -127,7 +144,9 @@ async function classifyWithPerplexity(input: {
     "- dossier_bullets: 4 crisp bullets — what happened, why now, who's affected, likely blowback.",
     "- recommendation: lead | amplify | counter | monitor | ignore (McKinsey framing).",
     "- rationale: 1 sentence justifying the recommendation.",
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   const schema = {
     type: "object",
@@ -143,7 +162,18 @@ async function classifyWithPerplexity(input: {
       recommendation: { type: "string" },
       rationale: { type: "string" },
     },
-    required: ["scope", "sector_code", "severity", "reach", "sentiment", "topic", "summary", "dossier_bullets", "recommendation", "rationale"],
+    required: [
+      "scope",
+      "sector_code",
+      "severity",
+      "reach",
+      "sentiment",
+      "topic",
+      "summary",
+      "dossier_bullets",
+      "recommendation",
+      "rationale",
+    ],
   };
 
   const res = await fetch("https://api.perplexity.ai/chat/completions", {
@@ -152,17 +182,26 @@ async function classifyWithPerplexity(input: {
     body: JSON.stringify({
       model: "sonar-pro",
       messages: [
-        { role: "system", content: "You are a McKinsey-grade GDP-sector narrative analyst. Return strict JSON, no prose." },
+        {
+          role: "system",
+          content:
+            "You are a McKinsey-grade GDP-sector narrative analyst. Return strict JSON, no prose.",
+        },
         { role: "user", content: userPrompt },
       ],
-      response_format: { type: "json_schema", json_schema: { name: "signal_classification", schema } },
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "signal_classification", schema },
+      },
       temperature: 0.2,
     }),
   });
   if (!res.ok) {
     const body = await res.text();
     if (res.status === 401 && body.includes("insufficient_quota")) {
-      throw new Error("Perplexity API credits exhausted. Buy credits at https://console.perplexity.ai.");
+      throw new Error(
+        "Perplexity API credits exhausted. Buy credits at https://console.perplexity.ai.",
+      );
     }
     throw new Error(`Perplexity classify failed [${res.status}]: ${body}`);
   }
@@ -307,7 +346,9 @@ export const generateStrategyDraft = createServerFn({ method: "POST" })
       "Draft a McKinsey Pyramid / SCQA 7-part strategy statement for the PM's press office.",
       "Every claim must be grounded in the country's actual economy — cite web sources.",
       "Keep each field 1-3 tight sentences. Return JSON only.",
-    ].filter(Boolean).join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     const schema = {
       type: "object",
@@ -323,7 +364,18 @@ export const generateStrategyDraft = createServerFn({ method: "POST" })
         talking_points: { type: "array", items: { type: "string" } },
         risks: { type: "array", items: { type: "string" } },
       },
-      required: ["title", "situation", "complication", "question", "answer", "grounds", "warrant", "call", "talking_points", "risks"],
+      required: [
+        "title",
+        "situation",
+        "complication",
+        "question",
+        "answer",
+        "grounds",
+        "warrant",
+        "call",
+        "talking_points",
+        "risks",
+      ],
     };
 
     const res = await fetch("https://api.perplexity.ai/chat/completions", {
@@ -332,17 +384,26 @@ export const generateStrategyDraft = createServerFn({ method: "POST" })
       body: JSON.stringify({
         model: "sonar-reasoning-pro",
         messages: [
-          { role: "system", content: "You are the Prime Minister's chief communications strategist. McKinsey tone. Return strict JSON." },
+          {
+            role: "system",
+            content:
+              "You are the Prime Minister's chief communications strategist. McKinsey tone. Return strict JSON.",
+          },
           { role: "user", content: prompt },
         ],
-        response_format: { type: "json_schema", json_schema: { name: "strategy_seven_part", schema } },
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "strategy_seven_part", schema },
+        },
         temperature: 0.3,
       }),
     });
     if (!res.ok) {
       const body = await res.text();
       if (res.status === 401 && body.includes("insufficient_quota")) {
-        throw new Error("Perplexity API credits exhausted. Buy credits at https://console.perplexity.ai.");
+        throw new Error(
+          "Perplexity API credits exhausted. Buy credits at https://console.perplexity.ai.",
+        );
       }
       throw new Error(`Perplexity strategy failed [${res.status}]: ${body}`);
     }
@@ -351,12 +412,19 @@ export const generateStrategyDraft = createServerFn({ method: "POST" })
     const citations: string[] = Array.isArray(j?.citations) ? j.citations : [];
     let parsed: {
       title: string;
-      situation: string; complication: string; question: string; answer: string;
-      grounds: string; warrant: string; call: string;
-      talking_points: string[]; risks: string[];
+      situation: string;
+      complication: string;
+      question: string;
+      answer: string;
+      grounds: string;
+      warrant: string;
+      call: string;
+      talking_points: string[];
+      risks: string[];
     };
-    try { parsed = JSON.parse(content); }
-    catch {
+    try {
+      parsed = JSON.parse(content);
+    } catch {
       const m = content.match(/\{[\s\S]*\}/);
       if (!m) throw new Error("Strategy model returned no JSON.");
       parsed = JSON.parse(m[0]);
@@ -369,10 +437,15 @@ export const generateStrategyDraft = createServerFn({ method: "POST" })
         sector_code: sig.sector_code,
         title: parsed.title.slice(0, 240),
         seven_part: {
-          situation: parsed.situation, complication: parsed.complication,
-          question: parsed.question, answer: parsed.answer, grounds: parsed.grounds,
-          warrant: parsed.warrant, call: parsed.call,
-          talking_points: parsed.talking_points, risks: parsed.risks,
+          situation: parsed.situation,
+          complication: parsed.complication,
+          question: parsed.question,
+          answer: parsed.answer,
+          grounds: parsed.grounds,
+          warrant: parsed.warrant,
+          call: parsed.call,
+          talking_points: parsed.talking_points,
+          risks: parsed.risks,
         } as unknown as Json,
         sources: citations.map((u, i) => ({ label: `Source ${i + 1}`, ref: u })) as unknown as Json,
         status: "draft",
@@ -404,32 +477,69 @@ export const generateStrategyDraft = createServerFn({ method: "POST" })
 
 // ─── Channel draft (press release, X, PM statement, memo, radio, op-ed) ────
 
-const CHANNEL_SPECS: Record<string, { kind: string; audience: string; instructions: string; }> = {
-  press_release: { kind: "press_release", audience: "National + international media", instructions: "One-page press release, dateline, quote from PM, boilerplate." },
-  pm_statement: { kind: "speech", audience: "General public", instructions: "PM's spoken statement, ≤ 240 words, first-person, calm and confident." },
-  x_thread: { kind: "social", audience: "Digital-native public", instructions: "Numbered thread of 5 posts, each ≤ 260 chars, plain text." },
-  linkedin: { kind: "social", audience: "Investors + regional leaders", instructions: "Single LinkedIn post, ≤ 220 words, professional tone, one call to action." },
-  cabinet_memo: { kind: "memo", audience: "Cabinet + senior officials", instructions: "Confidential memo — situation, decision needed, options, recommendation." },
-  radio_60: { kind: "speech", audience: "Local radio listeners", instructions: "60-second radio script, conversational, one big idea." },
-  op_ed_lede: { kind: "op_ed", audience: "Regional broadsheet", instructions: "First 200 words of an op-ed under the PM's byline — hook + thesis." },
+const CHANNEL_SPECS: Record<string, { kind: string; audience: string; instructions: string }> = {
+  press_release: {
+    kind: "press_release",
+    audience: "National + international media",
+    instructions: "One-page press release, dateline, quote from PM, boilerplate.",
+  },
+  pm_statement: {
+    kind: "speech",
+    audience: "General public",
+    instructions: "PM's spoken statement, ≤ 240 words, first-person, calm and confident.",
+  },
+  x_thread: {
+    kind: "social",
+    audience: "Digital-native public",
+    instructions: "Numbered thread of 5 posts, each ≤ 260 chars, plain text.",
+  },
+  linkedin: {
+    kind: "social",
+    audience: "Investors + regional leaders",
+    instructions: "Single LinkedIn post, ≤ 220 words, professional tone, one call to action.",
+  },
+  cabinet_memo: {
+    kind: "memo",
+    audience: "Cabinet + senior officials",
+    instructions: "Confidential memo — situation, decision needed, options, recommendation.",
+  },
+  radio_60: {
+    kind: "speech",
+    audience: "Local radio listeners",
+    instructions: "60-second radio script, conversational, one big idea.",
+  },
+  op_ed_lede: {
+    kind: "op_ed",
+    audience: "Regional broadsheet",
+    instructions: "First 200 words of an op-ed under the PM's byline — hook + thesis.",
+  },
 };
 
 export const generateChannelDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      strategyId: z.string().uuid(),
-      signalId: z.string().uuid().optional(),
-      channel: z.enum([
-        "press_release", "pm_statement", "x_thread", "linkedin", "cabinet_memo", "radio_60", "op_ed_lede",
-      ]),
-    }).parse(data),
+    z
+      .object({
+        strategyId: z.string().uuid(),
+        signalId: z.string().uuid().optional(),
+        channel: z.enum([
+          "press_release",
+          "pm_statement",
+          "x_thread",
+          "linkedin",
+          "cabinet_memo",
+          "radio_60",
+          "op_ed_lede",
+        ]),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     const { data: strat } = await context.supabase
       .from("strategy_statements")
       .select("id,scope_key,sector_code,title,seven_part,sources")
-      .eq("id", data.strategyId).single();
+      .eq("id", data.strategyId)
+      .single();
     if (!strat) throw new Error("Strategy not found.");
 
     const spec = CHANNEL_SPECS[data.channel];
@@ -455,7 +565,10 @@ export const generateChannelDraft = createServerFn({ method: "POST" })
       body: JSON.stringify({
         model: "sonar-pro",
         messages: [
-          { role: "system", content: "You are the PM's senior speechwriter. Deliver publishable copy." },
+          {
+            role: "system",
+            content: "You are the PM's senior speechwriter. Deliver publishable copy.",
+          },
           { role: "user", content: prompt },
         ],
         temperature: 0.4,
@@ -479,7 +592,9 @@ export const generateChannelDraft = createServerFn({ method: "POST" })
     };
     const stratTitle = (strat.title ?? "").trim();
     const channelLabel = CHANNEL_LABELS[data.channel] ?? data.channel;
-    const autoTitle = (stratTitle ? `${stratTitle} — ${channelLabel}` : `${channelLabel} draft`).slice(0, 140);
+    const autoTitle = (
+      stratTitle ? `${stratTitle} — ${channelLabel}` : `${channelLabel} draft`
+    ).slice(0, 140);
 
     const { data: row, error } = await context.supabase
       .from("comms_artifacts")
@@ -546,16 +661,45 @@ export const listArtifactsForSignal = createServerFn({ method: "GET" })
       .select("artifact_type,artifact_id,created_at")
       .eq("signal_id", data.signalId);
 
-    const stratIds = (lineage ?? []).filter((l) => l.artifact_type === "strategy").map((l) => l.artifact_id);
-    const commsIds = (lineage ?? []).filter((l) => l.artifact_type === "comms").map((l) => l.artifact_id);
+    const stratIds = (lineage ?? [])
+      .filter((l) => l.artifact_type === "strategy")
+      .map((l) => l.artifact_id);
+    const commsIds = (lineage ?? [])
+      .filter((l) => l.artifact_type === "comms")
+      .map((l) => l.artifact_id);
 
     const [{ data: strategies }, { data: comms }] = await Promise.all([
       stratIds.length
-        ? context.supabase.from("strategy_statements").select("id,title,status,version,updated_at").in("id", stratIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; title: string; status: string; version: number; updated_at: string }> }),
+        ? context.supabase
+            .from("strategy_statements")
+            .select("id,title,status,version,updated_at")
+            .in("id", stratIds)
+        : Promise.resolve({
+            data: [] as Array<{
+              id: string;
+              title: string;
+              status: string;
+              version: number;
+              updated_at: string;
+            }>,
+          }),
       commsIds.length
-        ? context.supabase.from("comms_artifacts").select("id,channel,kind,audience,draft_state,released_at,published_url,updated_at").in("id", commsIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; channel: string | null; kind: string; audience: string; draft_state: string; released_at: string | null; published_url: string | null; updated_at: string }> }),
+        ? context.supabase
+            .from("comms_artifacts")
+            .select("id,channel,kind,audience,draft_state,released_at,published_url,updated_at")
+            .in("id", commsIds)
+        : Promise.resolve({
+            data: [] as Array<{
+              id: string;
+              channel: string | null;
+              kind: string;
+              audience: string;
+              draft_state: string;
+              released_at: string | null;
+              published_url: string | null;
+              updated_at: string;
+            }>,
+          }),
     ]);
 
     return { strategies: strategies ?? [], comms: comms ?? [] };

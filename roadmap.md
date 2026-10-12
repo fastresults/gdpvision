@@ -1,4 +1,5 @@
 - [x] Refresh and ingest the latest Antigua press mentions with resilient classification
+- [x] Show the complete Narrative Chamber signal total separately from the newest 200 plotted signals
 
 # Roadmap
 

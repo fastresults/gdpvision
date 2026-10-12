@@ -3,7 +3,7 @@
 // write is admin-only, enforced by row-level security and storage policies.
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ImagePlus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -60,17 +60,16 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = () => qc.invalidateQueries({ queryKey: KEY });
 
-  async function addFiles(files: FileList | null) {
-    if (!files?.length) return;
+  async function addFiles(files: File[]) {
+    if (!files.length) return;
     setBusy(true);
     setErr(null);
     try {
       let order = (photos.at(-1)?.sort_order ?? 0) + 10;
-      for (const f of Array.from(files)) {
+      for (const f of files) {
         if (!/^image\/(jpeg|png|webp)$/.test(f.type)) throw new Error(`${f.name}: use JPG, PNG or WebP.`);
         if (f.size > 10 * 1024 * 1024) throw new Error(`${f.name} is larger than 10 MB.`);
         const ext = f.name.split(".").pop() || "jpg";
@@ -95,12 +94,10 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
       setErr(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
   async function remove(p: Photo) {
-    if (!confirm("Remove this photo from Our Journey?")) return;
     const { error } = await supabase.from("site_gallery_images").delete().eq("id", p.id);
     if (error) return setErr(error.message);
     if (!p.storage_path.startsWith("asset:")) {
@@ -121,6 +118,12 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
   async function caption(p: Photo, value: string) {
     if ((p.caption ?? "") === value) return;
     await supabase.from("site_gallery_images").update({ caption: value || null }).eq("id", p.id);
+    refresh();
+  }
+
+  async function altText(p: Photo, value: string) {
+    if (!value || p.alt === value) return;
+    await supabase.from("site_gallery_images").update({ alt: value }).eq("id", p.id);
     refresh();
   }
 
@@ -152,10 +155,10 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
           {admin ? (
             <button
               type="button"
-              className={editing ? "btn-primary" : "btn-secondary"}
-              onClick={() => setEditing((v) => !v)}
+              className="btn-secondary"
+              onClick={() => setEditing(true)}
             >
-              {editing ? "Done editing" : "Edit gallery"}
+              Edit gallery
             </button>
           ) : null}
           <button type="button" className="btn-ghost" aria-label="Previous photos" onClick={() => nudge(-1)}>
@@ -166,91 +169,63 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
           </button>
         </div>
       </div>
-      {err ? <p className="mx-auto mt-3 max-w-7xl px-6 text-sm text-signal-negative">{err}</p> : null}
+      {err && !editing ? <p className="mx-auto mt-3 max-w-7xl px-6 text-sm text-signal-negative">{err}</p> : null}
 
       <div
-        className={cn("mt-8 overflow-x-auto", !editing && "journey-scroll")}
-        onClick={() => !editing && setPaused((v) => !v)}
+        className="mt-8 overflow-x-auto journey-scroll"
+        onClick={() => setPaused((v) => !v)}
         onPointerEnter={(e) => {
-          if (e.pointerType !== "mouse" || editing) return;
-          setHoverPaused(true);
+          if (e.pointerType === "mouse") setHoverPaused(true);
         }}
         onPointerLeave={() => setHoverPaused(false)}
         data-held={paused || hoverPaused || undefined}
       >
         <div
           ref={trackRef}
-          className={cn("flex w-max gap-4 px-6", !editing && photos.length > 0 && "journey-track")}
+          className={cn("flex w-max gap-4 px-6", photos.length > 0 && "journey-track")}
           style={{ animationPlayState: moving ? "running" : "paused" }}
         >
-          {(editing ? photos : [...photos, ...photos]).map((p, i) => {
-            const idx = i % Math.max(photos.length, 1);
-            return (
-              <figure
-                key={`${p.id}-${i}`}
-                className={cn("relative shrink-0", present ? "w-[min(82vw,560px)]" : "w-[min(78vw,420px)]")}
-                aria-hidden={!editing && i >= photos.length ? true : undefined}
+          {[...photos, ...photos].map((p, i) => (
+            <figure
+              key={`${p.id}-${i}`}
+              className={cn("relative shrink-0", present ? "w-[min(82vw,560px)]" : "w-[min(78vw,420px)]")}
+              aria-hidden={i >= photos.length ? true : undefined}
+            >
+              <button
+                type="button"
+                className="block w-full overflow-hidden rounded-lg border border-line-200 bg-paper-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(p);
+                }}
               >
-                <button
-                  type="button"
-                  className="block w-full overflow-hidden rounded-lg border border-line-200 bg-paper-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!editing) setOpen(p);
-                  }}
-                >
-                  <img
-                    src={p.url}
-                    alt={p.alt}
-                    loading="lazy"
-                    width={840}
-                    height={560}
-                    className="aspect-[3/2] w-full object-cover"
-                  />
-                </button>
-                {editing ? (
-                  <div className="mt-2 space-y-2" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      defaultValue={p.caption ?? ""}
-                      placeholder="Caption (optional)"
-                      onBlur={(e) => caption(p, e.target.value.trim())}
-                      className="w-full rounded border border-line-200 bg-paper-0 px-2 py-1 text-sm text-ink-950"
-                    />
-                    <div className="flex gap-1">
-                      <button type="button" className="btn-ghost" aria-label="Move earlier" disabled={idx === 0} onClick={() => move(idx, -1)}>
-                        <ArrowUp className="h-4 w-4 -rotate-90" />
-                      </button>
-                      <button type="button" className="btn-ghost" aria-label="Move later" disabled={idx === photos.length - 1} onClick={() => move(idx, 1)}>
-                        <ArrowDown className="h-4 w-4 -rotate-90" />
-                      </button>
-                      <button type="button" className="btn-secondary ml-auto" onClick={() => remove(p)}>
-                        <X className="mr-1 h-4 w-4" /> Remove
-                      </button>
-                    </div>
-                  </div>
-                ) : p.caption ? (
-                  <figcaption className="mt-2 text-sm text-ink-700">{p.caption}</figcaption>
-                ) : null}
-              </figure>
-            );
-          })}
-          {editing ? (
-            <label className={cn("flex aspect-[3/2]", present ? "w-[min(82vw,560px)]" : "w-[min(78vw,420px)]", " shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line-200 bg-paper-50 text-ink-700")}>
-              <Plus className="h-6 w-6" />
-              <span className={MICRO}>{busy ? "Uploading…" : "Add photos"}</span>
-              <input
-                ref={fileRef}
-                type="file"
-                multiple
-                accept="image/jpeg,image/png,image/webp"
-                className="sr-only"
-                disabled={busy}
-                onChange={(e) => addFiles(e.target.files)}
-              />
-            </label>
-          ) : null}
+                <img
+                  src={p.url}
+                  alt={p.alt}
+                  loading="lazy"
+                  width={840}
+                  height={560}
+                  className="aspect-[3/2] w-full object-cover"
+                />
+              </button>
+              {p.caption ? <figcaption className="mt-2 text-sm text-ink-700">{p.caption}</figcaption> : null}
+            </figure>
+          ))}
         </div>
       </div>
+
+      <GalleryManager
+        open={editing}
+        onOpenChange={setEditing}
+        photos={photos}
+        busy={busy}
+        err={err}
+        onFiles={addFiles}
+        onRemove={remove}
+        onMove={move}
+        onCaption={caption}
+        onAlt={altText}
+      />
 
       <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
         <DialogContent className="max-w-5xl">
@@ -265,5 +240,105 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
         </DialogContent>
       </Dialog>
     </section>
+  );
+}
+
+type ManagerProps = {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  photos: Photo[];
+  busy: boolean;
+  err: string | null;
+  onFiles: (files: File[]) => void;
+  onRemove: (p: Photo) => void;
+  onMove: (i: number, dir: -1 | 1) => void;
+  onCaption: (p: Photo, v: string) => void;
+  onAlt: (p: Photo, v: string) => void;
+};
+
+/** Admin-only manager: drop zone + a numbered list where each row shows the exact photo it edits. */
+function GalleryManager({ open, onOpenChange, photos, busy, err, onFiles, onRemove, onMove, onCaption, onAlt }: ManagerProps) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [drag, setDrag] = useState(false);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const take = (list: FileList | null) => {
+    const files = Array.from(list ?? []).filter((f) => f.type.startsWith("image/"));
+    if (files.length) onFiles(files);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+  const field = "w-full rounded border border-line-200 bg-paper-0 px-2 py-1.5 text-sm text-ink-950";
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setConfirmId(null); onOpenChange(o); }}>
+      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-4 overflow-hidden">
+        <div>
+          <DialogTitle className="font-display text-2xl text-ink-950">Manage Our Journey</DialogTitle>
+          <DialogDescription className="mt-1 text-sm text-ink-700">
+            Add photos by dropping them below. Each numbered row is one photo, in the order visitors see them. Changes save as soon as you leave a field.
+          </DialogDescription>
+        </div>
+
+        <label
+          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={(e) => { e.preventDefault(); setDrag(false); if (!busy) take(e.dataTransfer.files); }}
+          className={cn(
+            "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors",
+            drag ? "border-gold-500 bg-paper-100" : "border-line-200 bg-paper-50",
+            busy && "cursor-wait opacity-70",
+          )}
+        >
+          <ImagePlus className="h-7 w-7 text-ink-700" />
+          <span className="text-sm font-medium text-ink-950">
+            {busy ? "Uploading…" : drag ? "Drop to add these photos" : "Drag photos here, or click to choose"}
+          </span>
+          <span className={MICRO}>JPG, PNG or WebP · up to 10 MB each · added to the end</span>
+          <input ref={fileRef} type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(e) => take(e.target.files)} />
+        </label>
+        {err ? <p className="text-sm text-signal-negative">{err}</p> : null}
+
+        <div className={MICRO}>{photos.length} photos</div>
+        <ol className="-mr-2 min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
+          {photos.map((p, i) => (
+            <li key={p.id} className={cn("flex gap-4 rounded-lg border p-3", confirmId === p.id ? "border-signal-negative bg-paper-100" : "border-line-200 bg-paper-0")}>
+              <div className="flex w-8 shrink-0 flex-col items-center gap-1">
+                <span className="font-mono text-sm text-ink-950">{i + 1}</span>
+                <button type="button" className="btn-ghost" aria-label={`Move photo ${i + 1} earlier`} disabled={i === 0} onClick={() => onMove(i, -1)}>
+                  <ArrowUp className="h-4 w-4" />
+                </button>
+                <button type="button" className="btn-ghost" aria-label={`Move photo ${i + 1} later`} disabled={i === photos.length - 1} onClick={() => onMove(i, 1)}>
+                  <ArrowDown className="h-4 w-4" />
+                </button>
+              </div>
+              <img src={p.url} alt={p.alt} className="aspect-[3/2] w-40 shrink-0 rounded border border-line-200 object-cover sm:w-52" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <label className="block">
+                  <span className={MICRO}>Caption shown to visitors</span>
+                  <input key={`c-${p.id}-${p.caption}`} defaultValue={p.caption ?? ""} placeholder="Optional" onBlur={(e) => onCaption(p, e.target.value.trim())} className={cn(field, "mt-1")} />
+                </label>
+                <label className="block">
+                  <span className={MICRO}>Description for screen readers</span>
+                  <input key={`a-${p.id}-${p.alt}`} defaultValue={p.alt} onBlur={(e) => onAlt(p, e.target.value.trim())} className={cn(field, "mt-1")} />
+                </label>
+                {confirmId === p.id ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-ink-950">Remove photo {i + 1}? This can’t be undone.</span>
+                    <button type="button" className="btn-primary" onClick={() => { setConfirmId(null); onRemove(p); }}>Yes, remove</button>
+                    <button type="button" className="btn-ghost" onClick={() => setConfirmId(null)}>Keep</button>
+                  </div>
+                ) : (
+                  <button type="button" className="btn-ghost" onClick={() => setConfirmId(p.id)}>
+                    <Trash2 className="mr-1 h-4 w-4" /> Remove this photo
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div className="flex justify-end">
+          <button type="button" className="btn-primary" onClick={() => onOpenChange(false)}>Done</button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

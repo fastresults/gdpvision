@@ -1915,3 +1915,10 @@
   .prs-frame-sheen { animation: none; }
   .prs-wall, .prs-light, .prs-breathe { animation: none; }
 }
+
+/* Our Journey gallery: slow infinite drift (track holds two copies). */
+@keyframes journey-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.journey-track { animation: journey-drift 80s linear infinite; }
+.journey-scroll { scrollbar-width: none; }
+.journey-scroll::-webkit-scrollbar { display: none; }
+@media (prefers-reduced-motion: reduce) { .journey-track { animation: none; } }

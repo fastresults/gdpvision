@@ -113,7 +113,7 @@ function CorpusCircuit() {
                 <circle r={3} fill={c}>
                   <animateMotion
                     dur={`${3 + i * 0.6}s`}
-                      begin="2.4s"
+                    begin="2.4s"
                     repeatCount="indefinite"
                     path={d}
                     keyPoints={i === 0 ? "1;0" : "0;1"}

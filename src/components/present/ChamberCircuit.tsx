@@ -1,4 +1,5 @@
 import type { ChamberDemo } from "@/lib/present/chambers";
+import { CorpusMark } from "./CorpusMark";
 
 /**
  * One chamber's circuit, drawn for the live briefing: the Second Brain feeds
@@ -55,70 +56,10 @@ export function ChamberCircuit({ demo, accentVar }: { demo: ChamberDemo; accentV
         </text>
       </g>
 
-      {/* The Second Brain */}
+      {/* The Second Brain — the live corpus */}
       <g className="prs-rise" style={{ animationDelay: "150ms" }}>
-        <g
-          className="prs-breathe"
-          style={{ transformOrigin: `${BRAIN_X}px ${BRAIN_Y}px`, transformBox: "view-box" }}
-        >
-          <circle
-            cx={BRAIN_X}
-            cy={BRAIN_Y}
-            r={BRAIN_R}
-            fill="var(--paper-0)"
-            stroke="var(--ink-950)"
-            strokeWidth={1.5}
-          />
-          <circle
-            cx={BRAIN_X}
-            cy={BRAIN_Y}
-            r={BRAIN_R - 9}
-            fill="none"
-            stroke="var(--line-200)"
-            strokeDasharray="3 5"
-          />
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => {
-            const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
-            const r = BRAIN_R - 4;
-            return (
-              <circle
-                key={i}
-                cx={BRAIN_X + Math.cos(a) * r}
-                cy={BRAIN_Y + Math.sin(a) * r}
-                r={2.6}
-                fill={i === Number(demo.index) - 1 ? accent : "var(--ink-400)"}
-              />
-            );
-          })}
-          {[
-            [-14, -8],
-            [10, -14],
-            [16, 6],
-            [-6, 14],
-            [2, 0],
-          ].map(([dx, dy], i) => (
-            <circle
-              key={i}
-              cx={BRAIN_X + dx}
-              cy={BRAIN_Y + dy}
-              r={i === 4 ? 3.2 : 1.9}
-              fill={i === 4 ? accent : "var(--ink-700)"}
-              className="prs-light"
-              style={{ animationDelay: `${i * 600}ms` }}
-            />
-          ))}
-        </g>
-        <text
-          x={BRAIN_X}
-          y={BRAIN_Y + BRAIN_R + 24}
-          textAnchor="middle"
-          className="prs-label"
-          fill="var(--ink-700)"
-        >
-          SECOND BRAIN
-        </text>
+        <CorpusMark x={BRAIN_X} y={BRAIN_Y} r={BRAIN_R} accent={accent} highlight={demo.index} />
       </g>
-
       {/* Feed lines, brain to each stage */}
       {centers.map((cy, i) => (
         <path

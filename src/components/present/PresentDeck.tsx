@@ -90,7 +90,6 @@ function Reveal({
 
 function DecisionEngineStep() {
   const [ref, seen] = useInView<HTMLDivElement>(0.15);
-  const [mode, setMode] = useState<"national" | "chamber">("national");
   return (
     <Step id="engine" label="The decision engine">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -109,26 +108,40 @@ function DecisionEngineStep() {
             </p>
           </Reveal>
         </div>
-        <div className="flex gap-1" role="tablist" aria-label="Decision engine view">
-          {(["national", "chamber"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="tab"
-              aria-selected={mode === m}
-              onClick={() => setMode(m)}
-              className={cn("btn-ghost", mode === m && "btn-filter-active")}
-            >
-              {m === "national" ? "National system" : "By Chamber"}
-            </button>
-          ))}
-        </div>
       </div>
       <div
         ref={ref}
         className="mt-6 flex min-h-[70dvh] w-full min-w-0 lg:h-[78dvh] lg:overflow-y-auto lg:overscroll-contain"
       >
-        {seen ? mode === "national" ? <DataDecisionFlow /> : <ChamberDecisionJourneys /> : null}
+        {seen ? <DataDecisionFlow /> : null}
+      </div>
+    </Step>
+  );
+}
+
+function ChamberJourneyStep() {
+  const [ref, seen] = useInView<HTMLDivElement>(0.15);
+  return (
+    <Step id="journeys" label="By Chamber" tone="tint">
+      <Reveal>
+        <div className={MICRO}>06 · By Chamber</div>
+      </Reveal>
+      <Reveal delay={100}>
+        <h2 className={cn(H2, "mt-4 text-[clamp(1.8rem,3.4vw,3rem)]")}>
+          Follow one decision through the Chamber built to handle it
+        </h2>
+      </Reveal>
+      <Reveal delay={200}>
+        <p className={cn(LEDE, "mt-3 text-[clamp(1rem,1.2vw,1.15rem)]")}>
+          Choose a real scenario, watch GDPVision select the Chamber, then open its method and
+          executive value.
+        </p>
+      </Reveal>
+      <div
+        ref={ref}
+        className="mt-6 flex min-h-[70dvh] w-full min-w-0 lg:h-[80dvh] lg:overflow-hidden"
+      >
+        {seen ? <ChamberDecisionJourneys /> : null}
       </div>
     </Step>
   );
@@ -598,10 +611,12 @@ export function PresentDeck() {
 
         <DecisionEngineStep />
 
+        <ChamberJourneyStep />
+
         {/* 06 Chambers overview */}
         <Step id="chambers" label="The chambers">
           <Reveal>
-            <div className={MICRO}>06 · The chambers</div>
+            <div className={MICRO}>07 · The chambers</div>
           </Reveal>
           <Reveal delay={100}>
             <h2 className={cn(H2, "mt-5")}>Ten chambers. One record.</h2>
@@ -643,7 +658,7 @@ export function PresentDeck() {
         {/* 17 Events overview */}
         <Step id="events" label="The GDP events" tone="tint">
           <Reveal>
-            <div className={MICRO}>07 · The GDP events</div>
+            <div className={MICRO}>08 · The GDP events</div>
           </Reveal>
           <Reveal delay={100}>
             <h2 className={cn(H2, "mt-5")}>One summit per sector. The room the framework gets.</h2>
@@ -683,7 +698,7 @@ export function PresentDeck() {
         {/* 28 Conclusion */}
         <Step id="conclusion" label="How it fits together" tone="tint">
           <Reveal>
-            <div className={MICRO}>08 · How it fits together</div>
+            <div className={MICRO}>09 · How it fits together</div>
           </Reveal>
           <Reveal delay={100}>
             <h2 className={cn(H2, "mt-5 max-w-5xl")}>

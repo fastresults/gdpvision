@@ -55,6 +55,7 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
   const admin = useIsAdmin();
   const [editing, setEditing] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [hoverPaused, setHoverPaused] = useState(false);
   const [open, setOpen] = useState<Photo | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);

@@ -1,4 +1,12 @@
-import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, ExternalLink } from "lucide-react";
 import { CHAMBERS, type Chamber } from "@/lib/chambers";
@@ -53,9 +61,10 @@ interface StepProps {
   tone?: "paper" | "tint";
   children: ReactNode;
   className?: string;
+  contentClassName?: string;
 }
 
-function Step({ id, tone = "paper", children, className }: StepProps) {
+function Step({ id, tone = "paper", children, className, contentClassName }: StepProps) {
   const [ref, on] = useInView<HTMLElement>(0.4);
   return (
     <section
@@ -73,7 +82,7 @@ function Step({ id, tone = "paper", children, className }: StepProps) {
         className="pointer-events-none absolute left-6 top-20 bottom-20 w-[2px] bg-ink-950 md:left-10"
         aria-hidden
       />
-      <div className="mx-auto w-full max-w-[1400px]">{children}</div>
+      <div className={cn("mx-auto w-full max-w-[1400px]", contentClassName)}>{children}</div>
     </section>
   );
 }
@@ -95,33 +104,83 @@ function Reveal({
 }
 
 function DecisionEngineStep() {
-  const [ref, seen] = useInView<HTMLDivElement>(0.15);
   return (
-    <Step id="engine" label="The decision engine">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <Step
+      id="engine"
+      label="The decision engine"
+      className="md:h-dvh md:min-h-dvh md:max-h-dvh md:justify-start md:overflow-hidden md:pb-3 md:pt-[70px]"
+      contentClassName="md:grid md:h-full md:min-h-0 md:grid-rows-[auto_minmax(0,1fr)]"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <Reveal>
             <div className={MICRO}>05 · The decision engine</div>
           </Reveal>
           <Reveal delay={100}>
-            <h2 className={cn(H2, "mt-4 text-[clamp(1.8rem,3.4vw,3rem)]")}>
+            <h2 className={cn(H2, "mt-2 text-[clamp(1.8rem,3.4vw,3rem)]")}>
               How a nation decides faster — and why that raises GDP
             </h2>
           </Reveal>
           <Reveal delay={200}>
-            <p className={cn(LEDE, "mt-3 text-[clamp(1rem,1.2vw,1.15rem)]")}>
+            <p className={cn(LEDE, "mt-1 text-[clamp(1rem,1.2vw,1.15rem)]")}>
               One flow, five steps: evidence in, protected, worked, decided, GDP up.
             </p>
           </Reveal>
         </div>
       </div>
-      <div
-        ref={ref}
-        className="mt-6 flex min-h-[70dvh] w-full min-w-0 lg:h-[78dvh] lg:overflow-y-auto lg:overscroll-contain"
-      >
-        {seen ? <DataDecisionFlow /> : null}
+      <div className="mt-4 flex min-h-[70dvh] w-full min-w-0 md:mt-2 md:min-h-0 md:overflow-hidden">
+        <PresentationFlowStage />
       </div>
     </Step>
+  );
+}
+
+const FLOW_STAGE_WIDTH = 1400;
+const FLOW_STAGE_HEIGHT = 760;
+
+function PresentationFlowStage() {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState({ scale: 0.6, left: 0 });
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const update = () => {
+      const width = host.clientWidth;
+      const height = host.clientHeight;
+      const scale = Math.min(1, width / FLOW_STAGE_WIDTH, height / FLOW_STAGE_HEIGHT);
+      setFit({ scale, left: Math.max(0, (width - FLOW_STAGE_WIDTH * scale) / 2) });
+    };
+    update();
+    const frame = requestAnimationFrame(update);
+    const observer = new ResizeObserver(update);
+    observer.observe(host);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, []);
+
+  return (
+    <div
+      ref={hostRef}
+      className="relative h-full w-full min-w-0 overflow-x-clip md:overflow-hidden"
+    >
+      <div className="md:hidden">
+        <DataDecisionFlow />
+      </div>
+      <div
+        className="absolute top-0 hidden origin-top-left md:block"
+        style={{
+          width: FLOW_STAGE_WIDTH,
+          height: FLOW_STAGE_HEIGHT,
+          left: fit.left,
+          transform: `scale(${fit.scale})`,
+        }}
+      >
+        <DataDecisionFlow presentation />
+      </div>
+    </div>
   );
 }
 
@@ -216,10 +275,17 @@ function EgovStep() {
         on && "is-on",
       )}
     >
-      <div className={cn("grid w-full min-w-0 items-center gap-10 lg:gap-0", wide ? "grid-cols-1" : "lg:grid-cols-2")}>
+      <div
+        className={cn(
+          "grid w-full min-w-0 items-center gap-10 lg:gap-0",
+          wide ? "grid-cols-1" : "lg:grid-cols-2",
+        )}
+      >
         <div className={cn("prs-rise min-w-0 lg:pl-24 lg:pr-10", wide && "hidden")}>
           <div className={MICRO}>08 · Digital government</div>
-          <h2 className={cn(H2, "mt-4")}>The Second Brain builds the nation's website, and keeps it current</h2>
+          <h2 className={cn(H2, "mt-4")}>
+            The Second Brain builds the nation's website, and keeps it current
+          </h2>
           <p className={cn(LEDE, "mt-5")}>
             The same verified evidence that briefs Cabinet feeds a public API. Chamber 09 turns it
             into an eGov site that updates itself when the record changes. Shown here as a
@@ -325,7 +391,9 @@ function ChamberStep({ c }: { c: Chamber }) {
   const [ref, on] = useInView<HTMLElement>(0.4);
   const [wide, setWide] = useState(false);
   if (!demo) return null;
-  const label = demo.path.startsWith("http") ? demo.path.replace(/^https?:\/\//, "") : `gdpvision.com${demo.path}`;
+  const label = demo.path.startsWith("http")
+    ? demo.path.replace(/^https?:\/\//, "")
+    : `gdpvision.com${demo.path}`;
 
   return (
     <section
@@ -524,7 +592,6 @@ export function PresentDeck() {
         <Step id="journey" label="Our Journey">
           <SiteGallery variant="present" />
         </Step>
-
 
         {/* 02 What */}
         <Step id="what" label="What it is">
@@ -844,7 +911,11 @@ export function PresentDeck() {
         </Step>
 
         {/* 29 Close */}
-        <Step id="close" label="Close" className="overflow-hidden justify-start max-md:pt-0 md:pt-16">
+        <Step
+          id="close"
+          label="Close"
+          className="overflow-hidden justify-start max-md:pt-0 md:pt-16"
+        >
           <div className="relative -mx-6 mb-8 aspect-[16/9] md:absolute md:inset-0 md:mx-0 md:mb-0 md:aspect-auto">
             <Illustration
               variant="plate"
@@ -852,36 +923,39 @@ export function PresentDeck() {
               alt="Engraving: on the left, a mature economy's observatory stands on deep foundations of ledgers and records, its instruments feeding markets; in the centre, an island nation's instruments topple on bare, cracked ground; on the right, surveyors lay a level, sealed foundation so a first instrument can stand true and readable."
             />
           </div>
-          <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-[34%] bg-gradient-to-b from-paper-0/90 to-transparent md:block" aria-hidden />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 hidden h-[34%] bg-gradient-to-b from-paper-0/90 to-transparent md:block"
+            aria-hidden
+          />
           <div className="relative z-10 md:max-w-[60%]">
-          <Reveal>
-            <div className={MICRO}>GDPVision</div>
-          </Reveal>
-          <Reveal delay={120}>
-            <h2 className="mt-6 font-display text-[clamp(2.4rem,4.2vw,4.4rem)] leading-[0.98] tracking-[-0.02em] text-ink-950">
-              Build the floor first. <i>Then measure.</i>
-            </h2>
-          </Reveal>
-          <div className="mt-6 inline-block rounded-lg bg-paper-0/90 px-5 py-4 shadow-sm">
-          <Reveal delay={320}>
-            <div className={cn(MICRO, "leading-7 text-ink-900")}>
-              Adam Anderson · adam@madebyopen.com · OPEN Interactive, St. Kitts &amp; Nevis · EVOVE
-              LLC, Atlanta
-              <br />
-              gdpvision.com
+            <Reveal>
+              <div className={MICRO}>GDPVision</div>
+            </Reveal>
+            <Reveal delay={120}>
+              <h2 className="mt-6 font-display text-[clamp(2.4rem,4.2vw,4.4rem)] leading-[0.98] tracking-[-0.02em] text-ink-950">
+                Build the floor first. <i>Then measure.</i>
+              </h2>
+            </Reveal>
+            <div className="mt-6 inline-block rounded-lg bg-paper-0/90 px-5 py-4 shadow-sm">
+              <Reveal delay={320}>
+                <div className={cn(MICRO, "leading-7 text-ink-900")}>
+                  Adam Anderson · adam@madebyopen.com · OPEN Interactive, St. Kitts &amp; Nevis ·
+                  EVOVE LLC, Atlanta
+                  <br />
+                  gdpvision.com
+                </div>
+              </Reveal>
+              <Reveal delay={480}>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link to="/" className="btn-secondary">
+                    Back to gdpvision.com
+                  </Link>
+                  <a href="#cover" className="btn-ghost">
+                    Start again
+                  </a>
+                </div>
+              </Reveal>
             </div>
-          </Reveal>
-          <Reveal delay={480}>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Link to="/" className="btn-secondary">
-                Back to gdpvision.com
-              </Link>
-              <a href="#cover" className="btn-ghost">
-                Start again
-              </a>
-            </div>
-          </Reveal>
-          </div>
           </div>
         </Step>
       </main>

@@ -48,7 +48,8 @@ function useIsAdmin() {
   return admin;
 }
 
-export function SiteGallery() {
+export function SiteGallery({ variant = "home" }: { variant?: "home" | "present" }) {
+  const present = variant === "present";
   const qc = useQueryClient();
   const { data: photos = [] } = useQuery({ queryKey: KEY, queryFn: fetchPhotos });
   const admin = useIsAdmin();
@@ -130,11 +131,19 @@ export function SiteGallery() {
   const moving = !editing && !paused && photos.length > 0;
 
   return (
-    <section id="journey" className="border-b border-line-200 py-16">
+    <section
+      id={present ? "journey-gallery" : "journey"}
+      className={present ? "w-full min-w-0" : "border-b border-line-200 py-16"}
+    >
       <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-4 px-6">
         <div>
           <div className={MICRO}>Our Journey</div>
-          <h2 className="mt-3 font-display text-[clamp(1.8rem,3vw,2.6rem)] leading-tight text-ink-950">
+          <h2
+            className={cn(
+              "mt-3 font-display leading-tight text-ink-950",
+              present ? "text-[clamp(2.4rem,4.5vw,4rem)]" : "text-[clamp(1.8rem,3vw,2.6rem)]",
+            )}
+          >
             Where the work has taken us
           </h2>
         </div>
@@ -172,7 +181,7 @@ export function SiteGallery() {
             return (
               <figure
                 key={`${p.id}-${i}`}
-                className="relative w-[min(78vw,420px)] shrink-0"
+                className={cn("relative shrink-0", present ? "w-[min(82vw,560px)]" : "w-[min(78vw,420px)]")}
                 aria-hidden={!editing && i >= photos.length ? true : undefined}
               >
                 <button
@@ -219,7 +228,7 @@ export function SiteGallery() {
             );
           })}
           {editing ? (
-            <label className="flex aspect-[3/2] w-[min(78vw,420px)] shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line-200 bg-paper-50 text-ink-700">
+            <label className={cn("flex aspect-[3/2]", present ? "w-[min(82vw,560px)]" : "w-[min(78vw,420px)]", " shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line-200 bg-paper-50 text-ink-700")}>
               <Plus className="h-6 w-6" />
               <span className={MICRO}>{busy ? "Uploading…" : "Add photos"}</span>
               <input

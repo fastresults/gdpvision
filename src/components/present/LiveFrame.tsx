@@ -118,7 +118,7 @@ export function LiveFrame({
           <span
             className={cn(
               "h-2 w-2 shrink-0 rounded-full",
-              loaded ? "bg-signal-positive" : "bg-line-200",
+              status === "ready" ? "bg-signal-positive" : status === "loading" ? "bg-line-200" : "bg-gold-500" : "bg-line-200",
             )}
             aria-hidden
           />

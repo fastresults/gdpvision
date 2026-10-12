@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ExternalLink, Maximize2, Minimize2, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
  */
 
 const MICRO = "font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500";
+const DESKTOP_CANVAS_WIDTH = 1280;
 
 export interface LiveFrameProps {
   /** Absolute URL or a same-origin path. */
@@ -37,6 +38,23 @@ export function LiveFrame({
 }: LiveFrameProps) {
   const [loaded, setLoaded] = useState(false);
   const [gen, setGen] = useState(0);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [viewportWidth, setViewportWidth] = useState(0);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const updateWidth = () => setViewportWidth(viewport.clientWidth);
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+
+  const canvasWidth = Math.max(DESKTOP_CANVAS_WIDTH, viewportWidth);
+  const scale = viewportWidth > 0 ? viewportWidth / canvasWidth : 1;
 
   return (
     <div
@@ -102,16 +120,21 @@ export function LiveFrame({
           </a>
         </div>
       </div>
-      <div className="relative aspect-[9/12] w-full bg-paper-100">
+      <div ref={viewportRef} className="relative aspect-[9/12] w-full overflow-hidden bg-paper-100">
         {active ? (
           <iframe
             key={gen}
             title={title}
             src={src}
             className={cn(
-              "absolute inset-0 h-full w-full transition-opacity duration-500",
+              "absolute left-0 top-0 max-w-none origin-top-left transition-opacity duration-500",
               loaded ? "opacity-100" : "opacity-0",
             )}
+            style={{
+              width: `${canvasWidth}px`,
+              height: `${100 / scale}%`,
+              transform: `scale(${scale})`,
+            }}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             allow="fullscreen; clipboard-read; clipboard-write"

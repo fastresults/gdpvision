@@ -9,6 +9,7 @@ import sealAsset from "@/assets/favicon-seal.png.asset.json";
 import { SecondBrainFeed } from "./SecondBrainFeed";
 import { ChamberCircuit } from "./ChamberCircuit";
 import { LiveFrame } from "./LiveFrame";
+import { SovereignCorpusStep } from "./SovereignCorpusStep";
 import { SiteGallery } from "@/components/marketing/SiteGallery";
 import { EgovPipeline } from "./EgovPipeline";
 import { ChamberGlyph } from "./ChamberGlyph";
@@ -689,6 +690,10 @@ export function PresentDeck() {
           <div className="mx-auto mt-4 max-w-[1000px]">
             <SecondBrainFeed />
           </div>
+        </Step>
+
+        <Step id="sovereign-corpus" label="The sovereign corpus" className="lg:px-0">
+          <SovereignCorpusStep />
         </Step>
 
         <DecisionEngineStep />

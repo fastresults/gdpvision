@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { DEMO_COUNTRY } from "@/lib/present/chambers";
-import { useHoverIntent } from "@/hooks/useHoverIntent";
 import { cn } from "@/lib/utils";
 import { CorpusMark } from "./CorpusMark";
 import { LiveFrame } from "./LiveFrame";
@@ -35,13 +34,13 @@ function feed(y: number) {
 }
 
 function CorpusCircuit() {
-  const { paused, bind } = useHoverIntent();
+  const [paused, setPaused] = useState(false);
   const gold = "var(--gold-500)";
   const red = "var(--signal-negative, #B3261E)";
   const centers = SY.map((y) => y + SH / 2);
   const outX = SX + SW / 2;
   return (
-    <div {...bind} className={cn("cursor-pointer", paused && "prs-paused")}>
+    <div onClick={() => setPaused((p) => !p)} title={paused ? "Click to resume" : "Click to pause"} className={cn("cursor-pointer", paused && "outline outline-1 outline-dashed outline-line-200")}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="block h-auto w-full"
@@ -72,7 +71,7 @@ function CorpusCircuit() {
               <path d={d} pathLength={1} fill="none" stroke={c} strokeWidth={1.5} className="prs-draw" style={{ animationDelay: `${400 + i * 200}ms` }} />
               {!paused && (
                 <circle r={3} fill={c}>
-                  <animateMotion dur={`${3 + i * 0.6}s`} repeatCount="indefinite" path={i === 1 ? d : d} keyPoints={i === 0 ? "1;0" : "0;1"} keyTimes="0;1" calcMode="linear" />
+                  <animateMotion dur={`${3 + i * 0.6}s`} repeatCount="indefinite" path={d} keyPoints={i === 0 ? "1;0" : "0;1"} keyTimes="0;1" calcMode="linear" />
                 </circle>
               )}
             </g>

@@ -446,7 +446,7 @@ export function PresentDeck() {
               alt="GDPVision seal: Instrument of State"
               width={1319}
               height={1341}
-              className="h-auto w-[clamp(160px,22vh,260px)]"
+              className="h-auto w-[min(clamp(480px,66vh,780px),100%)]"
               decoding="async"
             />
           </Reveal>

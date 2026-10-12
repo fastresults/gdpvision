@@ -150,7 +150,7 @@ function PresentationFlowStage() {
   }, []);
 
   return (
-    <div ref={hostRef} className="relative h-full w-full min-w-0 md:overflow-hidden">
+    <div ref={hostRef} className="relative h-full w-full min-w-0 overflow-x-clip md:overflow-hidden">
       <div className="md:hidden">
         <DataDecisionFlow />
       </div>

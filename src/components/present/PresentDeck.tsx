@@ -399,6 +399,14 @@ export function PresentDeck() {
 
   return (
     <div className="prs-deck bg-paper-0 font-sans text-ink-950 antialiased">
+      {/* Stamps each embedded page the moment it finishes, even before the
+          briefing is interactive, so a viewer never misses its load signal. */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html:
+            "document.addEventListener('load',function(e){var t=e.target;if(t&&t.tagName==='IFRAME')t.setAttribute('data-loaded',String(Date.now()))},true);",
+        }}
+      />
       {/* Fixed chrome */}
       <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-line-200 bg-paper-0/90 px-5 py-3 backdrop-blur md:px-10">
         <Link to="/" className="flex items-center gap-3">

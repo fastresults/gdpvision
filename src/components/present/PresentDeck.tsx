@@ -324,7 +324,7 @@ function ChamberStep({ c }: { c: Chamber }) {
   const [ref, on] = useInView<HTMLElement>(0.4);
   const [wide, setWide] = useState(false);
   if (!demo) return null;
-  const label = `gdpvision.com${demo.path}`;
+  const label = demo.path.startsWith("http") ? demo.path.replace(/^https?:\/\//, "") : `gdpvision.com${demo.path}`;
 
   return (
     <section

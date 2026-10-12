@@ -82,7 +82,7 @@ export const CHAMBER_DEMOS: ChamberDemo[] = [
   },
   {
     index: "09",
-    path: `${base}/egov`,
+    path: "https://atg.gdpvision.com",
     ask: "What should the platform do for people?",
     stages: ["Audiences and services", "Cited requirements", "Independent approval"],
     output: "Services people can trust",

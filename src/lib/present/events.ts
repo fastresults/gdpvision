@@ -33,7 +33,7 @@ export const GDP_EVENTS: GdpEvent[] = [
     purpose:
       "The one event that looks at the whole economy rather than one sector. Where the measurement framework goes in front of ministers and the ECCB.",
     sector: "Whole economy",
-    url: "https://cgdps.com",
+    url: "https://gdp-event.gdpvision.com",
     apex: true,
   },
   {
@@ -46,7 +46,7 @@ export const GDP_EVENTS: GdpEvent[] = [
     purpose:
       "Puts the ocean on the ledger as a sector: fisheries, shipping, marine energy and the finance behind them.",
     sector: "Blue economy",
-    url: null,
+    url: "https://blue-economy.gdpvision.com",
   },
   {
     id: "cadis",
@@ -58,7 +58,7 @@ export const GDP_EVENTS: GdpEvent[] = [
     purpose:
       "The digital economy and the infrastructure under it, including the in-country hardware the Vault runs on. Where the Digital Government Studio's work gets shown.",
     sector: "Digital economy",
-    url: null,
+    url: "https://cadis.gdpvision.com",
   },
   {
     id: "chis",
@@ -70,7 +70,7 @@ export const GDP_EVENTS: GdpEvent[] = [
     purpose:
       "Housing and construction as a GDP sector: the policy, the capital and the climate-proofing.",
     sector: "Construction",
-    url: "https://chis27.com",
+    url: "https://housing.gdpvision.com",
   },
   {
     id: "cafs",
@@ -82,7 +82,7 @@ export const GDP_EVENTS: GdpEvent[] = [
     purpose:
       "Agriculture and fisheries as a growth sector rather than a subsidy line. The import bill is the number on the table.",
     sector: "Agriculture",
-    url: "https://cafs27.com",
+    url: "https://agriculture.gdpvision.com",
   },
   {
     id: "cis",
@@ -106,7 +106,7 @@ export const GDP_EVENTS: GdpEvent[] = [
     purpose:
       "Energy as the sector that sets the cost of every other one. Generation, grid, and the move off imported fuel.",
     sector: "Energy",
-    url: null,
+    url: "https://energy.gdpvision.com",
   },
   {
     id: "cipws",
@@ -129,7 +129,7 @@ export const GDP_EVENTS: GdpEvent[] = [
     theme: "Open for Business: Trade, Investment, Manufacturing",
     purpose: "Manufacturing, trade and the private sector that has to carry most of the growth.",
     sector: "Manufacturing",
-    url: null,
+    url: "https://commerce.gdpvision.com",
   },
   {
     id: "chwis",
@@ -141,6 +141,6 @@ export const GDP_EVENTS: GdpEvent[] = [
     purpose:
       "Health as a cost today and a sector tomorrow. Wellness tourism, medical services and the innovation around them.",
     sector: "Other services",
-    url: null,
+    url: "https://health.gdpvision.com",
   },
 ];

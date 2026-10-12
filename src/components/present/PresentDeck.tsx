@@ -131,7 +131,7 @@ function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
       />
       <div
         className={cn(
-          "grid w-full items-center gap-10 lg:gap-0",
+          "grid w-full min-w-0 items-center gap-10 lg:gap-0",
           wide ? "grid-cols-1" : "lg:grid-cols-2",
         )}
       >
@@ -162,7 +162,7 @@ function EventStep({ ev, index }: { ev: GdpEvent; index: number }) {
           ) : null}
         </div>
 
-        <div className="prs-rise" style={{ animationDelay: "200ms" }}>
+        <div className="prs-rise min-w-0 w-full" style={{ animationDelay: "200ms" }}>
           {ev.url && host ? (
             <LiveFrame
               src={ev.url}
@@ -214,7 +214,7 @@ function ChamberStep({ c }: { c: Chamber }) {
       />
       <div
         className={cn(
-          "grid w-full items-center gap-10 lg:gap-0",
+          "grid w-full min-w-0 items-center gap-10 lg:gap-0",
           wide ? "grid-cols-1" : "lg:grid-cols-2",
         )}
       >
@@ -243,7 +243,7 @@ function ChamberStep({ c }: { c: Chamber }) {
           </div>
         </div>
 
-        <div className="prs-rise" style={{ animationDelay: "200ms" }}>
+        <div className="prs-rise min-w-0 w-full" style={{ animationDelay: "200ms" }}>
           <LiveFrame
             src={demo.path}
             label={label}

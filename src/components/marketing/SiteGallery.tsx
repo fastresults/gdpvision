@@ -181,7 +181,7 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
             return (
               <figure
                 key={`${p.id}-${i}`}
-                className=cn("relative shrink-0", present ? "w-[min(82vw,560px)]" : "w-[min(78vw,420px)]")
+                className={cn("relative shrink-0", present ? "w-[min(82vw,560px)]" : "w-[min(78vw,420px)]")}
                 aria-hidden={!editing && i >= photos.length ? true : undefined}
               >
                 <button

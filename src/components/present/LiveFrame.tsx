@@ -37,20 +37,13 @@ export function LiveFrame({
 }: LiveFrameProps) {
   const [loaded, setLoaded] = useState(false);
   const [gen, setGen] = useState(0);
-  // Portrait, always, at 9:12. The panel fills its half of the screen with an
-  // 8px buffer on every side, whichever dimension runs out first
-  // (104px = the fixed header, the address strip, and the buffers).
-  const width = wide
-    ? "min(calc(100vw - 16px), calc((100dvh - 104px) * 0.75))"
-    : "min(calc(50vw - 16px), calc((100dvh - 104px) * 0.75))";
 
   return (
     <div
       className={cn(
-        "relative mx-auto max-w-full overflow-hidden rounded-xl border border-line-200 bg-paper-0 shadow-[0_24px_60px_-30px_rgba(8,17,31,0.35)]",
+        "relative w-full min-w-0 overflow-hidden rounded-xl border border-line-200 bg-paper-0 shadow-[0_24px_60px_-30px_rgba(8,17,31,0.35)]",
         className,
       )}
-      style={{ width }}
     >
       <div className="flex items-center justify-between gap-3 border-b border-line-200 bg-paper-50 px-4 py-2">
         <div className="flex min-w-0 items-center gap-3">

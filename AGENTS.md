@@ -125,3 +125,5 @@ Full route map: `docs/map/routes.md` (Phase 2, generated).
 - `bun run check:maps` — CI guard: fails if generated maps are stale OR any server-fn module is missing header tags. Wired into `.github/workflows/map-check.yml` on every PR touching `src/**`, `supabase/migrations/**`, or the map scripts.
 
 When you add a new server function, migration, or route: run `bun run headers && bun run map` before committing, or CI will reject the PR.
+
+- **Briefing corpus data**: `/present` reads only aggregate corpus row counts via `getCorpusSnapshot` (`src/lib/present/corpus-snapshot.functions.ts`) — the public briefing must never receive corpus rows or text. `CorpusMark` is the single Second Brain drawing for briefing circuits.

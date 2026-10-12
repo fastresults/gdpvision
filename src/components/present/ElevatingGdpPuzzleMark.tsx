@@ -14,7 +14,9 @@ function piecePath(x: number, y: number, inner: number, outer: number, index: nu
   const start = index * STEP + gap;
   const end = (index + 1) * STEP - gap;
   const point = (radius: number, angle: number) =>
-    polar(x, y, radius, angle).map((value) => value.toFixed(2)).join(" ");
+    polar(x, y, radius, angle)
+      .map((value) => value.toFixed(2))
+      .join(" ");
 
   return [
     `M ${point(outer, start)}`,
@@ -29,15 +31,7 @@ function piecePath(x: number, y: number, inner: number, outer: number, index: nu
   ].join(" ");
 }
 
-export function ElevatingGdpPuzzleMark({
-  x,
-  y,
-  r,
-}: {
-  x: number;
-  y: number;
-  r: number;
-}) {
+export function ElevatingGdpPuzzleMark({ x, y, r }: { x: number; y: number; r: number }) {
   const inner = r * 0.59;
   const core = r * 0.48;
 
@@ -83,10 +77,26 @@ export function ElevatingGdpPuzzleMark({
           />
         ))}
         <circle cx={x} cy={y} r={core * 0.57} fill="url(#egp-compact-hatch)" />
-        <text x={x} y={y - 2} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={7.5} fill="var(--ink-950)" style={{ letterSpacing: "0.16em" }}>
+        <text
+          x={x}
+          y={y - 2}
+          textAnchor="middle"
+          fontFamily="var(--font-mono)"
+          fontSize={7.5}
+          fill="var(--ink-950)"
+          style={{ letterSpacing: "0.16em" }}
+        >
           CORPUS
         </text>
-        <text x={x} y={y + 9} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={4.5} fill="var(--ink-500)" style={{ letterSpacing: "0.12em" }}>
+        <text
+          x={x}
+          y={y + 9}
+          textAnchor="middle"
+          fontFamily="var(--font-mono)"
+          fontSize={4.5}
+          fill="var(--ink-500)"
+          style={{ letterSpacing: "0.12em" }}
+        >
           GRADED · CITED
         </text>
       </g>
@@ -106,7 +116,12 @@ export function ElevatingGdpPuzzleMark({
               transformOrigin: `${x}px ${y}px`,
             }}
           >
-            <path d={piecePath(x, y, inner, r, index)} fill="var(--paper-0)" stroke="var(--ink-700)" strokeWidth={0.8} />
+            <path
+              d={piecePath(x, y, inner, r, index)}
+              fill="var(--paper-0)"
+              stroke="var(--ink-700)"
+              strokeWidth={0.8}
+            />
             <path d={piecePath(x, y, inner, r, index)} fill="url(#egp-compact-hatch)" />
             <text
               x={tx}
@@ -133,11 +148,32 @@ export function ElevatingGdpPuzzleMark({
         pathLength={1}
       />
       <g className="egp-caption">
-        <line x1={x - r * 0.72} y1={y + r + 15} x2={x - r * 0.38} y2={y + r + 15} stroke="var(--gold-500)" />
-        <text x={x} y={y + r + 18} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={7.5} fontWeight={600} fill="var(--ink-950)" style={{ letterSpacing: "0.2em" }}>
+        <line
+          x1={x - r * 0.72}
+          y1={y + r + 15}
+          x2={x - r * 0.38}
+          y2={y + r + 15}
+          stroke="var(--gold-500)"
+        />
+        <text
+          x={x}
+          y={y + r + 18}
+          textAnchor="middle"
+          fontFamily="var(--font-mono)"
+          fontSize={7.5}
+          fontWeight={600}
+          fill="var(--ink-950)"
+          style={{ letterSpacing: "0.2em" }}
+        >
           ELEVATING GDP
         </text>
-        <line x1={x + r * 0.38} y1={y + r + 15} x2={x + r * 0.72} y2={y + r + 15} stroke="var(--gold-500)" />
+        <line
+          x1={x + r * 0.38}
+          y1={y + r + 15}
+          x2={x + r * 0.72}
+          y2={y + r + 15}
+          stroke="var(--gold-500)"
+        />
       </g>
     </g>
   );

@@ -14,7 +14,7 @@ import { useUrlState } from "@/lib/nav/url-state";
 
 function signalsQuery(code: string) {
   return queryOptions({
-    queryKey: ["narrative-signals", code],
+    queryKey: ["narrative-signals", code, "with-total-v1"],
     queryFn: () => listSignals({ data: { countryCode: code } }),
   });
 }
@@ -33,7 +33,10 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
 function SignalRadarPage() {
   const { code } = Route.useParams();
   const { data: signalResult } = useSuspenseQuery(signalsQuery(code));
-  const { signals, total: signalTotal } = signalResult;
+  const signals = Array.isArray(signalResult) ? signalResult : signalResult.signals;
+  const signalTotal = Array.isArray(signalResult)
+    ? signalResult.length
+    : (signalResult.total ?? signalResult.signals.length);
   const [tab, setTab] = useUrlState<"radar" | "sources">("tab", "radar");
 
   const byScope = {

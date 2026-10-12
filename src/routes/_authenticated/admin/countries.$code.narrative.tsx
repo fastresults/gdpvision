@@ -14,7 +14,7 @@ import { CoverageBadge } from "@/components/narrative/CoverageBadge";
 
 function signalsQuery(code: string) {
   return queryOptions({
-    queryKey: ["narrative-signals", code],
+    queryKey: ["narrative-signals", code, "with-total-v1"],
     queryFn: () => listSignals({ data: { countryCode: code } }),
   });
 }
@@ -53,7 +53,10 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
 function NarrativeLayout() {
   const { code } = Route.useParams();
   const { data: signalResult } = useSuspenseQuery(signalsQuery(code));
-  const { signals, total: signalTotal } = signalResult;
+  const signals = Array.isArray(signalResult) ? signalResult : signalResult.signals;
+  const signalTotal = Array.isArray(signalResult)
+    ? signalResult.length
+    : (signalResult.total ?? signalResult.signals.length);
   const { data: oppositionItems } = useSuspenseQuery(oppositionQuery(code));
   const params = useParams({ strict: false }) as { id?: string };
   const pathname = useRouterState({ select: (s) => s.location.pathname });

@@ -53,9 +53,10 @@ interface StepProps {
   tone?: "paper" | "tint";
   children: ReactNode;
   className?: string;
+  contentClassName?: string;
 }
 
-function Step({ id, tone = "paper", children, className }: StepProps) {
+function Step({ id, tone = "paper", children, className, contentClassName }: StepProps) {
   const [ref, on] = useInView<HTMLElement>(0.4);
   return (
     <section
@@ -73,7 +74,7 @@ function Step({ id, tone = "paper", children, className }: StepProps) {
         className="pointer-events-none absolute left-6 top-20 bottom-20 w-[2px] bg-ink-950 md:left-10"
         aria-hidden
       />
-      <div className="mx-auto w-full max-w-[1400px]">{children}</div>
+      <div className={cn("mx-auto w-full max-w-[1400px]", contentClassName)}>{children}</div>
     </section>
   );
 }
@@ -97,19 +98,24 @@ function Reveal({
 function DecisionEngineStep() {
   const [ref, seen] = useInView<HTMLDivElement>(0.15);
   return (
-    <Step id="engine" label="The decision engine">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <Step
+      id="engine"
+      label="The decision engine"
+      className="md:h-dvh md:min-h-dvh md:max-h-dvh md:justify-start md:overflow-hidden md:pb-3 md:pt-[70px]"
+      contentClassName="md:grid md:h-full md:min-h-0 md:grid-rows-[auto_minmax(0,1fr)]"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <Reveal>
             <div className={MICRO}>05 · The decision engine</div>
           </Reveal>
           <Reveal delay={100}>
-            <h2 className={cn(H2, "mt-4 text-[clamp(1.8rem,3.4vw,3rem)]")}>
+            <h2 className={cn(H2, "mt-2 text-[clamp(1.8rem,3.4vw,3rem)]")}> 
               How a nation decides faster — and why that raises GDP
             </h2>
           </Reveal>
           <Reveal delay={200}>
-            <p className={cn(LEDE, "mt-3 text-[clamp(1rem,1.2vw,1.15rem)]")}>
+            <p className={cn(LEDE, "mt-1 text-[clamp(1rem,1.2vw,1.15rem)]")}> 
               One flow, five steps: evidence in, protected, worked, decided, GDP up.
             </p>
           </Reveal>
@@ -117,11 +123,53 @@ function DecisionEngineStep() {
       </div>
       <div
         ref={ref}
-        className="mt-6 flex min-h-[70dvh] w-full min-w-0 lg:h-[78dvh] lg:overflow-y-auto lg:overscroll-contain"
+        className="mt-4 flex min-h-[70dvh] w-full min-w-0 md:mt-2 md:min-h-0 md:overflow-hidden"
       >
-        {seen ? <DataDecisionFlow /> : null}
+        {seen ? <PresentationFlowStage /> : null}
       </div>
     </Step>
+  );
+}
+
+const FLOW_STAGE_WIDTH = 1400;
+const FLOW_STAGE_HEIGHT = 760;
+
+function PresentationFlowStage() {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState({ scale: 1, left: 0 });
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const update = () => {
+      const width = host.clientWidth;
+      const height = host.clientHeight;
+      const scale = Math.min(1, width / FLOW_STAGE_WIDTH, height / FLOW_STAGE_HEIGHT);
+      setFit({ scale, left: Math.max(0, (width - FLOW_STAGE_WIDTH * scale) / 2) });
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={hostRef} className="relative h-full w-full min-w-0 md:overflow-hidden">
+      <div className="md:hidden">
+        <DataDecisionFlow />
+      </div>
+      <div
+        className="absolute top-0 hidden origin-top-left md:block"
+        style={{
+          width: FLOW_STAGE_WIDTH,
+          height: FLOW_STAGE_HEIGHT,
+          left: fit.left,
+          transform: `scale(${fit.scale})`,
+        }}
+      >
+        <DataDecisionFlow presentation />
+      </div>
+    </div>
   );
 }
 

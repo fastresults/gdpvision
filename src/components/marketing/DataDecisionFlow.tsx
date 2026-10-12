@@ -411,7 +411,7 @@ function edgePath(a: string, b: string) {
   return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
 }
 
-export function DataDecisionFlow() {
+export function DataDecisionFlow({ presentation = false }: { presentation?: boolean }) {
   const pos = POS;
   const [chamber, setChamber] = useState<string>("all");
   const playlist = useMemo(
@@ -524,9 +524,19 @@ export function DataDecisionFlow() {
   const toggle = (id: string) => setSelected((s) => (s === id ? null : id));
 
   return (
-    <div className="flex flex-col gap-4 md:h-full md:min-h-0 lg:flex-row">
+    <div
+      className={cn(
+        "flex flex-col md:h-full md:min-h-0 lg:flex-row",
+        presentation ? "gap-3" : "gap-4",
+      )}
+    >
       <div className="flex flex-col md:min-h-0 md:flex-1">
-        <div className="mb-3 flex flex-wrap items-center gap-3 shrink-0">
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-3 shrink-0",
+            presentation ? "mb-2" : "mb-3",
+          )}
+        >
           <div
             className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1"
             role="tablist"
@@ -565,7 +575,12 @@ export function DataDecisionFlow() {
           </button>
         </div>
         {chamberScenarios.length > 0 && (
-          <div className="mb-3 grid gap-2 sm:grid-cols-2 shrink-0">
+          <div
+            className={cn(
+              "grid gap-2 sm:grid-cols-2 shrink-0",
+              presentation ? "mb-2" : "mb-3",
+            )}
+          >
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 sm:col-span-2">
               Chamber {chamber} · {CHAMBER_NAMES[chamber]} — choose a scenario to run
             </div>
@@ -589,7 +604,10 @@ export function DataDecisionFlow() {
           </div>
         )}
         <div
-          className="mb-3 min-h-[64px] border-l-2 border-gold-500 pl-3 shrink-0"
+          className={cn(
+            "border-l-2 border-gold-500 pl-3 shrink-0",
+            presentation ? "mb-2 min-h-[58px]" : "mb-3 min-h-[64px]",
+          )}
           aria-live="polite"
         >
           {mode !== "scenario" ? (
@@ -623,7 +641,12 @@ export function DataDecisionFlow() {
             </div>
           )}
         </div>
-        <div className="mb-3 flex flex-wrap items-center gap-2 shrink-0">
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-2 shrink-0",
+            presentation ? "mb-2" : "mb-3",
+          )}
+        >
           <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
             Show the path of
           </span>
@@ -648,7 +671,11 @@ export function DataDecisionFlow() {
           <svg
             viewBox={`0 0 ${W} ${H}`}
             {...holdHover(true)}
-            className={cn("ddf h-full min-h-[520px] w-full", (paused || !playing) && "ddf-paused")}
+            className={cn(
+              "ddf h-full w-full",
+              presentation ? "min-h-0" : "min-h-[520px]",
+              (paused || !playing) && "ddf-paused",
+            )}
             role="group"
             aria-label="Data and decision flow map"
           >

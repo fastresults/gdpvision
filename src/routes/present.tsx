@@ -19,6 +19,15 @@ export const Route = createFileRoute("/present")({
       { property: "og:url", content: `${SITE_URL}/present` },
     ],
     links: [{ rel: "canonical", href: `${SITE_URL}/present` }],
+    // Runs in <head> before any viewer exists: stamps each embedded page the
+    // moment it finishes, so LiveFrame never misses a load that happened
+    // before the briefing became interactive.
+    scripts: [
+      {
+        children:
+          "window.addEventListener('load',function(e){var t=e.target;if(t&&t.tagName==='IFRAME')t.setAttribute('data-loaded',String(Date.now()))},true);",
+      },
+    ],
   }),
   component: PresentDeck,
 });

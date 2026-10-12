@@ -55,6 +55,7 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
   const admin = useIsAdmin();
   const [editing, setEditing] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [hoverPaused, setHoverPaused] = useState(false);
   const [open, setOpen] = useState<Photo | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -128,7 +129,7 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
     trackRef.current?.parentElement?.scrollBy({ left: dir * 420, behavior: "smooth" });
   };
 
-  const moving = !editing && !paused && photos.length > 0;
+  const moving = !editing && !paused && !hoverPaused && photos.length > 0;
 
   return (
     <section
@@ -170,7 +171,12 @@ export function SiteGallery({ variant = "home" }: { variant?: "home" | "present"
       <div
         className={cn("mt-8 overflow-x-auto", !editing && "journey-scroll")}
         onClick={() => !editing && setPaused((v) => !v)}
-        data-held={paused || undefined}
+        onPointerEnter={(e) => {
+          if (e.pointerType !== "mouse" || editing) return;
+          setHoverPaused(true);
+        }}
+        onPointerLeave={() => setHoverPaused(false)}
+        data-held={paused || hoverPaused || undefined}
       >
         <div
           ref={trackRef}

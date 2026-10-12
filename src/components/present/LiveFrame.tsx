@@ -61,13 +61,18 @@ export function LiveFrame({
     const check = () => {
       if (frame.hasAttribute("data-loaded")) return settle();
       try {
+        // Same origin: readable once the page exists.
+        const href = frame.contentWindow?.location.href;
         const doc = frame.contentDocument;
-        if (doc && doc.readyState === "complete" && doc.URL !== "about:blank") settle();
+        if (href && href !== "about:blank" && doc?.readyState === "complete") settle();
       } catch {
-        /* cross-origin */
+        // Reading throws only once a cross-origin page has replaced the blank
+        // frame, which means the target site has loaded into the viewer.
+        settle();
       }
     };
     check();
+    const early = window.setInterval(() => (done ? window.clearInterval(early) : check()), 500);
     frame.addEventListener("load", settle);
     // Same-origin apps change route after load (e.g. to sign-in); re-check.
     const poll = window.setInterval(() => done && settle(), 3000);
@@ -83,6 +88,7 @@ export function LiveFrame({
     return () => {
       frame.removeEventListener("load", settle);
       window.clearInterval(poll);
+      window.clearInterval(early);
       window.clearTimeout(watchdog);
     };
   }, [gen]);

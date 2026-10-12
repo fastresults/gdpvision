@@ -60,7 +60,7 @@ function CorpusCircuit() {
         viewBox={`0 0 ${W} ${H}`}
         className="block h-auto w-full"
         role="img"
-        aria-label="The Second Brain draws on live global feeds and on sovereign records held in a government data center; officials switch each source on or off, producing evidence the government controls end to end."
+        aria-label="The national Corpus and ten interlocking GDPVision Chambers draw on live global feeds and sovereign records held in a government data center; officials switch each source on or off, producing evidence the government controls end to end."
       >
         <g className="prs-rise">
           <text x={BX - BR} y={18} className="prs-label" fill="var(--ink-500)">
@@ -113,6 +113,7 @@ function CorpusCircuit() {
                 <circle r={3} fill={c}>
                   <animateMotion
                     dur={`${3 + i * 0.6}s`}
+                      begin="2.4s"
                     repeatCount="indefinite"
                     path={d}
                     keyPoints={i === 0 ? "1;0" : "0;1"}

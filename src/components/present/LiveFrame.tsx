@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ExternalLink, Maximize2, Minimize2, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useViewerPreload, type ViewerPreloadState } from "./ViewerPreloadCoordinator";
 
 /**
  * The framed live panel in the briefing: one chrome for every embedded page,
@@ -13,6 +14,7 @@ const MICRO = "font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500";
 const DESKTOP_CANVAS_WIDTH = 1280;
 
 export interface LiveFrameProps {
+  preloadId: string;
   /** Absolute URL or a same-origin path. */
   src: string;
   /** What appears in the address strip. */
@@ -25,6 +27,7 @@ export interface LiveFrameProps {
 }
 
 export function LiveFrame({
+  preloadId,
   src,
   label,
   title,
@@ -34,64 +37,55 @@ export function LiveFrame({
   className,
 }: LiveFrameProps) {
   const [loaded, setLoaded] = useState(false);
-  const [gen, setGen] = useState(0);
   const [status, setStatus] = useState<"loading" | "ready" | "slow" | "signin">("loading");
-  const retried = useRef(false);
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const { update } = useViewerPreload();
 
-  // Detect a finished page even if it finished before React was listening:
-  // the early stamp from PresentDeck, the same-origin ready state, or a live
-  // load event. A 45s watchdog reloads once, then reports "slow".
+  const settle = () => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    let next: ViewerPreloadState = "ready";
+    try {
+      const href = frame.contentWindow?.location.href;
+      if (!href || href === "about:blank") return;
+      const path = frame.contentWindow?.location.pathname;
+      if (path?.startsWith("/auth")) next = "signin";
+    } catch {
+      // A cross-origin location can only throw after the target page replaces about:blank.
+    }
+    setLoaded(true);
+    setStatus(next === "signin" ? "signin" : "ready");
+    update(preloadId, next);
+  };
+
+  // Reconcile cached/restored documents after hydration. The iframe's onLoad
+  // below is the primary signal and is attached in the initial React commit.
   useEffect(() => {
     const frame = frameRef.current;
     if (!frame) return;
-    let done = false;
-    const settle = () => {
-      let signin = false;
-      try {
-        const path = frame.contentWindow?.location.pathname;
-        signin = !!path && path.startsWith("/auth");
-      } catch {
-        // cross-origin: cannot read, treat as loaded
-      }
-      done = true;
-      setLoaded(true);
-      setStatus(signin ? "signin" : "ready");
-    };
+    update(preloadId, "requested");
     const check = () => {
-      if (frame.hasAttribute("data-loaded")) return settle();
       try {
-        // Same origin: readable once the page exists.
         const href = frame.contentWindow?.location.href;
         const doc = frame.contentDocument;
         if (href && href !== "about:blank" && doc?.readyState === "complete") settle();
       } catch {
-        // Reading throws only once a cross-origin page has replaced the blank
-        // frame, which means the target site has loaded into the viewer.
         settle();
       }
     };
     check();
-    const early = window.setInterval(() => (done ? window.clearInterval(early) : check()), 500);
-    frame.addEventListener("load", settle);
-    // Same-origin apps change route after load (e.g. to sign-in); re-check.
-    const poll = window.setInterval(() => done && settle(), 3000);
+    const early = window.setInterval(check, 500);
     const watchdog = window.setTimeout(() => {
-      if (done) return;
-      if (!retried.current) {
-        retried.current = true;
-        setGen((g) => g + 1);
-      } else {
+      if (!loaded) {
         setStatus("slow");
+        update(preloadId, "slow");
       }
     }, 45000);
     return () => {
-      frame.removeEventListener("load", settle);
-      window.clearInterval(poll);
       window.clearInterval(early);
       window.clearTimeout(watchdog);
     };
-  }, [gen]);
+  }, [loaded, preloadId, update]);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
 
@@ -143,8 +137,9 @@ export function LiveFrame({
             onClick={() => {
               setLoaded(false);
               setStatus("loading");
-              retried.current = false;
-              setGen((g) => g + 1);
+              update(preloadId, "requested");
+              const frame = frameRef.current;
+              if (frame) frame.src = src;
             }}
             aria-label="Reload this page"
             title="Reload"
@@ -186,10 +181,14 @@ export function LiveFrame({
       </div>
       <div ref={viewportRef} className="relative aspect-[9/12] w-full overflow-hidden bg-paper-100">
         <iframe
-          key={gen}
           ref={frameRef}
           title={title}
           src={src}
+          onLoad={settle}
+          onError={() => {
+            setStatus("slow");
+            update(preloadId, "failed");
+          }}
           className={cn(
             "absolute left-0 top-0 max-w-none origin-top-left transition-opacity duration-500",
             loaded ? "opacity-100" : "opacity-0",

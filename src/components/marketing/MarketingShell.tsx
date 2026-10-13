@@ -246,9 +246,10 @@ function AuthEntry({ signedIn, onNavigate }: { signedIn: boolean; onNavigate?: (
             await supabase.auth.signOut();
             navigate({ to: "/", replace: true });
           }}
-          className="hover:text-ink-950"
+          className="min-w-0 py-1 text-left hover:text-ink-950"
         >
-          Sign out
+          <span className="block whitespace-nowrap">Sign</span>
+          <span className="block whitespace-nowrap">out</span>
         </button>
       </div>
     );

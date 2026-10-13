@@ -418,7 +418,7 @@ export function MarketingHome() {
           />
           <div className="relative mt-10 overflow-hidden border border-charcoal bg-charcoal px-5 py-6 shadow-sm sm:px-8 sm:py-8">
             <div aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-gold-500" />
-            <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(280px,380px)] md:items-end md:gap-12">
+            <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(280px,380px)] md:items-center md:gap-12">
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-300">
                   Country value estimate

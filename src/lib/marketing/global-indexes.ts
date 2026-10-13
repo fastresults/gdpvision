@@ -14,6 +14,8 @@ import wefLogo from "@/assets/measuring-bodies/wef.svg.asset.json";
 import wipoLogo from "@/assets/measuring-bodies/wipo.svg.asset.json";
 import unodcLogo from "@/assets/measuring-bodies/unodc.svg.asset.json";
 import unDesaLogo from "@/assets/measuring-bodies/un-desa.svg.asset.json";
+import imfLogo from "@/assets/measuring-bodies/imf.svg.asset.json";
+import fatfLogo from "@/assets/measuring-bodies/fatf.png.asset.json";
 
 export interface GlobalIndex {
   name: string;
@@ -63,6 +65,7 @@ export const MEASURING_BODIES: MeasuringBody[] = [
   },
   {
     key: "imf",
+    logo: imfLogo.url,
     short: "IMF",
     name: "International Monetary Fund",
     area: "Macroeconomy · fiscal health",
@@ -201,6 +204,7 @@ export const MEASURING_BODIES: MeasuringBody[] = [
   },
   {
     key: "fatf",
+    logo: fatfLogo.url,
     short: "FATF",
     name: "Financial Action Task Force",
     area: "Financial integrity",

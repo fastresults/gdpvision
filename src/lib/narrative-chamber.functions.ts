@@ -35,7 +35,14 @@ export interface SignalRow {
   recommendation: SignalRecommendation | null;
   metadata: Json;
   created_at: string;
+  pinned_at?: string | null;
+  flagged_at?: string | null;
+  flag_note?: string | null;
 }
+
+export const SIGNAL_WINDOW_DAYS = 30;
+const LIVE_OR_KEPT = () =>
+  `created_at.gte.${new Date(Date.now() - SIGNAL_WINDOW_DAYS * 86_400_000).toISOString()},pinned_at.not.is.null,flagged_at.not.is.null`;
 
 export type PriorityCounts = Record<1 | 2 | 3 | 4 | 5, number>;
 
@@ -47,7 +54,7 @@ export interface SignalListResult {
 }
 
 const SIGNAL_COLUMNS =
-  "id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,scope,severity,reach,sentiment,recommendation,metadata,created_at";
+  "id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,scope,severity,reach,sentiment,recommendation,metadata,created_at,pinned_at,flagged_at,flag_note";
 
 export const listSignals = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -67,6 +74,7 @@ export const listSignals = createServerFn({ method: "GET" })
       // Hide clustered siblings — only primary signals show in the rail.
       .or("story_primary.is.true,story_primary.is.null")
       .neq("state", "duplicate")
+      .or(LIVE_OR_KEPT())
       .order("created_at", { ascending: false })
       .limit(200);
     let countQ = context.supabase
@@ -74,7 +82,8 @@ export const listSignals = createServerFn({ method: "GET" })
       .select("id", { count: "exact", head: true })
       .eq("scope_key", data.countryCode)
       .or("story_primary.is.true,story_primary.is.null")
-      .neq("state", "duplicate");
+      .neq("state", "duplicate")
+      .or(LIVE_OR_KEPT());
     if (data.state) {
       q = q.eq("state", data.state);
       countQ = countQ.eq("state", data.state);
@@ -131,6 +140,73 @@ export const listSignalsAtPriority = createServerFn({ method: "GET" })
     return (rows ?? []) as unknown as SignalRow[];
   });
 
+/** Pinned / flagged signals (any age) plus retention status for the rail. */
+export const getSignalRetention = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ countryCode: z.string().min(2).max(16) }).parse(data))
+  .handler(async ({ data, context }) => {
+    const [{ data: kept, error }, { data: runs }] = await Promise.all([
+      context.supabase
+        .from("intake_items")
+        .select(SIGNAL_COLUMNS)
+        .eq("scope_key", data.countryCode)
+        .or("pinned_at.not.is.null,flagged_at.not.is.null")
+        .order("created_at", { ascending: false })
+        .limit(500),
+      context.supabase
+        .from("narrative_retention_runs")
+        .select("removed,ran_at")
+        .eq("scope_key", data.countryCode)
+        .order("ran_at", { ascending: false })
+        .limit(50),
+    ]);
+    if (error) throw new Error(error.message);
+    const lastAt = runs?.[0]?.ran_at ?? null;
+    const lastDay = lastAt ? lastAt.slice(0, 10) : null;
+    const lastRemoved = (runs ?? [])
+      .filter((r) => r.ran_at.slice(0, 10) === lastDay)
+      .reduce((n, r) => n + r.removed, 0);
+    return { kept: (kept ?? []) as unknown as SignalRow[], lastCleanupAt: lastAt, lastRemoved };
+  });
+
+export const toggleSignalMark = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        mark: z.enum(["pin", "flag"]),
+        on: z.boolean(),
+        note: z.string().max(280).optional(),
+        confirmLoss: z.boolean().optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("intake_items")
+      .select("id,created_at,pinned_at,flagged_at")
+      .eq("id", data.id)
+      .single();
+    if (error || !row) throw new Error(error?.message ?? "Signal not found");
+    const old = Date.now() - new Date(row.created_at).getTime() > SIGNAL_WINDOW_DAYS * 86_400_000;
+    const otherKeeps = data.mark === "pin" ? !!row.flagged_at : !!row.pinned_at;
+    const willExpire = !data.on && old && !otherKeeps;
+    if (willExpire && !data.confirmLoss) return { ok: false as const, willExpire: true };
+    const now = new Date().toISOString();
+    const patch =
+      data.mark === "pin"
+        ? { pinned_at: data.on ? now : null, pinned_by: data.on ? context.userId : null }
+        : {
+            flagged_at: data.on ? now : null,
+            flagged_by: data.on ? context.userId : null,
+            flag_note: data.on ? (data.note?.trim() || null) : null,
+          };
+    const { error: upErr } = await context.supabase.from("intake_items").update(patch).eq("id", data.id);
+    if (upErr) throw new Error(upErr.message);
+    return { ok: true as const, willExpire };
+  });
+
 export const getSignal = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
@@ -138,7 +214,7 @@ export const getSignal = createServerFn({ method: "GET" })
     const { data: row, error } = await context.supabase
       .from("intake_items")
       .select(
-        "id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,scope,severity,reach,sentiment,recommendation,metadata,created_at",
+        SIGNAL_COLUMNS,
       )
       .eq("id", data.id)
       .single();

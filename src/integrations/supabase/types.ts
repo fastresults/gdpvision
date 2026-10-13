@@ -4581,9 +4581,14 @@ export type Database = {
           created_at: string
           duplicate_of: string | null
           final_weight: number | null
+          flag_note: string | null
+          flagged_at: string | null
+          flagged_by: string | null
           harvest_run_id: string | null
           id: string
           metadata: Json
+          pinned_at: string | null
+          pinned_by: string | null
           proposed_weight: number
           reach: number | null
           recommendation: string | null
@@ -4606,9 +4611,14 @@ export type Database = {
           created_at?: string
           duplicate_of?: string | null
           final_weight?: number | null
+          flag_note?: string | null
+          flagged_at?: string | null
+          flagged_by?: string | null
           harvest_run_id?: string | null
           id?: string
           metadata?: Json
+          pinned_at?: string | null
+          pinned_by?: string | null
           proposed_weight?: number
           reach?: number | null
           recommendation?: string | null
@@ -4631,9 +4641,14 @@ export type Database = {
           created_at?: string
           duplicate_of?: string | null
           final_weight?: number | null
+          flag_note?: string | null
+          flagged_at?: string | null
+          flagged_by?: string | null
           harvest_run_id?: string | null
           id?: string
           metadata?: Json
+          pinned_at?: string | null
+          pinned_by?: string | null
           proposed_weight?: number
           reach?: number | null
           recommendation?: string | null
@@ -6714,6 +6729,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      narrative_retention_runs: {
+        Row: {
+          id: string
+          ran_at: string
+          removed: number
+          scope_key: string
+        }
+        Insert: {
+          id?: string
+          ran_at?: string
+          removed?: number
+          scope_key: string
+        }
+        Update: {
+          id?: string
+          ran_at?: string
+          removed?: number
+          scope_key?: string
+        }
+        Relationships: []
       }
       onboarding_citations: {
         Row: {
@@ -11329,6 +11365,10 @@ export type Database = {
           id: string
           metadata: Json
         }[]
+      }
+      purge_stale_signals: {
+        Args: { _batch?: number; _max_batches?: number }
+        Returns: number
       }
       record_egov_prd_view: {
         Args: { _link_id: string; _user_agent: string; _visitor_hash: string }

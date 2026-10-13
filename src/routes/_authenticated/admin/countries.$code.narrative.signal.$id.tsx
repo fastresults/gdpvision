@@ -9,6 +9,7 @@ import { StrategyPanel } from "@/components/narrative/StrategyPanel";
 import { DraftStudio } from "@/components/narrative/DraftStudio";
 import { LineageChevron } from "@/components/narrative/LineageChevron";
 import { PriorityPill } from "@/components/narrative/PriorityPill";
+import { SignalMarks } from "@/components/narrative/SignalMarks";
 
 function signalQuery(id: string) {
   return queryOptions({
@@ -54,6 +55,7 @@ function SignalWorkspace() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <PriorityPill signal={signal} size="md" />
+          <SignalMarks key={signal.id} signal={signal} size={16} />
           <LineageChevron
             hasSignal
             hasDossier={!!signal.recommendation}

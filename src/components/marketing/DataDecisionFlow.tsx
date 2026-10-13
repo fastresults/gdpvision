@@ -2,6 +2,7 @@ import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { SCENARIOS, CHAMBER_NAMES } from "./dataDecisionScenarios";
+import { FlowDiagramStage } from "./FlowDiagramStage";
 
 type Path = "evidence" | "safeguards" | "money" | "delivery";
 type Band = 0 | 1 | 2 | 3 | 4;
@@ -532,7 +533,8 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
         presentation ? "gap-3" : "gap-4",
       )}
     >
-      <div className="flex min-w-0 flex-col md:min-h-0 md:flex-1">
+      <FlowDiagramStage fitted={presentation}>
+      <div className="flex min-w-0 flex-col md:h-full md:min-h-0 md:flex-1">
         <div
           className={cn(
             "flex flex-wrap items-center gap-3 shrink-0",
@@ -913,6 +915,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
         </ol>
       </div>
 
+      </FlowDiagramStage>
       <aside
         id="decision-flow-guide"
         className={cn(
@@ -938,6 +941,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
             aria-expanded={trayOpen}
             aria-controls="decision-flow-guide-content"
             aria-label={trayOpen ? "Collapse how this flow works" : "Expand how this flow works"}
+            title={trayOpen ? "Collapse guide" : "Expand guide"}
             onClick={() => setTrayOpen((open) => !open)}
           >
             {trayOpen ? (

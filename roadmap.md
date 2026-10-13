@@ -4,7 +4,7 @@
 
 # Roadmap
 
-- [ ] Add authentic official logos above all ten measuring-body cards and verify scrolling and image rendering
+- [x] Add authentic official logos above all ten measuring-body cards and verify scrolling and image rendering
 
 - [x] Put a "By Chamber" entry plate beside "Data & Decision Flow" on the homepage hero, above the fold
 - [x] Move the two entry plates below the animated circle, keeping the circle clear of the top bar and both plates in view

@@ -88,7 +88,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
       aria-expanded={detailsOpen}
       aria-controls="nav-details"
       onClick={() => setDetailsOpen((v) => !v)}
-      className="btn-ghost shrink-0 whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.18em]"
+      className="btn-ghost flex-col items-start shrink-0 whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.18em]"
     >
       {detailsOpen ? (
         <span className="block text-left">

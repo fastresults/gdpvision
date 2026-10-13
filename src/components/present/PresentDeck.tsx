@@ -186,7 +186,6 @@ function PresentationFlowStage() {
 }
 
 function ChamberJourneyStep() {
-  const [ref, seen] = useInView<HTMLDivElement>(0.15);
   return (
     <Step id="journeys" label="By Chamber" tone="tint">
       <Reveal>
@@ -203,10 +202,9 @@ function ChamberJourneyStep() {
         </p>
       </Reveal>
       <div
-        ref={ref}
         className="mt-6 flex min-h-[70dvh] w-full min-w-0 lg:h-[80dvh] lg:overflow-hidden"
       >
-        {seen ? <ChamberDecisionJourneys /> : null}
+        <ChamberDecisionJourneys />
       </div>
     </Step>
   );

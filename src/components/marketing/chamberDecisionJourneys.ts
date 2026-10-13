@@ -3,12 +3,12 @@ import { MORE_BENEFITS, PROFILES, type JourneyProfile } from "./chamberJourneyEx
 import { visualAudit } from "./journeys/journeyVisuals";
 
 export const JOURNEY_ACTS = [
-  "The question",
-  "Ask GDPVision",
-  "Governed evidence",
-  "Select the Chamber",
-  "Open the Chamber",
-  "Prime Minister value",
+  "The national priority",
+  "Ask the right question",
+  "Bring the evidence together",
+  "Choose the right workspace",
+  "Work through the decision",
+  "Value for government and the economy",
 ] as const;
 
 export interface ChamberMethod {
@@ -21,7 +21,7 @@ export interface ChamberMethod {
 export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
   "01": {
     index: "01",
-    name: "National Ledger",
+    name: "National Evidence Ledger",
     stages: [
       "Frame the question",
       "Assemble cited figures",
@@ -33,7 +33,7 @@ export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
   },
   "02": {
     index: "02",
-    name: "Portfolio Workspaces",
+    name: "Ministry Growth & Delivery",
     stages: [
       "Read the mandate",
       "Map ministerial influence",
@@ -45,11 +45,11 @@ export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
   },
   "03": {
     index: "03",
-    name: "Scenario Engine",
+    name: "Policy Scenario Engine",
     stages: [
       "Establish the baseline",
-      "Apply shock and levers",
-      "Model GDP, debt and FX",
+      "Test a change or disruption",
+      "Compare projected economic effects",
       "Compare the trade-offs",
       "Prepare the Cabinet option",
     ],
@@ -57,7 +57,7 @@ export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
   },
   "04": {
     index: "04",
-    name: "FDI Transition Studio",
+    name: "Investment & Resilience Studio",
     stages: [
       "Measure the exposure",
       "Test national readiness",
@@ -69,7 +69,7 @@ export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
   },
   "05": {
     index: "05",
-    name: "Narrative Chamber",
+    name: "National Confidence & Communications",
     stages: [
       "Receive the signal",
       "Establish verified facts",
@@ -81,7 +81,7 @@ export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
   },
   "06": {
     index: "06",
-    name: "Cabinet Room",
+    name: "Cabinet Decisions & Delivery",
     stages: [
       "Order the decision queue",
       "Check evidence readiness",
@@ -93,7 +93,7 @@ export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
   },
   "07": {
     index: "07",
-    name: "Persona Lab",
+    name: "Policy & Leadership Persona Lab",
     stages: [
       "Frame the proposition",
       "Design the audiences",
@@ -105,7 +105,7 @@ export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
   },
   "08": {
     index: "08",
-    name: "Mandate Compact",
+    name: "Mandate Delivery & Accountability",
     stages: [
       "Read the pledge",
       "Set the governing pillar",
@@ -117,7 +117,7 @@ export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
   },
   "09": {
     index: "09",
-    name: "Digital Government Studio",
+    name: "Digital Government Planning Studio",
     stages: [
       "Define the service problem",
       "Write governed requirements",
@@ -129,7 +129,7 @@ export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
   },
   "10": {
     index: "10",
-    name: "Sector Studio",
+    name: "Sector Growth & Delivery Studio",
     stages: [
       "Read sector evidence",
       "Choose the priority",

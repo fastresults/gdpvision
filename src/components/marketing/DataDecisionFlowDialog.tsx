@@ -163,7 +163,7 @@ export function DataDecisionFlowDialog() {
             mode="national"
             emblem="lens"
             headline="Data & Decision Flow"
-            caption="Engage the National Decision Engine"
+            caption="From national evidence to government action"
             aria-haspopup="dialog"
             onPick={() => {
               setMode("national");
@@ -174,7 +174,7 @@ export function DataDecisionFlowDialog() {
             mode="chamber"
             emblem="grid"
             headline="By Chamber"
-            caption="Follow one decision through its Chamber"
+            caption="See a national priority worked through"
             aria-haspopup="dialog"
             onPick={() => {
               setMode("chamber");
@@ -188,17 +188,17 @@ export function DataDecisionFlowDialog() {
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
-                  GDPVision Decision Engine
+                  GDPVision · Evidence into action
                 </div>
                 <DialogPrimitive.Title className="mt-1 font-display text-2xl text-ink-950 md:text-3xl">
                   {mode === "national"
-                    ? "How a nation decides faster — and why that raises GDP"
-                    : "Follow one decision through the Chamber built to handle it"}
+                    ? "How government turns national evidence into economic progress."
+                    : "See how GDPVision helps government tackle a real national priority."}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="mt-1 max-w-2xl text-[14px] text-ink-700">
                   {mode === "national"
-                    ? "One flow, five steps: evidence in, protected, worked, decided, GDP up."
-                    : "Choose a real scenario, watch GDPVision select the Chamber, then open its method and executive value."}
+                    ? "See how GDPVision brings information together, protects sensitive records and helps government choose, approve and deliver action—with a clear record of who is responsible."
+                    : "Choose a situation facing government. Follow it into a Chamber—a connected digital workspace—and see the evidence, options and actions it brings together for Cabinet and ministries."}
                 </DialogPrimitive.Description>
               </div>
               <div

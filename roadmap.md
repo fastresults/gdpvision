@@ -4,6 +4,8 @@
 
 # Roadmap
 
+- [ ] Refine Vault value-led copy, add six engraved companion illustrations and verify layouts and existing interactions
+
 - [x] Streamline both decision presentations: focused browser, readable scenes, stage-aware guide and reliable playback; verify both views
 
 - [x] Dock “How this flow works” to the right edge as an expanded-by-default collapsible tray

@@ -6,6 +6,8 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 
 ## Cardinal rules
 
+- **Vault presentation**: keep the opening decision circuit separate from section artwork; render companion engravings through `Illustration` using asset pointers so artwork remains contained and data-control behaviour stays unchanged.
+
 - **Decision playback**: national and Chamber examples share `PlaybackStrip`; manual navigation pauses, replay restarts the example, and Chamber selection follows an explicitly sorted index so controls and story state stay aligned.
 
 - **Decision presentation copy**: keep scenario title keys and route edges stable; derive stage inputs from route source nodes rather than parsing display captions, so plain-language copy changes cannot break journey lookup or evidence assembly.

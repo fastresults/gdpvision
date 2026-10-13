@@ -4,7 +4,7 @@
 
 # Roadmap
 
-- [ ] Rewrite and reorder the business case around economic value; correct evidence and assurance claims; verify reading flow and links
+- [x] Rewrite and reorder the business case around economic value; correct evidence and assurance claims; verify reading flow and links
 
 - [x] Refine Vault value-led copy, add six engraved companion illustrations and verify layouts and existing interactions
 

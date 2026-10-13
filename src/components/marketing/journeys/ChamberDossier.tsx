@@ -23,9 +23,9 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
       <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <div className="min-w-0">
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
-            Chamber {journey.chamber} · work through the decision · {journey.profile.kind}
+            Working stage {active + 1} of 5 · {journey.profile.kind}
           </div>
-          <h3 className="font-display text-2xl text-ink-950">{journey.method.name}</h3>
+          <h3 className="font-display text-2xl text-ink-950">{current.stage}</h3>
           <div className="mt-0.5 text-[11px] text-ink-500">
             Evidence used: {chips.length} sources · {inCountry} kept in country
           </div>
@@ -64,9 +64,9 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
         ))}
       </ol>
 
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-[180px_minmax(0,1fr)_240px]">
+      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[150px_minmax(0,1fr)_200px]">
         {/* Information used */}
-        <div className="border border-line-200 bg-paper-0 p-3">
+        <div className="p-2">
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
             Information used
           </div>
@@ -94,48 +94,27 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
         </div>
 
         {/* Workbench */}
-        <div key={active} className="cjj-beat border border-ink-700 bg-paper-0 p-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold-500 font-mono text-[12px] text-gold-500">
-              0{active + 1}
-            </span>
-            <strong className="font-display text-xl leading-tight text-ink-950">
-              {current.stage}
-            </strong>
-          </div>
+        <div key={active} className="cjj-beat min-w-0 p-2">
+          <div className="text-[12px] font-semibold text-gold-500">Decision to prepare</div>
+          <p className="mt-1 text-[15px] leading-snug text-ink-950">{step.ask}</p>
+          <p className="mt-2 text-[13px] text-ink-700">{stageOperation(journey, active)}</p>
+          {stageBeat >= 3 && <div className="cjj-beat mt-3 border-l-2 border-gold-500 pl-3"><span className="text-[12px] font-semibold text-ink-500">Finding</span><p className="mt-1 text-[15px] leading-snug text-ink-950">{stageFinding(journey, current, active)}</p></div>}
           <div className="mt-3 grid grid-cols-3 gap-1" aria-label="Decision checks">
             {["Question", "Evidence", "Action", "Finding", "Check", "Approval"].map((label, i) => <span key={label} className={cn("border px-1 py-1 text-center font-mono text-[10px] uppercase", i <= stageBeat ? "border-gold-500 text-ink-950" : "border-line-200 text-ink-500")}>{label}</span>)}
           </div>
-          <dl className="mt-3 divide-y divide-line-100 text-[13px]">
-            {[
-              ["What needs deciding", step.ask],
-              ["Evidence used", current.input],
-              ["What we do", stageOperation(journey, active)],
-              ["What this shows", stageFinding(journey, current, active)],
-              ["What must be checked", step.safeguard],
-              ["Who reviews or approves", step.signoff],
-            ].map(([k, v], i) => i <= stageBeat && (
-              <div
-                key={k}
-                className="cjj-beat grid grid-cols-[100px_minmax(0,1fr)] gap-3 py-2"
-                style={{ animationDelay: `${0.15 + i * 0.18}s` }}
-              >
-                <dt
-                  className={cn(
-                    "font-mono text-[10px] uppercase tracking-[0.16em]",
-                    k === "What must be checked" ? "text-gold-500" : "text-ink-500",
-                  )}
-                >
-                  {k}
-                </dt>
-                <dd className="leading-snug text-ink-950">{v}</dd>
-              </div>
-            ))}
+          <dl className="mt-3 space-y-3 text-[14px]">
+            {stageBeat >= 1 && <div><dt className="text-[12px] font-semibold text-ink-500">Evidence used</dt><dd className="mt-1 leading-snug text-ink-950">{current.input}</dd></div>}
+            {stageBeat >= 4 && <div className="cjj-beat border-t border-line-200 pt-3"><dt className="text-[12px] font-semibold text-gold-500">Required check</dt><dd className="mt-1 leading-snug text-ink-950">{step.safeguard}</dd></div>}
+            {stageBeat >= 5 && <div className="cjj-beat"><dt className="text-[12px] font-semibold text-ink-500">Who reviews or approves</dt><dd className="mt-1 leading-snug text-ink-950">{step.signoff}</dd></div>}
           </dl>
+          <details className="mt-4 border-t border-line-200 pt-2" onClick={(event) => event.stopPropagation()}>
+            <summary className="cursor-pointer text-[12px] font-semibold text-ink-700">Full stage details</summary>
+            <dl className="mt-2 space-y-2 text-[13px] text-ink-700"><div><dt className="font-semibold">Finding to establish</dt><dd>{stageFinding(journey, current, active)}</dd></div><div><dt className="font-semibold">Checks and review</dt><dd>{step.safeguard} · {step.signoff}</dd></div></dl>
+          </details>
         </div>
 
         {/* Record for decision */}
-        <div className="relative border border-line-200 bg-paper-50 p-3">
+        <div className="relative border-l border-line-200 p-3">
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
             Record for decision
           </div>

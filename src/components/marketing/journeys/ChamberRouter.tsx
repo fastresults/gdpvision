@@ -6,34 +6,21 @@ import { questionSignals, routing } from "./journeyRouting";
 
 /** Act 4 — route through five auditable beats. */
 export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat: number }) {
-  const { keywords, tags } = questionSignals(journey);
+  const { tags } = questionSignals(journey);
   const fits = routing(journey);
   const lead = fits.find((f) => f.role === "lead");
   if (!lead) return null;
   const support = fits.filter((f) => f.role === "support");
-  const pattern = new RegExp(`(${keywords.map((k) => k.replace(/[^\w-]/g, "")).join("|")})`, "g");
+
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-auto px-4 py-5 md:px-7">
       {/* Beat 1 — read the question */}
-      <div className="cjj-beat border border-line-200 bg-paper-0 p-4">
+      <div className="cjj-beat">
         <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
           01 · GDPVision reads the question
         </div>
-        <p className="mt-2 font-display text-lg leading-snug text-ink-950 md:text-xl">
-          {journey.question.split(pattern).map((part, i) =>
-            keywords.includes(part) ? (
-              <mark
-                key={i}
-                className="cjj-mark bg-transparent text-gold-500 underline decoration-gold-500 underline-offset-4"
-              >
-                {part}
-              </mark>
-            ) : (
-              <span key={i}>{part}</span>
-            ),
-          )}
-        </p>
+        <p className="mt-2 font-display text-xl leading-snug text-ink-950">Match this priority to the right expertise.</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {tags.map((tag, i) => (
             <span
@@ -54,7 +41,7 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
             <span>02 · Compare the ten workspaces</span>
             <Explain id="journeys.fit">Illustrative fit</Explain>
           </div>
-          <ol className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-5">
+          <ol className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-5">
             {fits.map((f, i) => {
               const settled = beat >= 2;
               return (
@@ -67,7 +54,7 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
                       : f.role === "support"
                         ? "border-ink-700"
                         : "border-line-200",
-                    settled && f.role === "other" && "opacity-45",
+                    
                   )}
                   style={{ animationDelay: `${i * 0.08}s` }}
                 >

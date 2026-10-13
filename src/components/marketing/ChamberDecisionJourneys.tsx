@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import { PlaybackStrip } from "./journeys/PlaybackStrip";
 import { cn } from "@/lib/utils";
 import { CHAMBER_NAMES } from "./dataDecisionScenarios";
 import { CHAMBER_JOURNEYS, JOURNEY_ACTS, type ChamberJourney } from "./chamberDecisionJourneys";
@@ -12,7 +13,7 @@ import { InquiryDesk } from "./journeys/InquiryDesk";
 import { visualAudit } from "./journeys/journeyVisuals";
 
 const BEAT_MS = [4200, 3800, 4200, 4800, 3800, 4200] as const;
-const CHAMBER_INDICES = Object.keys(CHAMBER_NAMES);
+const CHAMBER_INDICES = Object.keys(CHAMBER_NAMES).sort((a, b) => Number(a) - Number(b));
 
 function beatCount(act: number, journey: ChamberJourney) {
   return [4, 6, 5, 5, journey.stageDetail.length * 6, 6][act] ?? 1;
@@ -88,7 +89,7 @@ export function ChamberDecisionJourneys() {
   };
   const goToAct = (next: number, nextBeat = 0) => {
     setAct(Math.max(0, Math.min(JOURNEY_ACTS.length - 1, next)));
-    setBeat(nextBeat);
+    setBeat(Math.max(0, Math.min(beatCount(Math.max(0, Math.min(JOURNEY_ACTS.length - 1, next)), journey) - 1, nextBeat)));
     setCycle((value) => value + 1);
   };
   const beatsHere = beatCount(act, journey);
@@ -104,28 +105,10 @@ export function ChamberDecisionJourneys() {
   return (
     <div className="flex w-full min-h-0 min-w-0 flex-1 flex-col gap-4 lg:flex-row">
       <aside className="w-full shrink-0 border-b border-line-200 pb-4 lg:max-h-full lg:w-[300px] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r lg:pb-4 lg:pr-4">
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-500">
-          Example national priorities
-        </div>
-        <div className="mt-2 flex gap-2 overflow-x-auto pb-2 lg:grid lg:grid-cols-2 lg:overflow-visible">
-          {CHAMBER_JOURNEYS.filter((item) => item.featured).map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => chooseJourney(item)}
-              aria-pressed={item.id === journey.id}
-              className={cn(
-                "card-choice min-w-44 px-3 py-2 text-left lg:min-w-0",
-                item.id === journey.id && "card-choice-active",
-              )}
-            >
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] opacity-70">
-                {item.chamber} · {item.method.name}
-              </span>
-              <span className="mt-1 block text-[12px] leading-snug">{item.title}</span>
-            </button>
-          ))}
-        </div>
+        <div className="text-[14px] font-semibold text-ink-950">Explore a national priority</div>
+        <button type="button" className="btn-ghost mt-2 w-full justify-start text-left text-[12px]" onClick={() => chooseJourney(CHAMBER_JOURNEYS[openingIndex < 0 ? 0 : openingIndex])}>
+          <ArrowUpRight className="h-4 w-4 shrink-0" /> Start with the tourism example
+        </button>
         <div className="mt-4 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
           Choose a workspace · Chamber 01–10
         </div>
@@ -141,7 +124,7 @@ export function ChamberDecisionJourneys() {
               role="tab"
               aria-selected={chamber === index}
               aria-label={`Chamber ${index}, ${CHAMBER_NAMES[index]}`}
-              onClick={() => setChamber(index)}
+              onClick={() => { const next = CHAMBER_JOURNEYS.find((item) => item.chamber === index); if (next) chooseJourney(next); }}
               className={cn(
                 "card-choice h-9 min-w-11 px-2 font-mono text-[11px]",
                 chamber === index && "card-choice-active",
@@ -164,7 +147,7 @@ export function ChamberDecisionJourneys() {
                 item.id === journey.id && "card-choice-active",
               )}
             >
-              <span className="block font-mono text-[10px] uppercase tracking-[0.14em] opacity-70">
+              <span className="block font-mono text-[10px] font-semibold opacity-80">
                 {item.title}
               </span>
               <span className="mt-1 block text-[12px] leading-snug">{item.question}</span>
@@ -192,9 +175,9 @@ export function ChamberDecisionJourneys() {
               type="button"
               role="tab"
               aria-selected={act === index}
-              onClick={() => goToAct(index)}
+              onClick={() => { goToAct(index); setPlaying(false); }}
               className={cn(
-                "card-choice min-w-[150px] flex-1 px-2 py-2 text-left",
+                "card-choice min-w-[112px] flex-1 px-2 py-2 text-left",
                 act === index && "card-choice-active",
               )}
             >
@@ -205,12 +188,13 @@ export function ChamberDecisionJourneys() {
         </div>
 
         <div
-          key={`${journey.id}-${act}-${cycle}`}
+          key={`${journey.id}-${act}`}
           data-held={!playing || undefined}
-          onClick={() => !reduce && setPlaying((value) => !value)}
+          onClick={(event) => { if ((event.target as HTMLElement).closest("button, a, summary, details")) return; if (!reduce) setPlaying((value) => !value); }}
           role="button"
           tabIndex={0}
           onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return;
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               if (!reduce) setPlaying((value) => !value);
@@ -223,54 +207,14 @@ export function ChamberDecisionJourneys() {
           {!playing && !reduce && <span className="pointer-events-none absolute right-3 top-3 border border-gold-500 bg-ink-950 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-gold-300">Paused</span>}
         </div>
 
-        <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={stepBack}
-              disabled={act === 0 && beat === 0}
-            >
-              <ChevronLeft className="h-4 w-4" /> Previous
-            </button>
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={() => {
-                setBeat(0);
-                setCycle((value) => value + 1);
-                setPlaying(!reduce);
-              }}
-            >
-              <RotateCcw className="h-4 w-4" /> Replay
-            </button>
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={stepForward}
-              disabled={act === JOURNEY_ACTS.length - 1}
-            >
-              Next <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setPlaying((value) => !value)}
-              disabled={reduce}
-            >
-              {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              {playing ? "Pause" : "Play"}
-            </button>
-            <button
-              type="button"
-              className="btn-accent"
-              onClick={() => goToAct(JOURNEY_ACTS.length - 1, beatCount(JOURNEY_ACTS.length - 1, journey) - 1)}
-            >
-              <Sparkles className="h-4 w-4" /> Value for government
-            </button>
-          </div>
+        <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-line-200 pt-2">
+          <PlaybackStrip playing={playing} reduced={reduce} first={act === 0 && beat === 0} last={act === JOURNEY_ACTS.length - 1 && beat === beatsHere - 1}
+            progress={`${act + 1} / ${JOURNEY_ACTS.length} · Step ${beat + 1} / ${beatsHere}`}
+            onPrevious={() => { setPlaying(false); stepBack(); }} onNext={() => { setPlaying(false); stepForward(); }}
+            onReplay={() => { goToAct(0); setPlaying(!reduce); }} onToggle={() => setPlaying((value) => !value)} />
+          <button type="button" className="btn-ghost text-[12px]" onClick={() => { goToAct(JOURNEY_ACTS.length - 1, beatCount(JOURNEY_ACTS.length - 1, journey) - 1); setPlaying(false); }}>
+            Government value <ArrowUpRight className="h-4 w-4" />
+          </button>
         </div>
         <p className="sr-only">
           Act {act + 1} of {JOURNEY_ACTS.length}: {JOURNEY_ACTS[act]}.{" "}

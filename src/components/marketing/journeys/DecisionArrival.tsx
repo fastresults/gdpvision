@@ -16,7 +16,7 @@ export function DecisionArrival({ journey, beat }: { journey: ChamberJourney; be
               <RadioTower className="h-5 w-5 text-gold-500" />
               <span className="font-mono text-[10px] uppercase text-gold-500">{journey.profile.kind}</span>
             </div>
-            <blockquote className="mt-4 font-display text-lg leading-snug text-ink-950">“{journey.question}”</blockquote>
+            <blockquote className="mt-4 font-display text-lg leading-snug text-ink-950">{journey.title}</blockquote>
           </div>
         </div>
 
@@ -46,7 +46,7 @@ export function DecisionArrival({ journey, beat }: { journey: ChamberJourney; be
           )}
         </div>
 
-        <div className={cn("opacity-25 transition-opacity duration-500", beat >= 3 && "cjj-beat opacity-100")}>
+        <div className={cn("transition-opacity duration-500", beat >= 3 ? "cjj-beat" : "hidden lg:invisible lg:block")}>
           <BeatLabel index={3}>Illustrative decision time</BeatLabel>
           <div className="mt-3 border border-gold-500 bg-ink-950 p-4 text-paper-0">
             <Clock3 className="h-5 w-5 text-gold-500" />

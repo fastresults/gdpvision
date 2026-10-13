@@ -26,33 +26,71 @@ function useSignedIn() {
   return signedIn;
 }
 
-const SECTION_LINKS = [
-  { hash: "instrument", label: "How it works" },
-  { hash: "sovereignty", label: "Sovereignty" },
-] as const;
+const DETAILS_KEY = "gdpv.navDetails";
+
+function useDetailsUnlocked() {
+  const [open, setOpen] = useState(false);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    try {
+      setOpen(window.localStorage.getItem(DETAILS_KEY) === "1");
+    } catch {
+      /* storage unavailable */
+    }
+    setReady(true);
+  }, []);
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      window.localStorage.setItem(DETAILS_KEY, open ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [open, ready]);
+  return [open, setOpen] as const;
+}
+
+type NavLink = { to: string; hash?: string; label: string; maxCh: number };
 
 // Desktop nav labels are capped at two wrapped rows: maxCh is the widest a
 // row may run (in ch) so the label breaks at the intended word boundary.
-const NAV_LINKS: Array<{
-  to: string;
-  hash?: string;
-  label: string;
-  maxCh: number;
-  accent?: boolean;
-}> = [
-  { to: "/", hash: "instrument", label: "How it works", maxCh: 8 },
+const PRIMARY_LINK: NavLink = { to: "/", hash: "instrument", label: "How it works", maxCh: 8 };
+
+const DETAIL_LINKS: NavLink[] = [
   { to: "/", hash: "sovereignty", label: "Sovereignty", maxCh: 13.5 },
   { to: "/vault", label: "The Vault", maxCh: 7 },
   { to: "/record", label: "The National Record", maxCh: 16 },
   { to: "/business-case", label: "The business case", maxCh: 16 },
   { to: "/business-case/brief", label: "The Decision Brief", maxCh: 16 },
   { to: "/op-eds", label: "The writing", maxCh: 10 },
-  { to: "/", hash: "briefing", label: "Request a Cabinet briefing", maxCh: 21, accent: true },
 ];
+
+function NavItem({ link }: { link: NavLink }) {
+  return (
+    <Link to={link.to} hash={link.hash} className="min-w-0 py-1 hover:text-ink-950">
+      <span className="block" style={{ maxWidth: `${link.maxCh}ch` }}>
+        {link.label}
+      </span>
+    </Link>
+  );
+}
 
 export function MarketingShell({ children }: MarketingShellProps) {
   const signedIn = useSignedIn();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useDetailsUnlocked();
+
+  const toggle = (
+    <button
+      type="button"
+      aria-expanded={detailsOpen}
+      aria-controls="nav-details"
+      onClick={() => setDetailsOpen((v) => !v)}
+      className="btn-ghost shrink-0 whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.18em]"
+    >
+      {detailsOpen ? "Hide details" : "Click to enable details"}
+    </button>
+  );
 
   return (
     <div className="min-h-dvh overflow-x-clip bg-paper-0 text-ink-950 font-sans antialiased">
@@ -63,33 +101,46 @@ export function MarketingShell({ children }: MarketingShellProps) {
         Skip to content
       </a>
       <header className="sticky top-0 z-40 border-b border-line-200 bg-paper-0/95 backdrop-blur supports-[backdrop-filter]:bg-paper-0/80">
-        {/* Full-width nav row: 16px buffer from the viewport edges, links spread across the span. */}
         <div className="flex items-center justify-between gap-6 px-4 py-2 md:py-3">
           <Link
-            to={signedIn ? "/home" : "/"}
+            to="/"
             onClick={() => scrollToTop()}
+            aria-label="GDPVision home"
             className="flex shrink-0 items-center focus-visible:outline-none"
           >
             <Wordmark className="h-[2.17rem] md:h-[2.89rem]" />
           </Link>
 
           <nav className="hidden min-w-0 flex-1 items-center justify-between gap-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 md:flex">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.label}
-                to={link.to}
-                hash={link.hash}
-                className={
-                  link.accent
-                    ? "min-w-0 border-l-2 border-gold-500 py-1 pl-3 text-ink-950 hover:text-ink-950"
-                    : "min-w-0 py-1 hover:text-ink-950"
-                }
-              >
-                <span className="block" style={{ maxWidth: `${link.maxCh}ch` }}>
-                  {link.label}
-                </span>
-              </Link>
-            ))}
+            <NavItem link={PRIMARY_LINK} />
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+              {detailsOpen ? (
+                <div
+                  id="nav-details"
+                  className="flex min-w-0 flex-1 items-center justify-between gap-3 animate-in fade-in duration-300 motion-reduce:animate-none"
+                >
+                  {DETAIL_LINKS.map((l) => (
+                    <NavItem key={l.label} link={l} />
+                  ))}
+                </div>
+              ) : (
+                <div id="nav-details" className="flex flex-1 items-center justify-center gap-4">
+                  <span className="normal-case tracking-normal font-sans text-[13px] text-ink-700">
+                    There’s more beneath the surface.
+                  </span>
+                </div>
+              )}
+              {toggle}
+            </div>
+            <Link
+              to="/"
+              hash="briefing"
+              className="min-w-0 border-l-2 border-gold-500 py-1 pl-3 text-ink-950 hover:text-ink-950"
+            >
+              <span className="block" style={{ maxWidth: "21ch" }}>
+                Request a Cabinet briefing
+              </span>
+            </Link>
             <AuthEntry signedIn={signedIn} />
           </nav>
 
@@ -107,53 +158,34 @@ export function MarketingShell({ children }: MarketingShellProps) {
         {menuOpen && (
           <div className="border-t border-line-200 md:hidden">
             <nav className="mx-auto flex max-w-[1280px] flex-col px-6 py-2 font-mono text-[12px] uppercase tracking-[0.18em] text-ink-700">
-              {SECTION_LINKS.map((s) => (
-                <Link
-                  key={s.hash}
-                  to="/"
-                  hash={s.hash}
-                  onClick={() => setMenuOpen(false)}
-                  className="border-b border-line-100 py-3 hover:text-ink-950"
-                >
-                  {s.label}
-                </Link>
-              ))}
               <Link
-                to="/vault"
+                to="/"
+                hash="instrument"
                 onClick={() => setMenuOpen(false)}
                 className="border-b border-line-100 py-3 hover:text-ink-950"
               >
-                The Vault
+                How it works
               </Link>
-              <Link
-                to="/record"
-                onClick={() => setMenuOpen(false)}
-                className="border-b border-line-100 py-3 hover:text-ink-950"
-              >
-                The National Record
-              </Link>
-              <Link
-                to="/business-case"
-                onClick={() => setMenuOpen(false)}
-                className="border-b border-line-100 py-3 hover:text-ink-950"
-              >
-                The business case
-              </Link>
-              <Link
-                to="/business-case/brief"
-                onClick={() => setMenuOpen(false)}
-                className="border-b border-line-100 py-3 hover:text-ink-950"
-              >
-                The Decision Brief
-              </Link>
-
-              <Link
-                to="/op-eds"
-                onClick={() => setMenuOpen(false)}
-                className="border-b border-line-100 py-3 hover:text-ink-950"
-              >
-                The writing
-              </Link>
+              <div className="flex items-center justify-between gap-3 border-b border-line-100 py-3">
+                {!detailsOpen && (
+                  <span className="normal-case tracking-normal font-sans text-[13px] text-ink-700">
+                    There’s more beneath the surface.
+                  </span>
+                )}
+                {toggle}
+              </div>
+              {detailsOpen &&
+                DETAIL_LINKS.map((l) => (
+                  <Link
+                    key={l.label}
+                    to={l.to}
+                    hash={l.hash}
+                    onClick={() => setMenuOpen(false)}
+                    className="border-b border-line-100 py-3 pl-3 hover:text-ink-950"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
               <Link
                 to="/"
                 hash="briefing"

@@ -139,9 +139,8 @@ export function MarketingShell({ children }: MarketingShellProps) {
               hash="briefing"
               className="min-w-0 border-l-2 border-gold-500 py-1 pl-3 text-ink-950 hover:text-ink-950"
             >
-              <span className="block" style={{ maxWidth: "21ch" }}>
-                Request a Cabinet briefing
-              </span>
+              <span className="block whitespace-nowrap">Request a Cabinet</span>
+              <span className="block whitespace-nowrap">briefing</span>
             </Link>
             <AuthEntry signedIn={signedIn} />
           </nav>

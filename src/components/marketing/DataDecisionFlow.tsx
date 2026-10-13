@@ -519,11 +519,8 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
   };
 
   const toggle = (id: string) => {
-    setSelected((current) => {
-      const next = current === id ? null : id;
-      if (next) setTrayOpen(true);
-      return next;
-    });
+    if (selected !== id) setTrayOpen(true);
+    setSelected((current) => current === id ? null : id);
   };
 
   return (

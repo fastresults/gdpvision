@@ -76,9 +76,9 @@ export const CHAMBERS: Chamber[] = [
     image: ch03.url,
     screenshot: screen03.url,
     outcome: "Understand the trade-offs before committing public resources.",
-    purpose: "Compare policy choices and their modelled economic effects so Cabinet can choose a course with its costs, risks and assumptions visible.",
+    purpose: "Compare policy choices and their modelled economic effects so Cabinet can choose a course with its trade-offs, uncertainty and assumptions visible.",
     bullets: [
-      "Test effects on GDP, debt, foreign exchange and the budget.",
+      "Test projected GDP growth, sector effects and citizenship-investment revenue exposure.",
       "Compare policy combinations against Cabinet’s objectives and stated assumptions.",
     ],
   },

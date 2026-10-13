@@ -122,7 +122,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
                   className="flex min-w-0 flex-1 items-center justify-between gap-3 animate-in fade-in duration-300 motion-reduce:animate-none"
                 >
                   {DETAIL_LINKS.map((l) => (
-                    <NavItem key={l.label} link={l} />
+                    <NavItem key={l.to} link={l} />
                   ))}
                 </div>
               ) : (

@@ -3,7 +3,8 @@ import { Globe2, MapPin, Building2, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RecommendationChip } from "./RecommendationChip";
 import { PriorityPill } from "./PriorityPill";
-import { priorityFor } from "@/lib/narrative-priority";
+import { SignalMarks } from "./SignalMarks";
+import { isPastWindow, priorityFor } from "@/lib/narrative-priority";
 import type { SignalRow as Signal } from "@/lib/narrative-chamber.functions";
 
 const SCOPE_ICON = { local: MapPin, regional: Building2, international: Globe2 } as const;
@@ -42,8 +43,19 @@ export function SignalRow({ signal, code, active }: { signal: Signal; code: stri
               </span>
             )}
           </div>
-          <RecommendationChip value={signal.recommendation} />
+          <div className="flex shrink-0 items-center gap-1">
+            <RecommendationChip value={signal.recommendation} />
+            <SignalMarks signal={signal} size={11} />
+          </div>
         </div>
+        {(signal.pinned_at || signal.flagged_at) && isPastWindow(signal.created_at) && (
+          <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ink-500">
+            Kept past 30 days
+          </p>
+        )}
+        {signal.flag_note && (
+          <p className="mt-1 text-[11px] italic text-rose-700">{signal.flag_note}</p>
+        )}
         <p className="mt-1.5 line-clamp-3 min-w-0 break-words text-[13px] leading-snug text-ink-900">
           {signal.topic}
         </p>

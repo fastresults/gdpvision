@@ -14,7 +14,7 @@ import { CoverageBadge } from "@/components/narrative/CoverageBadge";
 
 function signalsQuery(code: string) {
   return queryOptions({
-    queryKey: ["narrative-signals", code, "with-total-v2"],
+    queryKey: ["narrative-signals", code, "with-total-v3"],
     queryFn: () => listSignals({ data: { countryCode: code } }),
   });
 }

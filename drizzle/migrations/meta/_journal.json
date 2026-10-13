@@ -232,6 +232,20 @@
       "when": 1791810186503,
       "tag": "0032_narrative_priority_counts",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791922301560,
+      "tag": "0033_narrative_signal_retention",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791922758641,
+      "tag": "0034_narrative_retention_indexes",
+      "breakpoints": true
     }
   ]
 }

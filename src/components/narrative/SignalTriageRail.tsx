@@ -11,15 +11,19 @@ import {
   countsByPriority,
   filterSignals,
   priorityFor,
+  isPastWindow,
   sortSignals,
   type PriorityLevel,
   type SortKey,
 } from "@/lib/narrative-priority";
 import {
+  getSignalRetention,
   listSignalsAtPriority,
   type PriorityCounts,
   type SignalRow as Signal,
 } from "@/lib/narrative-chamber.functions";
+
+type MarkFilter = "all" | "pinned" | "flagged" | "kept";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "priority", label: "Priority" },
@@ -49,6 +53,15 @@ export function SignalTriageRail({
   const [activeLevels, setActiveLevels] = useState<Set<PriorityLevel>>(new Set());
   const [collapsed, setCollapsed] = useState<Set<PriorityLevel>>(new Set([4, 5]));
 
+  const [markFilter, setMarkFilter] = useState<MarkFilter>("all");
+  const fetchRetention = useServerFn(getSignalRetention);
+  const retention = useQuery({
+    queryKey: ["narrative-retention", code],
+    queryFn: () => fetchRetention({ data: { countryCode: code } }),
+    staleTime: 30_000,
+  });
+  const kept = retention.data?.kept ?? [];
+
   const levelList = useMemo(() => [...activeLevels].sort(), [activeLevels]);
   const fetchAtPriority = useServerFn(listSignalsAtPriority);
   // Urgent levels (P1, P2) are always loaded in full so their groups match the tiles.
@@ -58,10 +71,14 @@ export function SignalTriageRail({
     staleTime: 30_000,
   });
   const mergedDefault = useMemo(() => {
-    if (!urgentQuery.data?.length) return signals;
     const seen = new Set(signals.map((s) => s.id));
-    return [...signals, ...urgentQuery.data.filter((s) => !seen.has(s.id))];
-  }, [signals, urgentQuery.data]);
+    const extra = [...(urgentQuery.data ?? []), ...kept].filter((s) => {
+      if (seen.has(s.id)) return false;
+      seen.add(s.id);
+      return true;
+    });
+    return [...signals, ...extra];
+  }, [signals, urgentQuery.data, kept]);
   const levelQuery = useQuery({
     queryKey: ["narrative-signals-at-priority", code, levelList],
     queryFn: () => fetchAtPriority({ data: { countryCode: code, levels: levelList } }),
@@ -71,8 +88,19 @@ export function SignalTriageRail({
 
   // With a priority chosen, the list comes from the server across ALL signals;
   // otherwise it is the newest-200 sample.
-  const source: Signal[] =
-    levelList.length > 0
+  const markSource: Signal[] | null =
+    markFilter === "all"
+      ? null
+      : kept.filter((s) =>
+          markFilter === "pinned"
+            ? !!s.pinned_at
+            : markFilter === "flagged"
+              ? !!s.flagged_at
+              : isPastWindow(s.created_at),
+        );
+  const source: Signal[] = markSource
+    ? markSource
+    : levelList.length > 0
       ? (levelQuery.data ?? signals.filter((s) => activeLevels.has(priorityFor(s).level)))
       : mergedDefault;
 
@@ -81,6 +109,20 @@ export function SignalTriageRail({
     const byLevel = activeLevels.size ? q.filter((s) => activeLevels.has(priorityFor(s).level)) : q;
     return sortSignals(byLevel, sort);
   }, [source, query, sort, activeLevels]);
+
+  const expiringSoon = useMemo(
+    () =>
+      signals.filter((s) => {
+        const age = (Date.now() - new Date(s.created_at).getTime()) / 86_400_000;
+        return !s.pinned_at && !s.flagged_at && age >= 27 && age <= 30;
+      }).length,
+    [signals],
+  );
+  const markCounts = {
+    pinned: kept.filter((s) => s.pinned_at).length,
+    flagged: kept.filter((s) => s.flagged_at).length,
+    kept: kept.filter((s) => isPastWindow(s.created_at)).length,
+  };
 
   const counts = useMemo(
     () => priorityCounts ?? countsByPriority(signals),
@@ -145,6 +187,44 @@ export function SignalTriageRail({
           </button>
         )}
       </div>
+
+      <div className="grid grid-cols-4 border border-line-200" role="tablist" aria-label="Signal view">
+        {(
+          [
+            ["all", "Live", null],
+            ["pinned", "Pinned", markCounts.pinned],
+            ["flagged", "Flagged", markCounts.flagged],
+            ["kept", "Kept 30d+", markCounts.kept],
+          ] as const
+        ).map(([key, label, n]) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={markFilter === key}
+            onClick={() => setMarkFilter(key)}
+            className={cn(
+              "px-1 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em]",
+              markFilter === key ? "bg-ink-950 text-paper-0" : "text-ink-500 hover:text-ink-950",
+            )}
+          >
+            {label}
+            {n !== null ? ` · ${n}` : ""}
+          </button>
+        ))}
+      </div>
+      <p className="font-mono text-[9px] uppercase leading-relaxed tracking-[0.14em] text-ink-500">
+        Last 30 days only · pin or flag to keep longer
+        {expiringSoon > 0 && (
+          <span className="text-amber-700"> · {expiringSoon} expiring in 3 days</span>
+        )}
+        {retention.data?.lastCleanupAt && (
+          <>
+            {" "}
+            · Last cleanup {new Date(retention.data.lastCleanupAt).toLocaleDateString()},{" "}
+            {retention.data.lastRemoved.toLocaleString()} removed
+          </>
+        )}
+      </p>
 
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">Sort</span>

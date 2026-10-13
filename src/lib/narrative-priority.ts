@@ -98,6 +98,18 @@ export function priorityFor(signal: {
   return { ...meta, score };
 }
 
+/** 0 = pinned+flagged, 1 = flagged, 2 = pinned, 3 = neither. */
+export function markTier(s: { pinned_at?: string | null; flagged_at?: string | null }): number {
+  if (s.flagged_at && s.pinned_at) return 0;
+  if (s.flagged_at) return 1;
+  if (s.pinned_at) return 2;
+  return 3;
+}
+
+export function isPastWindow(created_at: string, days = 30): boolean {
+  return Date.now() - new Date(created_at).getTime() > days * 86_400_000;
+}
+
 export type SortKey = "priority" | "newest" | "severity" | "reach" | "sentiment";
 
 export function sortSignals(rows: SignalRow[], key: SortKey): SignalRow[] {
@@ -113,7 +125,15 @@ export function sortSignals(rows: SignalRow[], key: SortKey): SignalRow[] {
       return arr.sort((a, b) => (a.sentiment ?? 0) - (b.sentiment ?? 0));
     case "priority":
     default:
-      return arr.sort((a, b) => priorityFor(a).score - priorityFor(b).score);
+      // Within each level: flagged+pinned, flagged, pinned, then impact and recency.
+      return arr.sort((a, b) => {
+        const la = priorityFor(a);
+        const lb = priorityFor(b);
+        if (la.level !== lb.level) return la.level - lb.level;
+        const t = markTier(a) - markTier(b);
+        if (t !== 0) return t;
+        return la.score - lb.score;
+      });
   }
 }
 

@@ -67,10 +67,10 @@ export function ChamberPanel({
       <div className="pl-5 pr-4 py-5 sm:pl-6 sm:pr-5 sm:py-6">
         <div className="flex items-start justify-between gap-3 sm:gap-4">
           <span className="flex items-start gap-3 pt-1">
-            {/* 20px vertical hairline at the label's left edge, in the chamber's colour. */}
+            {/* 4px vertical rule spanning the full height of the chamber label. */}
             <span
               aria-hidden
-              className="h-5 w-px flex-none"
+              className="w-1 flex-none self-stretch"
               style={{ background: `var(${accentVar})` }}
             />
             <span

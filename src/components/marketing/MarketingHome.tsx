@@ -56,17 +56,6 @@ import { ExplainProvider } from "@/components/explain/ExplainProvider";
 import type { CalcCtx } from "@/lib/explain/calculator-entries";
 import "@/lib/explain/calculator-entries";
 
-const FEATURE_LABELS: Record<string, string> = {
-  "04": "04 →  Where the revenue cliff is priced",
-  "08": "08 →  Where the manifesto becomes a delivery plan",
-};
-
-const FEATURED_CHAMBERS = CHAMBERS.filter((c) => c.index === "04" || c.index === "08").map((c) => ({
-  ...c,
-  featureLabel: FEATURE_LABELS[c.index],
-}));
-
-const GRID_CHAMBERS = CHAMBERS.filter((c) => c.index !== "04" && c.index !== "08");
 
 const LOOP_STEPS = [
   {
@@ -463,28 +452,8 @@ export function MarketingHome() {
             </div>
           </div>
           <ExplainProvider value={{ ctx: estimateContext }}>
-            <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
-              {FEATURED_CHAMBERS.map((c) => (
-                <div key={c.index}>
-                  <div className="mb-4 font-mono text-[12px] uppercase tracking-[0.18em] text-gold-500">
-                    {c.featureLabel}
-                  </div>
-                  <ChamberPanel
-                    index={c.index}
-                    title={c.title}
-                    outcome={c.outcome}
-                    purpose={c.purpose}
-                    bullets={c.bullets}
-                    accentVar={c.accentVar}
-                    image={c.image}
-                    screenshot={c.screenshot}
-                    valueEstimate={chamberValue(c.index)}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-10 grid gap-x-8 gap-y-6 sm:mt-16 md:grid-cols-2 lg:grid-cols-3">
-              {GRID_CHAMBERS.map((c) => (
+            <div className="mt-10 grid gap-x-8 gap-y-6 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2 lg:grid-cols-3">
+              {CHAMBERS.map((c) => (
                 <ChamberPanel key={c.index} {...c} valueEstimate={chamberValue(c.index)} />
               ))}
             </div>

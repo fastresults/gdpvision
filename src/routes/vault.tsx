@@ -6,11 +6,19 @@ import { FloatingBackToTop } from "@/components/marketing/FloatingBackToTop";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { SovereignDecisionCircuit } from "@/components/marketing/SovereignDecisionCircuit";
+import { Illustration } from "@/components/marketing/Illustration";
+import foundationArt from "@/assets/illustrations/vault-foundation.jpg.asset.json";
+import boundaryArt from "@/assets/illustrations/vault-boundary.jpg.asset.json";
+import progressArt from "@/assets/illustrations/vault-progress.jpg.asset.json";
+import custodyArt from "@/assets/illustrations/vault-custody.jpg.asset.json";
+import workbenchArt from "@/assets/illustrations/vault-workbench.jpg.asset.json";
+import briefingArt from "@/assets/illustrations/vault-briefing.jpg.asset.json";
 
 const SITE_URL = "https://gdpvision.com";
-const TITLE = "The Sovereign Vault — use sensitive national data without surrendering control";
+const TITLE =
+  "The Sovereign Vault — stronger national decisions, government in control | GDPVision";
 const DESCRIPTION =
-  "Every GDPVision deployment includes government-held hardware installed in-country. Private records stay inside it; public evidence comes to them; only findings approved by named officials may leave.";
+  "Put national data to work for better policy, investment and lasting economic progress. The Sovereign Vault brings evidence together on government premises, with private records protected and findings approved by officials.";
 
 export const Route = createFileRoute("/vault")({
   head: () => ({
@@ -34,44 +42,44 @@ const MICRO = "font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500";
 
 const RULES = [
   {
-    head: "Private rows never leave",
-    body: "No row of Vault data is copied to GDPVision's cloud, to a model provider or to anyone else. The cloud has no table that could hold one.",
+    head: "Private records stay inside",
+    body: "Sensitive records are analysed on government premises, not copied to GDPVision’s cloud or an outside AI service. Government retains custody of the information behind each finding.",
   },
   {
     head: "Public evidence comes in",
-    body: "The national evidence record, regional figures and published statistics flow into the Vault. Public and private information can then be analysed together where the private data already lives.",
+    body: "Published statistics, regional comparisons and the national evidence library come to the Vault. Officials can connect that wider picture to the country’s own records without exposing them.",
   },
   {
     head: "Only approved findings go out",
-    body: "Only a combined result—not a person’s or organisation’s private record—may leave. It must pass disclosure checks and be approved by the data custodian and a second official, with its source marked. It then strengthens the country’s figures in GDPVision.",
+    body: "A combined finding—not a person’s or organisation’s private record—must pass privacy checks and receive approval from the data custodian and a second official. Its source remains clear when it joins GDPVision’s national evidence.",
   },
 ];
 
 const SECURITY = [
-  "Encrypted storage, with keys held by the government, not by OPEN Interactive.",
-  "No outside system can connect into the Vault. It reaches out for authorised work through an encrypted channel that verifies both ends, and it can run fully disconnected.",
-  "Every job, approval and export is logged, and the log cannot be edited.",
-  "Two-person approval for anything that leaves, matching GDPVision's governance.",
-  "Its AI models run on the premises. No private text is ever sent to an outside AI service.",
-  "Tested against recognised security frameworks before handover, and on a schedule after it.",
+  "Government-held keys protect encrypted storage. Custody stays with the state, not OPEN Interactive.",
+  "The reference design accepts no inbound connections. It retrieves authorised work through a verified, encrypted channel and supports disconnected operation.",
+  "A tamper-resistant audit record tracks each analysis, approval and release, so responsibility can be inspected.",
+  "The data custodian and a second official must approve findings before release.",
+  "Private-data analysis runs locally. Private text is not sent to an outside AI service.",
+  "Security testing, handover checks and ongoing review are defined in the country’s agreed deployment specification.",
 ];
 
 const SERVICE = [
   {
-    head: "Data register",
-    body: "Every dataset is listed with its owner, security level, and last update—without exposing the records inside it.",
+    head: "Know the evidence",
+    body: "See which datasets are available, who owns them and when they were updated—without viewing the private records.",
   },
   {
-    head: "Analysis requests",
-    body: "An official asks a question. The Vault receives the approved request and answers it on government premises.",
+    head: "Ask the question",
+    body: "Submit an approved question about policy, spending or delivery. The Vault analyses the evidence on government premises.",
   },
   {
-    head: "Approval queue",
-    body: "A result that passes the privacy check still waits for two approvals before it leaves.",
+    head: "Review and approve",
+    body: "Follow progress, check the finding and its privacy review, then obtain the two required approvals before release.",
   },
   {
-    head: "Released figures",
-    body: "Approved combined figures join the national evidence record, clearly marked as results derived from private data.",
+    head: "Put findings to work",
+    body: "Read approved findings alongside public evidence, with their origin clear, to inform decisions and track delivery.",
   },
 ];
 
@@ -91,17 +99,21 @@ function VaultPage() {
           <div className="mt-8 grid gap-10 md:grid-cols-[1.15fr_1fr] md:items-center md:gap-14">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                Government-controlled system · The Sovereign Vault
+                Government-held evidence · National advantage
               </div>
               <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
-              <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] tracking-tight text-ink-950 sm:text-[40px] sm:leading-[1.05] md:text-[50px]">
-                Use sensitive national data without surrendering government control.
+              <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] text-ink-950 sm:text-[40px] sm:leading-[1.05] md:text-[50px]">
+                The Sovereign Vault
               </h1>
+              <p className="mt-4 max-w-xl font-serif text-[24px] leading-tight text-ink-950 sm:text-[28px]">
+                Put your country’s data to work. Keep government in control.
+              </p>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
-                Every GDPVision deployment includes a Vault: secure hardware installed in-country
-                and held by the government. Tax, customs, treasury, registry, health, crime and
-                employment records stay inside it. Public evidence comes to them. Only findings that
-                a named official approves ever leave.
+                Bring sensitive national records and public evidence together on government
+                premises. Give Cabinet and ministries a stronger basis for policy, investment and
+                delivery—so your country can act sooner, strengthen its regional position and build
+                economic progress that lasts. Private records stay protected; officials approve what
+                may be shared.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="#vault-briefing" className="btn-primary px-5 py-2.5 text-xs">
@@ -122,21 +134,25 @@ function VaultPage() {
       {/* WHAT ARRIVES */}
       <section className="border-b border-line-200">
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
-          <SectionHeader
-            eyebrow="What arrives"
-            title="Analyse sensitive records inside government premises."
-          />
+          <div className="min-w-0">
+            <SectionHeader
+              eyebrow="The national foundation"
+              title="A secure foundation for better national decisions."
+            />
+            <Illustration src={foundationArt.url} variant="aside" className="mt-8" />
+          </div>
           <div className="space-y-5 border-t border-line-200 pt-8 text-[16px] leading-relaxed text-ink-700 md:border-t-0 md:pt-0">
             <p>
-              The Vault combines computing and storage in one secure system. It is configured before
-              delivery and installed on government premises by the St. Kitts team or a named local
-              partner. It holds the private record: the figures too sensitive for any cloud and too
-              valuable to leave in spreadsheets.
+              Tax, customs, treasury, registry, health and employment records can reveal what public
+              statistics alone cannot. The Vault gives government a secure place to analyse these
+              records together—turning information held across ministries into evidence leaders can
+              use.
             </p>
             <p>
-              It runs its own AI models on the premises, so a question about private data is
-              answered without the data going anywhere. Production sites add an encrypted storage
-              system, a firewall, backup power, and an offline copy at a second government site.
+              Computing, storage and local AI operate on government premises. Installation,
+              encrypted storage, backup power and recovery arrangements are confirmed in each
+              country’s deployment specification. The purpose is simple: make valuable information
+              useful without surrendering control of it.
             </p>
           </div>
         </div>
@@ -146,10 +162,11 @@ function VaultPage() {
       <section className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-24">
           <SectionHeader
-            eyebrow="Three rules, built into the machine"
-            title="Keep private records in. Bring public evidence in. Release only approved findings."
+            eyebrow="Three clear boundaries"
+            title="Use more evidence. Share only what government approves."
           />
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
+          <Illustration src={boundaryArt.url} variant="rule" className="mx-auto mt-8" />
+          <div className="mt-8 grid gap-8 md:grid-cols-3">
             {RULES.map((r, i) => (
               <div key={r.head} className="border-t-2 border-gold-500 pt-5">
                 <div className={MICRO}>{String(i + 1).padStart(2, "0")}</div>
@@ -164,22 +181,28 @@ function VaultPage() {
       {/* WHY IT MOVES GDP */}
       <section className="border-b border-line-200">
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
-          <SectionHeader
-            eyebrow="Why it moves GDP"
-            title="Use the records that can answer government’s hardest questions."
-          />
-          <div className="space-y-5 border-t border-line-200 pt-8 text-[16px] leading-relaxed text-ink-700 md:border-t-0 md:pt-0">
-            <p>
-              Most of the value GDPVision prices is held up by what government cannot see quickly
-              enough: spend with no measured outcome, sectors without an owner, decisions waiting
-              months for a number. The figures that answer those questions already exist, locked in
-              ministries.
-            </p>
-            <p>
-              The Vault lets them be used within days rather than months, without being exposed. In
-              the Decision Brief, figures that began as <em>assumptions</em> can become{" "}
-              <em>Grade A evidence</em>, and the verdict rests on the country's own record.
-            </p>
+          <div className="min-w-0">
+            <SectionHeader
+              eyebrow="The economic advantage"
+              title="Act sooner. Invest more wisely. Build progress that lasts."
+            />
+            <div className="mt-6 space-y-5 text-[16px] leading-relaxed text-ink-700">
+              <p>
+                Where is public spending delivering results? What is delaying an investment? Which
+                sectors need ministries to act together? The answers often sit in national records
+                that are difficult to bring together when a decision is needed.
+              </p>
+              <p>
+                A stronger evidence base helps government target resources, prepare credible
+                investment proposals and address delivery problems earlier. That can strengthen the
+                country’s position in a competitive region—and support a faster, more durable path
+                to growth. Results still depend on the decisions made and how well they are
+                delivered.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-end">
+            <Illustration src={progressArt.url} variant="aside" />
           </div>
         </div>
       </section>
@@ -187,11 +210,14 @@ function VaultPage() {
       {/* SECURITY */}
       <section className="border-b border-line-200">
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
-          <SectionHeader
-            eyebrow="Security you can inspect"
-            title="Keep custody of national data in government hands."
-            lede="No system is beyond attack. The Vault is built so that private data stays in the government's custody, and every attempt to move it is either impossible by design or recorded and approved."
-          />
+          <div className="min-w-0">
+            <SectionHeader
+              eyebrow="Security you can inspect"
+              title="Protect national trust—and the freedom to act."
+              lede="Government should not have to choose between useful evidence and control of sensitive records. The Vault’s safeguards keep custody and release decisions in official hands. No system is beyond attack; each deployment needs testing and ongoing oversight."
+            />
+            <Illustration src={custodyArt.url} variant="aside" className="mt-8" />
+          </div>
           <ul className="divide-y divide-line-200 border-y border-line-200">
             {SECURITY.map((s) => (
               <li key={s} className="py-4 text-[15px] leading-relaxed text-ink-700">
@@ -205,15 +231,21 @@ function VaultPage() {
       {/* MANAGED FROM GDPVISION */}
       <section className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-24">
-          <SectionHeader
-            eyebrow="Managed from GDPVision"
-            title="Run approved analysis without moving the private records."
-            lede="Officials request an analysis, follow its progress, approve what may leave, and read the result beside the public evidence. GDPVision sees descriptions, requests, and approved findings—never the private records themselves."
-          />
+          <div className="grid items-center gap-10 md:grid-cols-[1.2fr_1fr] md:gap-16">
+            <SectionHeader
+              eyebrow="Managed from GDPVision"
+              title="One clear process—from question to approved finding."
+              lede="Officials can see what evidence is available, request analysis and follow the approval process. GDPVision receives dataset descriptions, requests and approved findings—not the private records behind them. Government decides what may be released."
+            />
+            <div className="flex justify-end">
+              <Illustration src={workbenchArt.url} variant="aside" />
+            </div>
+          </div>
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {SERVICE.map((s) => (
+            {SERVICE.map((s, i) => (
               <div key={s.head} className="border-t border-line-200 pt-5">
-                <div className={MICRO}>{s.head}</div>
+                <div className={MICRO}>0{i + 1}</div>
+                <h3 className="mt-3 font-serif text-[22px] leading-snug text-ink-950">{s.head}</h3>
                 <p className="mt-3 text-[15px] leading-relaxed text-ink-700">{s.body}</p>
               </div>
             ))}
@@ -224,11 +256,14 @@ function VaultPage() {
       {/* BRIEFING */}
       <section id="vault-briefing" className="border-b border-line-200">
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
-          <SectionHeader
-            eyebrow="Request a briefing"
-            title="Assess how the Vault could serve your government."
-            lede="Tell us which ministry holds the data and the decision it should inform. A principal from OPEN Interactive will respond through your official email."
-          />
+          <div className="min-w-0">
+            <SectionHeader
+              eyebrow="Request a briefing"
+              title="Start with the decision your government needs to make."
+              lede="Tell us the priority, which ministry holds the evidence and what Cabinet needs to decide. We’ll discuss where the Vault could help and what a government-controlled deployment would require. A principal from OPEN Interactive will respond through your official email."
+            />
+            <Illustration src={briefingArt.url} variant="spot" className="mt-8" />
+          </div>
           <BriefingForm topic="vault" />
         </div>
       </section>

@@ -9,7 +9,7 @@ interface ChamberPanelProps {
   outcome: string;
   purpose: string;
   bullets: string[];
-  /** CSS variable name for the leading accent bar hue, e.g. "--sector-03". */
+  /** CSS variable name for horizontal accents and screenshot outline, e.g. "--sector-03". */
   accentVar: string;
   /** Optional CDN URL for a real product screenshot rendered as the panel header. */
   image?: string;
@@ -20,8 +20,8 @@ interface ChamberPanelProps {
   className?: string;
 }
 
-// Paper panel: borderless white body, hairline separators, 2px leading
-// sector-hue accent bar (PRD §10.5). No filled header, no reverse-out.
+// Paper panel: open side edges and subtle horizontal hairline separators.
+// Chamber colour remains in small horizontal accents, never a full-height rail.
 export function ChamberPanel({
   index,
   title,
@@ -64,11 +64,6 @@ export function ChamberPanel({
         className,
       )}
     >
-      <div
-        aria-hidden
-        className="absolute left-0 top-0 z-10 h-full w-[2px]"
-        style={{ background: `var(${accentVar})` }}
-      />
       <div className="pl-5 pr-4 py-5 sm:pl-6 sm:pr-5 sm:py-6">
         <div className="flex items-start justify-between gap-3 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500 sm:gap-4">
           <span className="pt-1">Chamber {index}</span>

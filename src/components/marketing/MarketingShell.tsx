@@ -50,27 +50,29 @@ function useDetailsUnlocked() {
   return [open, setOpen] as const;
 }
 
-type NavLink = { to: string; hash?: string; label: string; maxCh: number };
+type NavLink = { to: string; hash?: string; lines: string[] };
 
-// Desktop nav labels are capped at two wrapped rows: maxCh is the widest a
-// row may run (in ch) so the label breaks at the intended word boundary.
-const PRIMARY_LINK: NavLink = { to: "/", hash: "instrument", label: "How it works", maxCh: 8 };
+// Every nav label of two or more words renders as two fixed lines so the top
+// navigation keeps a consistent two-row rhythm; single-word labels stay one line.
+const PRIMARY_LINK: NavLink = { to: "/", hash: "instrument", lines: ["How", "it works"] };
 
 const DETAIL_LINKS: NavLink[] = [
-  { to: "/", hash: "sovereignty", label: "Sovereignty", maxCh: 13.5 },
-  { to: "/vault", label: "The Vault", maxCh: 7 },
-  { to: "/record", label: "The National Record", maxCh: 16 },
-  { to: "/business-case", label: "The business case", maxCh: 16 },
-  { to: "/business-case/brief", label: "The Decision Brief", maxCh: 16 },
-  { to: "/op-eds", label: "The writing", maxCh: 10 },
+  { to: "/", hash: "sovereignty", lines: ["Sovereignty"] },
+  { to: "/vault", lines: ["The", "Vault"] },
+  { to: "/record", lines: ["The National", "Record"] },
+  { to: "/business-case", lines: ["The business", "case"] },
+  { to: "/business-case/brief", lines: ["The Decision", "Brief"] },
+  { to: "/op-eds", lines: ["The", "writing"] },
 ];
 
 function NavItem({ link }: { link: NavLink }) {
   return (
     <Link to={link.to} hash={link.hash} className="min-w-0 py-1 hover:text-ink-950">
-      <span className="block" style={{ maxWidth: `${link.maxCh}ch` }}>
-        {link.label}
-      </span>
+      {link.lines.map((line) => (
+        <span key={line} className="block whitespace-nowrap">
+          {line}
+        </span>
+      ))}
     </Link>
   );
 }
@@ -120,7 +122,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
                   className="flex min-w-0 flex-1 items-center justify-between gap-3 animate-in fade-in duration-300 motion-reduce:animate-none"
                 >
                   {DETAIL_LINKS.map((l) => (
-                    <NavItem key={l.label} link={l} />
+                    <NavItem key={l.to} link={l} />
                   ))}
                 </div>
               ) : (
@@ -137,9 +139,8 @@ export function MarketingShell({ children }: MarketingShellProps) {
               hash="briefing"
               className="min-w-0 border-l-2 border-gold-500 py-1 pl-3 text-ink-950 hover:text-ink-950"
             >
-              <span className="block" style={{ maxWidth: "21ch" }}>
-                Request a Cabinet briefing
-              </span>
+              <span className="block whitespace-nowrap">Request a Cabinet</span>
+              <span className="block whitespace-nowrap">briefing</span>
             </Link>
             <AuthEntry signedIn={signedIn} />
           </nav>
@@ -177,13 +178,13 @@ export function MarketingShell({ children }: MarketingShellProps) {
               {detailsOpen &&
                 DETAIL_LINKS.map((l) => (
                   <Link
-                    key={l.label}
+                    key={l.to}
                     to={l.to}
                     hash={l.hash}
                     onClick={() => setMenuOpen(false)}
                     className="border-b border-line-100 py-3 pl-3 hover:text-ink-950"
                   >
-                    {l.label}
+                    {l.lines.join(" ")}
                   </Link>
                 ))}
               <Link
@@ -245,9 +246,10 @@ function AuthEntry({ signedIn, onNavigate }: { signedIn: boolean; onNavigate?: (
             await supabase.auth.signOut();
             navigate({ to: "/", replace: true });
           }}
-          className="hover:text-ink-950"
+          className="min-w-0 py-1 text-left hover:text-ink-950"
         >
-          Sign out
+          <span className="block whitespace-nowrap">Sign</span>
+          <span className="block whitespace-nowrap">out</span>
         </button>
       </div>
     );
@@ -260,9 +262,8 @@ function AuthEntry({ signedIn, onNavigate }: { signedIn: boolean; onNavigate?: (
       onClick={onNavigate}
       className="min-w-0 py-1 hover:text-ink-950"
     >
-      <span className="block" style={{ maxWidth: "6ch" }}>
-        Sign in
-      </span>
+      <span className="block whitespace-nowrap">Sign</span>
+      <span className="block whitespace-nowrap">in</span>
     </Link>
   );
 }

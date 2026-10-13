@@ -38,3 +38,5 @@
 - [x] Deeper Select the Chamber (routing beats) and Open the Chamber (working-session dossier)
 - [x] Rebuild all six Chamber journey phases as one detailed, connected Sovereign Decision Theatre
 - [x] Realign the Instrument overview title, controls, signature and ledger without overlap
+
+- [x] Refine all ten public Chamber names and copy around clear economic value; verify homepage and shared op-ed presentation.

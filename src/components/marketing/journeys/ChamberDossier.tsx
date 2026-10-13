@@ -20,7 +20,7 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-auto px-4 py-4 md:px-6">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <div className="min-w-0">
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
             Chamber {journey.chamber} · work through the decision · {journey.profile.kind}

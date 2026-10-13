@@ -524,7 +524,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
         presentation ? "gap-3" : "gap-4",
       )}
     >
-      <div className="flex flex-col md:min-h-0 md:flex-1">
+      <div className="flex min-w-0 flex-col md:min-h-0 md:flex-1">
         <div
           className={cn(
             "flex flex-wrap items-center gap-3 shrink-0",
@@ -670,7 +670,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
             }}
             className={cn(
               "ddf h-full w-full",
-              presentation ? "min-h-0" : "min-h-[520px]",
+              "min-h-0",
               (paused || !playing) && "ddf-paused",
             )}
             role="group"
@@ -863,7 +863,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
                       letterSpacing="1.2"
                       className={cn("font-mono", isSel ? "fill-paper-50" : "fill-ink-500")}
                     >
-                      {n.group.toUpperCase()}
+                    {""}
                     </text>
                   )}
                 </g>

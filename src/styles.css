@@ -1953,6 +1953,12 @@
 .cjj[data-held] *::after {
   animation-play-state: paused !important;
 }
+.cjj[data-held] .cjj-beat,
+.cjj[data-held] .cjj-benefit {
+  opacity: 1;
+  animation: none;
+  transform: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .cjj *,
   .cjj *::before,

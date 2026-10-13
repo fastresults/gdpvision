@@ -4,12 +4,12 @@ import { visualAudit } from "./journeys/journeyVisuals";
 import { evidenceChips } from "./journeys/journeyRouting";
 
 export const JOURNEY_ACTS = [
-  "The national priority",
-  "Ask the right question",
-  "Bring the evidence together",
-  "Choose the right workspace",
-  "Work through the decision",
-  "Value for government and the economy",
+  "The priority",
+  "Frame the question",
+  "Check the evidence",
+  "Select the Chamber",
+  "Work through options",
+  "Government value",
 ] as const;
 
 export interface ChamberMethod {

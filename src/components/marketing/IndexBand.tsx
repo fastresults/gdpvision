@@ -4,13 +4,15 @@
 // never an auto-marquee. Official institutional logos identify data sources;
 // permission confirmed by the user (see src/lib/marketing/global-indexes.ts).
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+
+import { useScrollerIntroduction } from "@/hooks/useScrollerIntroduction";
 
 import { MEASURING_BODIES } from "@/lib/marketing/global-indexes";
 
 export function IndexBand() {
-  const rowRef = useRef<HTMLUListElement | null>(null);
+  const { ref: rowRef, cancel } = useScrollerIntroduction<HTMLUListElement>();
   const [edge, setEdge] = useState({ start: true, end: false });
 
   const update = useCallback(() => {
@@ -35,6 +37,7 @@ export function IndexBand() {
   }, [update]);
 
   const page = (dir: 1 | -1) => {
+    cancel();
     const el = rowRef.current;
     if (!el) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -54,13 +57,13 @@ export function IndexBand() {
               id="measures-title"
               className="mt-5 font-serif text-[24px] leading-[1.2] tracking-tight text-ink-950 md:text-[30px]"
             >
-              Ten bodies set the measures that rank a country for investors and lenders.
-              GDPVision connects directly to them — a near-live feed where evidence becomes
-              decisions, policy and investment: the environment where GDP grows.
+              Ten bodies set the measures that rank a country for investors and lenders. GDPVision
+              connects directly to them — a near-live feed where evidence becomes decisions, policy
+              and investment: the environment where GDP grows.
             </h2>
             <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-ink-500">
-              Measures come in as they are published. The decisions that move them go out
-              to Cabinet, ministries and investors.
+              Measures come in as they are published. The decisions that move them go out to
+              Cabinet, ministries and investors.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -100,7 +103,13 @@ export function IndexBand() {
                 <div className="px-5 pt-5">
                   <div className="flex h-20 items-center" aria-hidden="true">
                     {b.logo ? (
-                      <img src={b.logo} alt="" className="max-h-20 w-auto max-w-[180px] object-contain" loading="lazy" decoding="async" />
+                      <img
+                        src={b.logo}
+                        alt=""
+                        className="max-h-20 w-auto max-w-[180px] object-contain"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : (
                       <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-500">
                         {b.short}

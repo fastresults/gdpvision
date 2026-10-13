@@ -4,7 +4,7 @@
 
 # Roadmap
 
-- [ ] Dock “How this flow works” to the right edge as an expanded-by-default collapsible tray
+- [x] Dock “How this flow works” to the right edge as an expanded-by-default collapsible tray
 
 - [x] Polish both homepage decision presentations in clear government and economic language; verify all journeys and controls
 

@@ -1,11 +1,11 @@
 // Routing + working-session content for the Chamber Decision Journeys presentation.
 // Everything is derived deterministically from each journey's own flow — nothing random.
-import { CHAMBER_NAMES } from "../dataDecisionScenarios";
+import { CHAMBER_NAMES, type Scenario } from "../dataDecisionScenarios";
 import type { ChamberJourney } from "../chamberDecisionJourneys";
 
 export const CHAMBER_PURPOSE: Record<string, string> = {
   "01": "What the national numbers really say",
-  "02": "Which minister owns which lever",
+  "02": "Which ministry leads each priority",
   "03": "What happens if we act — or don't",
   "04": "How to win and keep investment",
   "05": "What we say, truthfully and fast",
@@ -18,7 +18,7 @@ export const CHAMBER_PURPOSE: Record<string, string> = {
 
 const NOT_LEAD: Record<string, string> = {
   "01": "Not a question of the national figures",
-  "02": "Not a ministerial-ownership problem",
+  "02": "Another workspace leads this priority",
   "03": "No modelling of shocks needed first",
   "04": "No investor or capital at stake",
   "05": "Not a public-message problem",
@@ -57,14 +57,14 @@ export const STAGE_PLAYBOOK: Record<string, StagePlay[]> = {
       "Overlaps shown to both ministers",
       "Ministers concerned",
     ),
-    sp("Who owns the result?", "One owner — never two", "Prime Minister"),
+    sp("Who owns the result?", "One lead, with supporting roles recorded", "Prime Minister"),
     sp("What happens next, by when?", "Action logged with a date", "Accountable minister"),
   ],
   "03": [
     sp("Where are we today?", "Baseline from cited national data", "Treasury"),
-    sp("What shock, which levers?", "Every assumption recorded", "Treasury"),
-    sp("What happens to GDP, debt and FX?", "Ranges shown, not false precision", "Chief Economist"),
-    sp("Which option costs least?", "Trade-offs set side by side", "Minister of Finance"),
+    sp("Which change or disruption should we test?", "Every assumption recorded", "Treasury"),
+    sp("What economic effects can the model estimate?", "Ranges shown, not false precision", "Chief Economist"),
+    sp("How do the costs and trade-offs compare?", "Trade-offs set side by side", "Minister of Finance"),
     sp("What goes to Cabinet?", "Cabinet paper checked before release", "Minister of Finance"),
   ],
   "04": [
@@ -75,7 +75,7 @@ export const STAGE_PLAYBOOK: Record<string, StagePlay[]> = {
       "Investment agency",
     ),
     sp("What must replace or attract it?", "Target tied to GDP and jobs", "Treasury"),
-    sp("What will we offer — and not?", "Incentives capped by payback", "Minister of Finance"),
+    sp("What will we offer — and not?", "Compare incentives with expected national value", "Minister of Finance"),
     sp("What does the investor receive?", "Open-standard investor file", "Minister of Investment"),
   ],
   "05": [
@@ -83,7 +83,7 @@ export const STAGE_PLAYBOOK: Record<string, StagePlay[]> = {
     sp("What are the verified facts?", "Only approved facts used", "Cabinet Office"),
     sp("What is the national position?", "Position tied to evidence", "Prime Minister's office"),
     sp("Does it survive challenge?", "Tested against opposition lines", "Communications unit"),
-    sp("Who releases it, when?", "Principal authorisation required", "Prime Minister"),
+    sp("Who releases it, when?", "Responsible leader approves release", "Prime Minister"),
   ],
   "06": [
     sp("What must be decided first?", "Queue ranked by value and urgency", "Cabinet Secretary"),
@@ -95,15 +95,15 @@ export const STAGE_PLAYBOOK: Record<string, StagePlay[]> = {
   "07": [
     sp("What exactly are we proposing?", "Proposal fixed before testing", "Policy unit"),
     sp("Who will this affect?", "Audiences built from national data", "Policy unit"),
-    sp("How will they react?", "Private data stays in country", "Persona Lab"),
-    sp("Where is the friction?", "Findings graded and explainable", "Policy unit"),
+    sp("What reactions might simulated profiles suggest?", "Private data stays in country", "Persona Lab"),
+    sp("What concerns need further review?", "Findings graded and explainable", "Policy unit"),
     sp("What do we change first?", "Revisions logged before release", "Minister concerned"),
   ],
   "08": [
     sp("What exactly was promised?", "Pledge quoted from the manifesto", "Delivery unit"),
-    sp("Which pillar does it serve?", "Pillar agreed by Cabinet", "Delivery unit"),
+    sp("Which national priority does it serve?", "Pillar agreed by Cabinet", "Delivery unit"),
     sp("What will actually be delivered?", "Deliverable costed", "Treasury"),
-    sp("Who, which KPI, which date?", "Owner, KPI and date recorded", "Accountable minister"),
+    sp("Who delivers, by when, and how do we track it?", "Leader, progress measure and date recorded", "Accountable minister"),
     sp("Is it on track this quarter?", "Progress published on the record", "Prime Minister"),
   ],
   "09": [
@@ -125,11 +125,11 @@ export const STAGE_PLAYBOOK: Record<string, StagePlay[]> = {
 const SOURCE_LABEL: Record<string, string> = {
   stats: "National statistics",
   peers: "Peer benchmarks",
-  flows: "Capital & trade flows",
-  kpis: "Delivery KPIs",
+  flows: "Investment and trade figures",
+  kpis: "Delivery progress measures",
   ministries: "Ministry mandates",
   manifestos: "Manifesto pledges",
-  private: "Sovereign records",
+  private: "Protected government records",
 };
 const SIGNAL_LABEL: Record<string, string> = {
   stats: "Economy",
@@ -150,7 +150,7 @@ const GRADE: Record<string, string> = {
   private: "A",
 };
 
-const nodes = (journey: ChamberJourney) => journey.steps.flatMap((s) => s.edges.flat());
+const nodes = (journey: Scenario) => journey.steps.flatMap((s) => s.edges.flat());
 
 export interface EvidenceChip {
   id: string;
@@ -159,7 +159,7 @@ export interface EvidenceChip {
   grade: string;
 }
 
-export function evidenceChips(journey: ChamberJourney): EvidenceChip[] {
+export function evidenceChips(journey: Scenario): EvidenceChip[] {
   const seen = Array.from(new Set(nodes(journey).filter((n) => SOURCE_LABEL[n])));
   const chips: EvidenceChip[] = seen.map((id) => ({
     id,
@@ -168,11 +168,11 @@ export function evidenceChips(journey: ChamberJourney): EvidenceChip[] {
     grade: GRADE[id],
   }));
   if (nodes(journey).includes("corpus"))
-    chips.push({ id: "corpus", label: "National Corpus", inCountry: false, grade: "A" });
+    chips.push({ id: "corpus", label: "National evidence library", inCountry: false, grade: "A" });
   if (nodes(journey).includes("vault"))
     chips.push({ id: "vault", label: "Sovereign Vault", inCountry: true, grade: "A" });
   if (nodes(journey).includes("safeguards"))
-    chips.push({ id: "safeguards", label: "Citations & grades", inCountry: false, grade: "A" });
+    chips.push({ id: "safeguards", label: "Sources and reliability", inCountry: false, grade: "A" });
   return chips;
 }
 

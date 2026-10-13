@@ -10,16 +10,16 @@ export interface Scenario {
 }
 
 export const CHAMBER_NAMES: Record<string, string> = {
-  "01": "National Ledger",
-  "02": "Portfolios",
-  "03": "Scenarios",
-  "04": "FDI Studio",
-  "05": "Narrative",
-  "06": "Cabinet Room",
-  "07": "Persona Lab",
-  "08": "Mandate Compact",
-  "09": "Digital Government",
-  "10": "Sector Studio",
+  "01": "National Evidence Ledger",
+  "02": "Ministry Growth & Delivery",
+  "03": "Policy Scenario Engine",
+  "04": "Investment & Resilience",
+  "05": "Confidence & Communications",
+  "06": "Cabinet Decisions & Delivery",
+  "07": "Policy & Leadership Lab",
+  "08": "Mandate & Accountability",
+  "09": "Digital Government Planning",
+  "10": "Sector Growth & Delivery",
 };
 
 export const SCENARIOS: Scenario[] = [

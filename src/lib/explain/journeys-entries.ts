@@ -7,8 +7,8 @@ import { registerRationales, type Rationale } from "@/lib/explain/registry";
 const entries: Array<Rationale<Record<string, never>>> = [
   {
     key: "journeys.fit",
-    title: "How the Chamber fit is shown",
-    short: "Illustrative fit — not a measured score.",
+    title: "Why this workspace leads the example",
+    short: "An example route, not a measured suitability score.",
     formula:
       "Lead Chamber = the Chamber built for this question. Supporting Chambers = those the journey actually passes through. All others sit low.",
     basis: "Derived from the scenario's own route through the decision flow map.",
@@ -18,12 +18,12 @@ const entries: Array<Rationale<Record<string, never>>> = [
   },
   {
     key: "journeys.clock",
-    title: "What the decision clock means",
+    title: "What the illustrative time comparison means",
     short: "Illustrative time to decision, not a measurement.",
     formula:
-      "Usual time = typical experience described by government teams. With GDPVision = the same work with evidence already assembled.",
+      "The two times illustrate a possible difference when evidence is prepared. They are not measured before-and-after results.",
     basis: "Indicative only; not measured for any specific country.",
-    caveat: "Actual time depends on how complete the national record is.",
+    caveat: "Actual time depends on available evidence, review requirements and government processes; no saving is promised.",
     derive: () => [],
   },
 ];

@@ -9,7 +9,7 @@ export function InquiryDesk({ journey, beat }: { journey: ChamberJourney; beat: 
   const fields = [
     ["Country context", `Your country’s evidence · Workspace ${journey.chamber}`],
     ["Who decides", frame.authority],
-    ["Illustrative time comparison", frame.horizon],
+    ["Illustrative time comparison", `${frame.horizon} · not measured`],
     ["What is at stake", frame.exposures.join(" · ")],
     ["What must be respected", frame.constraints.join(" · ")],
     ["Intended benefit", frame.success],

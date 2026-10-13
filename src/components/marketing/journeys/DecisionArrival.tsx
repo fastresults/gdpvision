@@ -52,6 +52,7 @@ export function DecisionArrival({ journey, beat }: { journey: ChamberJourney; be
             <Clock3 className="h-5 w-5 text-gold-500" />
             <div className="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-gold-300">Without connected evidence</div>
             <div className="font-display text-2xl line-through decoration-gold-500">{journey.profile.clock[0]}</div>
+            <p className="mt-2 text-[10px] text-gold-300">Example only · not measured</p>
             <div className="my-2 h-px bg-gold-500" />
             <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-gold-300">With GDPVision</div>
             <div className="font-display text-3xl">{journey.profile.clock[1]}</div>

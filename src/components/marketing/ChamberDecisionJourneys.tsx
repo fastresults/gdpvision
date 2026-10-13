@@ -266,7 +266,7 @@ export function ChamberDecisionJourneys() {
             <button
               type="button"
               className="btn-accent"
-              onClick={() => goToAct(JOURNEY_ACTS.length - 1)}
+              onClick={() => goToAct(JOURNEY_ACTS.length - 1, beatCount(JOURNEY_ACTS.length - 1, journey) - 1)}
             >
               <Sparkles className="h-4 w-4" /> Value for government
             </button>

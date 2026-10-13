@@ -15,7 +15,8 @@ import workbenchArt from "@/assets/illustrations/vault-workbench.jpg.asset.json"
 import briefingArt from "@/assets/illustrations/vault-briefing.jpg.asset.json";
 
 const SITE_URL = "https://gdpvision.com";
-const TITLE = "The Sovereign Vault — stronger national decisions, government in control | GDPVision";
+const TITLE =
+  "The Sovereign Vault — stronger national decisions, government in control | GDPVision";
 const DESCRIPTION =
   "Put national data to work for better policy, investment and lasting economic progress. The Sovereign Vault brings evidence together on government premises, with private records protected and findings approved by officials.";
 
@@ -108,10 +109,11 @@ function VaultPage() {
                 Put your country’s data to work. Keep government in control.
               </p>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
-                Bring sensitive national records and public evidence together on government premises.
-                Give Cabinet and ministries a stronger basis for policy, investment and delivery—so
-                your country can act sooner, strengthen its regional position and build economic
-                progress that lasts. Private records stay protected; officials approve what may be shared.
+                Bring sensitive national records and public evidence together on government
+                premises. Give Cabinet and ministries a stronger basis for policy, investment and
+                delivery—so your country can act sooner, strengthen its regional position and build
+                economic progress that lasts. Private records stay protected; officials approve what
+                may be shared.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="#vault-briefing" className="btn-primary px-5 py-2.5 text-xs">
@@ -133,20 +135,24 @@ function VaultPage() {
       <section className="border-b border-line-200">
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
           <div className="min-w-0">
-            <SectionHeader eyebrow="The national foundation" title="A secure foundation for better national decisions." />
+            <SectionHeader
+              eyebrow="The national foundation"
+              title="A secure foundation for better national decisions."
+            />
             <Illustration src={foundationArt.url} variant="aside" className="mt-8" />
           </div>
           <div className="space-y-5 border-t border-line-200 pt-8 text-[16px] leading-relaxed text-ink-700 md:border-t-0 md:pt-0">
             <p>
               Tax, customs, treasury, registry, health and employment records can reveal what public
               statistics alone cannot. The Vault gives government a secure place to analyse these
-              records together—turning information held across ministries into evidence leaders can use.
+              records together—turning information held across ministries into evidence leaders can
+              use.
             </p>
             <p>
-              Computing, storage and local AI operate on government premises. Installation, encrypted
-              storage, backup power and recovery arrangements are confirmed in each country’s
-              deployment specification. The purpose is simple: make valuable information useful
-              without surrendering control of it.
+              Computing, storage and local AI operate on government premises. Installation,
+              encrypted storage, backup power and recovery arrangements are confirmed in each
+              country’s deployment specification. The purpose is simple: make valuable information
+              useful without surrendering control of it.
             </p>
           </div>
         </div>
@@ -176,22 +182,28 @@ function VaultPage() {
       <section className="border-b border-line-200">
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
           <div className="min-w-0">
-            <SectionHeader eyebrow="The economic advantage" title="Act sooner. Invest more wisely. Build progress that lasts." />
+            <SectionHeader
+              eyebrow="The economic advantage"
+              title="Act sooner. Invest more wisely. Build progress that lasts."
+            />
             <div className="mt-6 space-y-5 text-[16px] leading-relaxed text-ink-700">
-            <p>
-              Where is public spending delivering results? What is delaying an investment? Which
-              sectors need ministries to act together? The answers often sit in national records
-              that are difficult to bring together when a decision is needed.
-            </p>
-            <p>
-              A stronger evidence base helps government target resources, prepare credible investment
-              proposals and address delivery problems earlier. That can strengthen the country’s
-              position in a competitive region—and support a faster, more durable path to growth.
-              Results still depend on the decisions made and how well they are delivered.
-            </p>
+              <p>
+                Where is public spending delivering results? What is delaying an investment? Which
+                sectors need ministries to act together? The answers often sit in national records
+                that are difficult to bring together when a decision is needed.
+              </p>
+              <p>
+                A stronger evidence base helps government target resources, prepare credible
+                investment proposals and address delivery problems earlier. That can strengthen the
+                country’s position in a competitive region—and support a faster, more durable path
+                to growth. Results still depend on the decisions made and how well they are
+                delivered.
+              </p>
             </div>
           </div>
-          <div className="flex items-center justify-end"><Illustration src={progressArt.url} variant="aside" /></div>
+          <div className="flex items-center justify-end">
+            <Illustration src={progressArt.url} variant="aside" />
+          </div>
         </div>
       </section>
 
@@ -199,7 +211,11 @@ function VaultPage() {
       <section className="border-b border-line-200">
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
           <div className="min-w-0">
-            <SectionHeader eyebrow="Security you can inspect" title="Protect national trust—and the freedom to act." lede="Government should not have to choose between useful evidence and control of sensitive records. The Vault’s safeguards keep custody and release decisions in official hands. No system is beyond attack; each deployment needs testing and ongoing oversight." />
+            <SectionHeader
+              eyebrow="Security you can inspect"
+              title="Protect national trust—and the freedom to act."
+              lede="Government should not have to choose between useful evidence and control of sensitive records. The Vault’s safeguards keep custody and release decisions in official hands. No system is beyond attack; each deployment needs testing and ongoing oversight."
+            />
             <Illustration src={custodyArt.url} variant="aside" className="mt-8" />
           </div>
           <ul className="divide-y divide-line-200 border-y border-line-200">
@@ -216,8 +232,14 @@ function VaultPage() {
       <section className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-24">
           <div className="grid items-center gap-10 md:grid-cols-[1.2fr_1fr] md:gap-16">
-            <SectionHeader eyebrow="Managed from GDPVision" title="One clear process—from question to approved finding." lede="Officials can see what evidence is available, request analysis and follow the approval process. GDPVision receives dataset descriptions, requests and approved findings—not the private records behind them. Government decides what may be released." />
-            <div className="flex justify-end"><Illustration src={workbenchArt.url} variant="aside" /></div>
+            <SectionHeader
+              eyebrow="Managed from GDPVision"
+              title="One clear process—from question to approved finding."
+              lede="Officials can see what evidence is available, request analysis and follow the approval process. GDPVision receives dataset descriptions, requests and approved findings—not the private records behind them. Government decides what may be released."
+            />
+            <div className="flex justify-end">
+              <Illustration src={workbenchArt.url} variant="aside" />
+            </div>
           </div>
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {SERVICE.map((s, i) => (
@@ -235,7 +257,11 @@ function VaultPage() {
       <section id="vault-briefing" className="border-b border-line-200">
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
           <div className="min-w-0">
-            <SectionHeader eyebrow="Request a briefing" title="Start with the decision your government needs to make." lede="Tell us the priority, which ministry holds the evidence and what Cabinet needs to decide. We’ll discuss where the Vault could help and what a government-controlled deployment would require. A principal from OPEN Interactive will respond through your official email." />
+            <SectionHeader
+              eyebrow="Request a briefing"
+              title="Start with the decision your government needs to make."
+              lede="Tell us the priority, which ministry holds the evidence and what Cabinet needs to decide. We’ll discuss where the Vault could help and what a government-controlled deployment would require. A principal from OPEN Interactive will respond through your official email."
+            />
             <Illustration src={briefingArt.url} variant="spot" className="mt-8" />
           </div>
           <BriefingForm topic="vault" />

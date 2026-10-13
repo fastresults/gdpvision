@@ -1,6 +1,6 @@
 # AGENTS.md — GDPVision navigation index
 
-Read this first, then the matching `docs/map/<domain>.md` (`chambers`, `onboarding`, `corpus`, `routes`, `server-fns`, `tables`). Full reference: `docs/map/agents-full-reference.md`.
+Read this first, then the matching `docs/map/<domain>.md` (`chambers`, `onboarding`, `corpus`, `routes`, `server-fns`, `tables`). Full ref: `docs/map/agents-full-reference.md`.
 
 Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 · Supabase (Lovable Cloud) · AI SDK via Lovable AI Gateway.
 

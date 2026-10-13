@@ -437,6 +437,9 @@ async function writePersonas(
       ? `REAL OFFICE HOLDERS — never use these surnames, and never describe these people: ${avoid.join(", ")}`
       : "",
     `ALREADY CAST (do not repeat these people):\n${others.map(digest).join("\n") || "none yet"}`,
+    others.length
+      ? `NAMES ALREADY USED — every persona needs a distinct first name and surname; never reuse any of these first names or surnames: ${[...new Set(others.flatMap((p) => p.name.split(/\s+/)))].join(", ")}`
+      : "Every persona in this batch needs a distinct first name and surname.",
     `CAST NOW — one persona per cell, returning the same slot numbers:\n${cells
       .map(
         (c) =>

@@ -96,7 +96,10 @@ export function MarketingShell({ children }: MarketingShellProps) {
           <span className="block whitespace-nowrap text-left">Details</span>
         </span>
       ) : (
-        "Click to enable details"
+        <span className="block text-left">
+          <span className="block whitespace-nowrap text-left">Click to enable</span>
+          <span className="block whitespace-nowrap text-left">Details</span>
+        </span>
       )}
     </button>
   );

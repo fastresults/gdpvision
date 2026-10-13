@@ -72,7 +72,8 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
           </div>
           <ul className="mt-2 space-y-1.5">
             {chips.map((c, i) => {
-              const lit = stageBeat >= 1 && (i % stages.length === active || (active === 0 && i === 0));
+              const lit =
+                stageBeat >= 1 && (i % stages.length === active || (active === 0 && i === 0));
               return (
                 <li
                   key={c.id}
@@ -98,18 +99,66 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
           <div className="text-[12px] font-semibold text-gold-500">Decision to prepare</div>
           <p className="mt-1 text-[15px] leading-snug text-ink-950">{step.ask}</p>
           <p className="mt-2 text-[13px] text-ink-700">{stageOperation(journey, active)}</p>
-          {stageBeat >= 3 && <div className="cjj-beat mt-3 border-l-2 border-gold-500 pl-3"><span className="text-[12px] font-semibold text-ink-500">Finding</span><p className="mt-1 text-[15px] leading-snug text-ink-950">{stageFinding(journey, current, active)}</p></div>}
+          {stageBeat >= 3 && (
+            <div className="cjj-beat mt-3 border-l-2 border-gold-500 pl-3">
+              <span className="text-[12px] font-semibold text-ink-500">Finding</span>
+              <p className="mt-1 text-[15px] leading-snug text-ink-950">
+                {stageFinding(journey, current, active)}
+              </p>
+            </div>
+          )}
           <div className="mt-3 grid grid-cols-3 gap-1" aria-label="Decision checks">
-            {["Question", "Evidence", "Action", "Finding", "Check", "Approval"].map((label, i) => <span key={label} className={cn("border px-1 py-1 text-center font-mono text-[10px] uppercase", i <= stageBeat ? "border-gold-500 text-ink-950" : "border-line-200 text-ink-500")}>{label}</span>)}
+            {["Question", "Evidence", "Action", "Finding", "Check", "Approval"].map((label, i) => (
+              <span
+                key={label}
+                className={cn(
+                  "border px-1 py-1 text-center font-mono text-[10px] uppercase",
+                  i <= stageBeat ? "border-gold-500 text-ink-950" : "border-line-200 text-ink-500",
+                )}
+              >
+                {label}
+              </span>
+            ))}
           </div>
           <dl className="mt-3 space-y-3 text-[14px]">
-            {stageBeat >= 1 && <div><dt className="text-[12px] font-semibold text-ink-500">Evidence used</dt><dd className="mt-1 leading-snug text-ink-950">{current.input}</dd></div>}
-            {stageBeat >= 4 && <div className="cjj-beat border-t border-line-200 pt-3"><dt className="text-[12px] font-semibold text-gold-500">Required check</dt><dd className="mt-1 leading-snug text-ink-950">{step.safeguard}</dd></div>}
-            {stageBeat >= 5 && <div className="cjj-beat"><dt className="text-[12px] font-semibold text-ink-500">Who reviews or approves</dt><dd className="mt-1 leading-snug text-ink-950">{step.signoff}</dd></div>}
+            {stageBeat >= 1 && (
+              <div>
+                <dt className="text-[12px] font-semibold text-ink-500">Evidence used</dt>
+                <dd className="mt-1 leading-snug text-ink-950">{current.input}</dd>
+              </div>
+            )}
+            {stageBeat >= 4 && (
+              <div className="cjj-beat border-t border-line-200 pt-3">
+                <dt className="text-[12px] font-semibold text-gold-500">Required check</dt>
+                <dd className="mt-1 leading-snug text-ink-950">{step.safeguard}</dd>
+              </div>
+            )}
+            {stageBeat >= 5 && (
+              <div className="cjj-beat">
+                <dt className="text-[12px] font-semibold text-ink-500">Who reviews or approves</dt>
+                <dd className="mt-1 leading-snug text-ink-950">{step.signoff}</dd>
+              </div>
+            )}
           </dl>
-          <details className="mt-4 border-t border-line-200 pt-2" onClick={(event) => event.stopPropagation()}>
-            <summary className="cursor-pointer text-[12px] font-semibold text-ink-700">Full stage details</summary>
-            <dl className="mt-2 space-y-2 text-[13px] text-ink-700"><div><dt className="font-semibold">Finding to establish</dt><dd>{stageFinding(journey, current, active)}</dd></div><div><dt className="font-semibold">Checks and review</dt><dd>{step.safeguard} · {step.signoff}</dd></div></dl>
+          <details
+            className="mt-4 border-t border-line-200 pt-2"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <summary className="cursor-pointer text-[12px] font-semibold text-ink-700">
+              Full stage details
+            </summary>
+            <dl className="mt-2 space-y-2 text-[13px] text-ink-700">
+              <div>
+                <dt className="font-semibold">Finding to establish</dt>
+                <dd>{stageFinding(journey, current, active)}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold">Checks and review</dt>
+                <dd>
+                  {step.safeguard} · {step.signoff}
+                </dd>
+              </div>
+            </dl>
           </details>
         </div>
 

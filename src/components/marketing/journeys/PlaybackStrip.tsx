@@ -17,7 +17,12 @@ interface PlaybackStripProps {
 export function PlaybackStrip(props: PlaybackStripProps) {
   const controls = [
     { label: "Previous step", Icon: ChevronLeft, action: props.onPrevious, disabled: props.first },
-    { label: props.playing ? "Pause" : "Play", Icon: props.playing ? Pause : Play, action: props.onToggle, disabled: props.reduced },
+    {
+      label: props.playing ? "Pause" : "Play",
+      Icon: props.playing ? Pause : Play,
+      action: props.onToggle,
+      disabled: props.reduced,
+    },
     { label: "Next step", Icon: ChevronRight, action: props.onNext, disabled: props.last },
     { label: "Replay example", Icon: RotateCcw, action: props.onReplay, disabled: false },
   ];
@@ -27,7 +32,13 @@ export function PlaybackStrip(props: PlaybackStripProps) {
         {controls.map(({ label, Icon, action, disabled }) => (
           <Tooltip key={label}>
             <TooltipTrigger asChild>
-              <button type="button" className="btn-ghost h-9 w-9 shrink-0 p-0" aria-label={label} disabled={disabled} onClick={action}>
+              <button
+                type="button"
+                className="btn-ghost h-9 w-9 shrink-0 p-0"
+                aria-label={label}
+                disabled={disabled}
+                onClick={action}
+              >
                 <Icon className="h-4 w-4" aria-hidden="true" />
               </button>
             </TooltipTrigger>

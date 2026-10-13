@@ -12,7 +12,6 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
   if (!lead) return null;
   const support = fits.filter((f) => f.role === "support");
 
-
   return (
     <div className="flex h-full flex-col gap-4 overflow-auto px-4 py-5 md:px-7">
       {/* Beat 1 — read the question */}
@@ -20,7 +19,9 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
         <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
           01 · GDPVision reads the question
         </div>
-        <p className="mt-2 font-display text-xl leading-snug text-ink-950">Match this priority to the right expertise.</p>
+        <p className="mt-2 font-display text-xl leading-snug text-ink-950">
+          Match this priority to the right expertise.
+        </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {tags.map((tag, i) => (
             <span
@@ -54,7 +55,6 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
                       : f.role === "support"
                         ? "border-ink-700"
                         : "border-line-200",
-                    
                   )}
                   style={{ animationDelay: `${i * 0.08}s` }}
                 >
@@ -94,9 +94,18 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
       {/* Beat 3 — route */}
       {beat >= 3 && support.length > 0 && (
         <div className="cjj-beat border border-ink-700 bg-paper-0 p-3">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">04 · Keep supporting workspaces connected</div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            04 · Keep supporting workspaces connected
+          </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            {support.map((s) => <span key={s.index} className="border border-gold-500 px-2 py-1 text-[11px] text-ink-950"><span className="font-mono text-gold-500">{s.index}</span> · {s.name} — {s.purpose}</span>)}
+            {support.map((s) => (
+              <span
+                key={s.index}
+                className="border border-gold-500 px-2 py-1 text-[11px] text-ink-950"
+              >
+                <span className="font-mono text-gold-500">{s.index}</span> · {s.name} — {s.purpose}
+              </span>
+            ))}
           </div>
         </div>
       )}

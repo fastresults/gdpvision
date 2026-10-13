@@ -324,7 +324,9 @@ const FEATURED = new Set([
 /** Map the journey's own route steps onto the Chamber's five method stages. */
 function buildStages(scenario: Scenario, method: ChamberMethod): StageDetail[] {
   const details: StageDetail[] = [];
-  const sources = evidenceChips(scenario).map((chip) => chip.label).join(" · ");
+  const sources = evidenceChips(scenario)
+    .map((chip) => chip.label)
+    .join(" · ");
   method.stages.forEach((stage, index) => {
     const step = scenario.steps[Math.min(index, scenario.steps.length - 1)];
     details.push({

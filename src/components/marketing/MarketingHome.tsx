@@ -59,7 +59,6 @@ import { computeValue, formatUsd } from "@/lib/calculator/model";
 import { proposedInputForCountry } from "@/lib/calculator/proposal";
 import "@/lib/explain/calculator-entries";
 
-
 const LOOP_STEPS = [
   {
     step: "01",

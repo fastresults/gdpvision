@@ -109,7 +109,6 @@ export function ChamberPanel({
           </div>
         ) : null}
 
-
         <div className="mt-6">
           <span
             aria-hidden

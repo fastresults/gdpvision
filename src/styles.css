@@ -67,6 +67,7 @@
   --color-ink-400: var(--ink-400);
   --color-ink-300: var(--ink-300);
   --color-ink-hover: var(--ink-hover);
+  --color-charcoal: var(--charcoal);
   --color-paper-0: var(--paper-0);
   --color-paper-50: var(--paper-50);
   --color-paper-100: var(--paper-100);
@@ -125,6 +126,7 @@
   --line-100: #eeefe8;
   --line-200: #e3e4dd;
   --ink-hover: #1e3350;
+  --charcoal: #33363b;
 
   /* Sovereign accent */
   --gold-500: #b98a2f;

@@ -409,7 +409,7 @@ export function MarketingHome() {
             title="Ten Chambers connect national evidence to delivery."
             lede="Each Chamber is a dedicated working area for one government responsibility. Together, the ten Chambers connect national evidence, Cabinet choices, ministry delivery, public understanding, and accountability."
           />
-          <div className="relative mt-10 overflow-hidden border border-ink-950 bg-ink-950 px-5 py-6 shadow-sm sm:px-8 sm:py-8">
+          <div className="relative mt-10 overflow-hidden border border-charcoal bg-charcoal px-5 py-6 shadow-sm sm:px-8 sm:py-8">
             <div aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-gold-500" />
             <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(280px,380px)] md:items-end md:gap-12">
               <div>

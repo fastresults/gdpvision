@@ -66,11 +66,19 @@ export function ChamberPanel({
     >
       <div className="pl-5 pr-4 py-5 sm:pl-6 sm:pr-5 sm:py-6">
         <div className="flex items-start justify-between gap-3 sm:gap-4">
-          <span
-            className="pt-1 font-serif text-[26px] leading-none tracking-tight text-ink-950 sm:text-[32px]"
-            style={{ color: `var(${accentVar})` }}
-          >
-            Chamber {index}
+          <span className="flex items-start gap-3 pt-1">
+            {/* 20px vertical hairline at the label's left edge, in the chamber's colour. */}
+            <span
+              aria-hidden
+              className="h-5 w-px flex-none"
+              style={{ background: `var(${accentVar})` }}
+            />
+            <span
+              className="font-serif text-[26px] leading-none tracking-tight text-ink-950 sm:text-[32px]"
+              style={{ color: `var(${accentVar})` }}
+            >
+              Chamber {index}
+            </span>
           </span>
           {image ? (
             <Illustration

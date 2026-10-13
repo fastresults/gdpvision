@@ -22,7 +22,7 @@ export function IndexBand() {
       start: el.scrollLeft <= 4,
       end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4,
     });
-  }, []);
+  }, [rowRef]);
 
   useEffect(() => {
     update();
@@ -34,7 +34,7 @@ export function IndexBand() {
       el.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, [update]);
+  }, [update, rowRef]);
 
   const page = (dir: 1 | -1) => {
     cancel();

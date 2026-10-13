@@ -142,6 +142,7 @@ export function MarketingHome() {
   }, [paused, stopped]);
 
   const current = index === 0 ? EXISTENTIAL_THREATS[0] : tail[index - 1];
+  const threatTotal = EXISTENTIAL_THREATS.length;
   const goPrevThreat = () => {
     setStopped(true);
     setIndex((i) => (i - 1 + threatTotal) % threatTotal);

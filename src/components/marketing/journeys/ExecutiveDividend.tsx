@@ -21,44 +21,6 @@ export function ExecutiveDividend({ journey, beat }: { journey: ChamberJourney; 
           Before → With GDPVision
         </span>
       </div>
-      <ol className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-        {benefits.map((benefit, index) => {
-          const slot = BENEFIT_SLOTS[index];
-          const active = index <= beat;
-          return (
-            <li
-              key={slot.label}
-              className={cn(
-                "relative min-h-40 overflow-hidden border bg-paper-0 p-2.5 transition-all duration-500",
-                active ? "cjj-benefit border-gold-500" : "border-line-200",
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-gold-500">
-                  0{index + 1} · {slot.label}
-                </span>
-                {active && <Check className="h-3.5 w-3.5 text-gold-500" />}
-              </div>
-              <div className="mt-2 border-l border-line-200 pl-2">
-                <div className="font-mono text-[11px] text-ink-500">Before</div>
-                <p className="mt-1 text-[12px] italic leading-snug text-ink-500">
-                  {slot.before.replace(/^Before:\s*/i, "")}
-                </p>
-              </div>
-              <ArrowRight
-                className={cn("my-2 h-4 w-4 text-line-200", active && "cjj-shift text-gold-500")}
-              />
-              <div className={cn("border-l pl-2", active ? "border-gold-500" : "border-line-200")}>
-                <div className="font-mono text-[11px] text-gold-500">With GDPVision</div>
-                <strong className="mt-1 block font-display text-base leading-tight text-ink-950">
-                  {slot.headline}
-                </strong>
-                <p className="mt-1 text-[12px] leading-snug text-ink-700">{benefit}</p>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
       {beat >= 5 && (
         <div className="cjj-beat mt-3 grid border border-gold-500 bg-ink-950 text-paper-0 md:grid-cols-[1.3fr_1fr]">
           <div className="p-3">
@@ -82,6 +44,47 @@ export function ExecutiveDividend({ journey, beat }: { journey: ChamberJourney; 
           </div>
         </div>
       )}
+      <ol className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        {benefits.map((benefit, index) => {
+          const slot = BENEFIT_SLOTS[index];
+          const active = index <= beat;
+          return (
+            <li
+              key={slot.label}
+              className={cn(
+                "relative min-h-40 overflow-hidden border bg-paper-0 p-2.5 transition-all duration-500",
+                active ? "cjj-benefit border-gold-500" : "border-line-200",
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] font-semibold text-gold-500">
+                  0{index + 1} · {slot.label}
+                </span>
+                {active && <Check className="h-3.5 w-3.5 text-gold-500" />}
+              </div>
+              <details
+                className="mt-2 text-[12px] text-ink-500"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <summary className="cursor-pointer">Before</summary>
+                <p className="mt-1 italic leading-snug">
+                  {slot.before.replace(/^Before:\s*/i, "")}
+                </p>
+              </details>
+              <ArrowRight
+                className={cn("my-2 h-4 w-4 text-line-200", active && "cjj-shift text-gold-500")}
+              />
+              <div className={cn("border-l pl-2", active ? "border-gold-500" : "border-line-200")}>
+                <div className="font-mono text-[11px] text-gold-500">With GDPVision</div>
+                <strong className="mt-1 block font-display text-base leading-tight text-ink-950">
+                  {slot.headline}
+                </strong>
+                <p className="mt-1 text-[12px] leading-snug text-ink-700">{benefit}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }

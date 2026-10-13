@@ -263,7 +263,7 @@ export const PROFILES: Record<string, JourneyProfile> = {
     "3 days",
     "Agree the minister’s evidence, answers and requests.",
   ),
-  "Promises vs budget room": p(
+  "Promises vs fiscal room": p(
     "Structural",
     "1 budget cycle",
     "4 weeks",
@@ -470,7 +470,7 @@ export const MORE_BENEFITS: Record<string, Five> = {
     "The minister walks in fully prepared.",
     "Donor feedback is captured for next time.",
   ],
-  "Promises vs budget room": [
+  "Promises vs fiscal room": [
     "What every promise costs.",
     "A delivery order the budget can carry.",
     "Broken promises from overreach are avoided.",

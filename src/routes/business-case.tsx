@@ -20,6 +20,7 @@ import {
   OPTIONS_CLOSE,
   OPTION_PATHS,
   PROVENANCE_PARAS,
+  PRESSURES,
   RECOMMENDATION,
   RISKS_NOT_PROCEEDING,
   RISKS_PROCEEDING,
@@ -48,16 +49,13 @@ import artPaths from "@/assets/illustrations/bc-paths.jpg.asset.json";
 import artSeal from "@/assets/illustrations/bc-seal.jpg.asset.json";
 import artBriefingRoom from "@/assets/illustrations/bc-briefing-room.jpg.asset.json";
 import adamAndersonPortrait from "@/assets/illustrations/adam-anderson-engraved-profile.jpg.asset.json";
-import ogImage from "@/assets/gdpvision-og.jpg";
 
 const SITE_URL = "https://gdpvision.com";
-const TITLE = "Should government procure GDPVision? — a decision paper";
-const DESCRIPTION =
-  "Why national economic decisions need a governed, government-controlled system: the stakes, the required standard, the available options, the approvals, and the recommended path.";
+const TITLE = "The business case for GDPVision — better national decisions";
+const DESCRIPTION = BUSINESS_CASE_META.standfirst;
 
 export const Route = createFileRoute("/business-case")({
   head: () => {
-    const absoluteOg = ogImage.startsWith("http") ? ogImage : `${SITE_URL}${ogImage}`;
     return {
       meta: [
         { title: TITLE },
@@ -66,11 +64,9 @@ export const Route = createFileRoute("/business-case")({
         { property: "og:title", content: TITLE },
         { property: "og:description", content: DESCRIPTION },
         { property: "og:url", content: `${SITE_URL}/business-case` },
-        { property: "og:image", content: absoluteOg },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: TITLE },
         { name: "twitter:description", content: DESCRIPTION },
-        { name: "twitter:image", content: absoluteOg },
       ],
       links: [{ rel: "canonical", href: `${SITE_URL}/business-case` }],
       scripts: [
@@ -84,7 +80,6 @@ export const Route = createFileRoute("/business-case")({
             author: { "@type": "Person", name: BUSINESS_CASE_META.author },
             publisher: { "@type": "Organization", name: BUSINESS_CASE_META.org },
             mainEntityOfPage: `${SITE_URL}/business-case`,
-            image: absoluteOg,
           }),
         },
       ],
@@ -124,7 +119,7 @@ function BusinessCasePage() {
                 {BUSINESS_CASE_META.eyebrow}
               </div>
               <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
-              <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] tracking-tight text-ink-950 sm:mt-6 sm:text-[40px] sm:leading-[1.05] md:text-[56px]">
+              <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] text-ink-950 sm:mt-6 sm:text-[40px] sm:leading-[1.05] md:text-[56px]">
                 {BUSINESS_CASE_META.title}
               </h1>
 
@@ -155,7 +150,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="Executive summary"
-          title="Why government needs a governed decision system."
+          title="A clearer path from evidence to economic action."
         />
         <div className="mt-10 grid gap-8 md:grid-cols-2">
           <div className="space-y-6">
@@ -181,19 +176,19 @@ function BusinessCasePage() {
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
                 Interactive · The Decision Brief
               </div>
-              <h3 className="mt-4 font-serif text-[26px] leading-tight tracking-tight text-ink-950 md:text-[32px]">
-                Estimate the value for your own economy.
+              <h3 className="mt-4 font-serif text-[26px] leading-tight text-ink-950 md:text-[32px]">
+                Examine the potential value for your economy.
               </h3>
               <p className="mt-4 max-w-2xl text-[15.5px] leading-relaxed text-ink-700">
-                Answer four questions, adjust the depth of each Chamber, and see an updated view in
-                dollars, share of GDP, and return against cost. Every calculation is open, the
-                maximum estimate is stated, and the Counsel responds to your selections.
+                Explore how the assumptions and scope affect an illustrative value estimate and its
+                costs. Inspect the calculation and its limits before using it to frame a decision.
+                The estimate is not a forecast or a measured result.
               </p>
               <Link
                 to="/business-case/brief"
                 className="btn-primary mt-7 inline-flex items-center gap-2 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.18em]"
               >
-                Model the value →
+                Explore the estimate →
               </Link>
             </div>
             <div className="hidden justify-self-end md:block">
@@ -207,10 +202,13 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="01 · What is at stake"
-          title="The pressures are measurable—and already material."
-          lede="This is a working standard, not decoration. Every important claim should remain linked to a source that can be checked. This paper follows the same rule."
+          title="Major decisions leave little room for unclear evidence."
+          lede="A disaster, a revenue shock or a delayed investment can change a country’s options. The historical example below shows the scale of one event—not a regional average or a prediction."
         />
-        <div className="mt-14 grid gap-x-10 gap-y-14 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 max-w-3xl text-[14px] leading-relaxed text-ink-500">
+          {SOURCES_NOTE}
+        </div>
+        <div className="mt-10 grid items-start gap-10 md:grid-cols-[300px_1fr]">
           {STAKES.map((s) => (
             <div key={s.label}>
               <NumberTile
@@ -221,8 +219,21 @@ function BusinessCasePage() {
                 citation={s.citation}
               />
               <p className="mt-4 text-[14.5px] leading-relaxed text-ink-700">{s.note}</p>
+              <a
+                href={s.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-block text-[14px] text-ink-950 underline underline-offset-4"
+              >
+                Read the official assessment ↗
+              </a>
             </div>
           ))}
+          <div className="space-y-6">
+            {PRESSURES.map((p) => (
+              <Labelled key={p.label} {...p} />
+            ))}
+          </div>
         </div>
         <div className="mt-14 grid gap-10 md:grid-cols-[300px_1fr] md:items-center">
           <div className="flex justify-center md:block">
@@ -253,8 +264,8 @@ function BusinessCasePage() {
               ))}
             </div>
             <p className="mt-8 max-w-2xl text-[16.5px] leading-relaxed text-ink-950">
-              None of this is a failure of will. The information and decision tools are not fit for
-              the task—and, unlike the external deadline, that is within the region’s power to fix.
+              The aim is not more work for officials. It is a clearer basis for the work they
+              already do—and a record that connects the decision to what happens next.
             </p>
           </div>
           <div className="hidden justify-self-end md:block">
@@ -263,11 +274,55 @@ function BusinessCasePage() {
         </div>
       </Section>
 
+      {/* 7 · What GDPVision is */}
+      <Section>
+        <SectionHeader
+          eyebrow="03 · How GDPVision supports government"
+          title="Ten connected workspaces. One government decision process."
+          lede="Chambers are connected digital workspaces for government responsibilities. Together they bring evidence, policy choices, approvals and delivery into a shared process—with officials retaining responsibility for decisions."
+        />
+        <div className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2">
+          {CHAMBERS.map((c) => (
+            <div key={c.index} className="relative border-t border-line-200 pt-5 pl-5">
+              <div
+                aria-hidden
+                className="absolute left-0 top-0 h-full w-[2px]"
+                style={{ background: `var(${c.accentVar})` }}
+              />
+              <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
+                Chamber {c.index}
+              </div>
+              <h3 className="mt-2 font-serif text-[22px] leading-tight text-ink-950">{c.title}</h3>
+              <p className="mt-3 text-[15px] leading-relaxed text-ink-700">
+                {CHAMBER_LINES[c.index] ?? c.purpose}
+              </p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-12 max-w-2xl text-[17px] leading-relaxed text-ink-950">
+          {CORPUS_FOOTNOTE}
+        </p>
+      </Section>
+
+      {/* 8 · What this is worth */}
+      <Section>
+        <SectionHeader
+          eyebrow="04 · Where economic value can come from"
+          title="Better preparation. Clearer priorities. Action government can follow."
+          lede={WORTH_INTRO}
+        />
+        <div className="mt-10 grid gap-x-10 gap-y-7 md:grid-cols-2">
+          {WORTH.map((w) => (
+            <Labelled key={w.label} {...w} />
+          ))}
+        </div>
+      </Section>
+
       {/* 3 · The cheap answer */}
       <Section>
         <SectionHeader
-          eyebrow="03 · The obvious cheap answer, taken seriously"
-          title="A language model is a component. It is not a system."
+          eyebrow="05 · Where AI fits"
+          title="AI helps with the work. Government still needs a decision process."
         />
         <div className="mt-8 max-w-2xl space-y-5">
           {CHEAP_ANSWER_INTRO.map((p) => (
@@ -280,7 +335,7 @@ function BusinessCasePage() {
           <Illustration src={artComponent.url} variant="rule" className="mx-auto" />
         </div>
         <p className="mt-10 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
-          What a chat session cannot do — not “does less well”, but cannot, by construction
+          What government needs beyond an individual conversation
         </p>
         <ol className="mt-8 grid gap-x-10 gap-y-8 md:grid-cols-2">
           {CANNOTS.map((c, i) => (
@@ -300,8 +355,8 @@ function BusinessCasePage() {
       {/* 4 · Shadow AI */}
       <Section>
         <SectionHeader
-          eyebrow="04 · The alternative is not free"
-          title="Ungoverned AI is already creating government risk."
+          eyebrow="06 · Responsible AI use"
+          title="Make useful AI assistance accountable."
         />
         <div className="mt-8 max-w-2xl space-y-5">
           {SHADOW_AI_INTRO.map((p) => (
@@ -329,8 +384,8 @@ function BusinessCasePage() {
       {/* 5 · Tier one */}
       <Section>
         <SectionHeader
-          eyebrow="05 · The required standard"
-          title="National decisions require a controlled, accountable system."
+          eyebrow="07 · The standard to verify"
+          title="Check the evidence. Test the controls. Agree the terms."
           lede={TIER_ONE_INTRO[0]}
         />
         <p className="mt-6 max-w-2xl text-[16.5px] leading-relaxed text-ink-700">
@@ -345,7 +400,7 @@ function BusinessCasePage() {
               <dl className="mt-3 space-y-3">
                 <div>
                   <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-                    Chat subscription
+                    Personal AI use
                   </dt>
                   <dd className="mt-1 text-[15px] leading-relaxed text-ink-500">{r.chat}</dd>
                 </div>
@@ -364,7 +419,7 @@ function BusinessCasePage() {
         <div className="mt-12 hidden overflow-hidden border border-line-200 md:block">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">
-              Tests for a critical national system: a chat subscription compared with GDPVision
+              Government requirements: personal AI use compared with GDPVision to evaluate
             </caption>
             <thead>
               <tr className="border-b border-line-200 bg-paper-50">
@@ -372,7 +427,7 @@ function BusinessCasePage() {
                   Test
                 </th>
                 <th className="px-4 py-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-500">
-                  Chat subscription
+                  Personal AI use
                 </th>
                 <th className="px-4 py-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-500">
                   GDPVision
@@ -397,8 +452,8 @@ function BusinessCasePage() {
       {/* 6 · Options appraisal */}
       <Section>
         <SectionHeader
-          eyebrow="06 · Options appraisal"
-          title="Choose what government should own after three years."
+          eyebrow="08 · Compare the alternatives"
+          title="Compare the capability, cost and responsibility—not just the subscription."
         />
         <div className="mt-12 grid gap-8 md:grid-cols-3">
           {OPTION_PATHS.map((p) => (
@@ -429,50 +484,6 @@ function BusinessCasePage() {
         </div>
       </Section>
 
-      {/* 7 · What GDPVision is */}
-      <Section>
-        <SectionHeader
-          eyebrow="07 · What GDPVision actually is"
-          title="Ten Chambers connect evidence, decisions, and delivery."
-          lede="Each Chamber is a dedicated working area for one government responsibility. Together they move evidence, decisions, delivery, and public accountability through one connected system."
-        />
-        <div className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2">
-          {CHAMBERS.map((c) => (
-            <div key={c.index} className="relative border-t border-line-200 pt-5 pl-5">
-              <div
-                aria-hidden
-                className="absolute left-0 top-0 h-full w-[2px]"
-                style={{ background: `var(${c.accentVar})` }}
-              />
-              <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
-                Chamber {c.index}
-              </div>
-              <h3 className="mt-2 font-serif text-[22px] leading-tight text-ink-950">{c.title}</h3>
-              <p className="mt-3 text-[15px] leading-relaxed text-ink-700">
-                {CHAMBER_LINES[c.index] ?? c.purpose}
-              </p>
-            </div>
-          ))}
-        </div>
-        <p className="mt-12 max-w-2xl text-[17px] leading-relaxed text-ink-950">
-          {CORPUS_FOOTNOTE}
-        </p>
-      </Section>
-
-      {/* 8 · What this is worth */}
-      <Section>
-        <SectionHeader
-          eyebrow="08 · What this is worth to a sovereign economy"
-          title="The case rests on clear mechanisms, not unproven results."
-          lede={WORTH_INTRO}
-        />
-        <div className="mt-10 grid gap-x-10 gap-y-7 md:grid-cols-2">
-          {WORTH.map((w) => (
-            <Labelled key={w.label} {...w} />
-          ))}
-        </div>
-      </Section>
-
       {/* 9 · Five approvals */}
       <Section>
         <div className="grid gap-12 md:grid-cols-[300px_1fr] md:items-start">
@@ -481,9 +492,9 @@ function BusinessCasePage() {
           </div>
           <div>
             <SectionHeader
-              eyebrow="09 · The five approvals"
-              title="Five officials must be satisfied before government can proceed."
-              lede="Five people must each be satisfied, by different things."
+              eyebrow="09 · Responsibilities before proceeding"
+              title="Agree who checks the evidence, controls and terms."
+              lede="Leadership, finance, coordination, procurement and data protection each need a clear basis for proceeding."
             />
             <div className="mt-10 space-y-6 max-w-2xl">
               {APPROVALS.map((a) => (
@@ -500,8 +511,8 @@ function BusinessCasePage() {
       {/* 10 · Who built it */}
       <Section>
         <SectionHeader
-          eyebrow="10 · Who built it, and why that matters"
-          title="Government judgement—not screens—is the difficult capability."
+          eyebrow="10 · Experience—and the test it still needs"
+          title="Designed around the work of small-state government."
         />
         <div className="mt-8 max-w-2xl space-y-5">
           {PROVENANCE_PARAS.map((p) => (
@@ -515,8 +526,8 @@ function BusinessCasePage() {
       {/* 11 · Risks */}
       <Section>
         <SectionHeader
-          eyebrow="11 · Risks, in both directions"
-          title="Proceeding and waiting both carry risk."
+          eyebrow="11 · The risks to manage"
+          title="Assess implementation risk alongside the cost of standing still."
         />
         <div className="mt-10 grid gap-10 md:grid-cols-2">
           <div className="border-t-2 border-ink-950 pt-5">
@@ -534,11 +545,11 @@ function BusinessCasePage() {
         </div>
       </Section>
 
-      {/* 12 · Recommended path */}
+      {/* 12 · A proportionate next step */}
       <Section>
         <SectionHeader
-          eyebrow="12 · Recommended path"
-          title="Start with a briefing. Prove it in a pilot. Then decide on national deployment."
+          eyebrow="12 · A proportionate next step"
+          title="Start with one decision. Test the work. Decide whether to expand."
         />
         <ol className="mt-10 grid gap-8 md:grid-cols-3">
           {STAGES.map((s, i) => (
@@ -556,8 +567,8 @@ function BusinessCasePage() {
       {/* 13 · The test */}
       <Section>
         <SectionHeader
-          eyebrow="13 · The test to run before deciding"
-          title="Use seven tests before choosing any government AI system."
+          eyebrow="13 · Questions government should require answered"
+          title="Make the case earn your confidence."
         />
         <ol className="mt-10 max-w-3xl divide-y divide-line-200 border-y border-line-200">
           {SEVEN_QUESTIONS.map((q, i) => (
@@ -578,8 +589,8 @@ function BusinessCasePage() {
       {/* Sources */}
       <Section>
         <SectionHeader
-          eyebrow="Sources and confidence grades"
-          title="Every major figure states its source and confidence grade."
+          eyebrow="The evidence behind this paper"
+          title="Check what the figure means—and what it does not."
           lede={SOURCES_NOTE}
         />
         <ul className="mt-10 max-w-3xl divide-y divide-line-200 border-y border-line-200">
@@ -592,7 +603,14 @@ function BusinessCasePage() {
                 <div>
                   <div className="text-[15.5px] leading-relaxed text-ink-950">{s.figure}</div>
                   <div className="mt-1 font-mono text-[11px] leading-relaxed text-ink-500">
-                    {s.source}
+                    <a
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-4 hover:text-ink-950"
+                    >
+                      {s.source} ↗
+                    </a>
                   </div>
                 </div>
               </div>
@@ -609,12 +627,14 @@ function BusinessCasePage() {
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
                 Cabinet briefing
               </div>
-              <h2 className="mt-5 font-serif text-[34px] leading-[1.1] tracking-tight text-ink-950 md:text-[43px]">
+              <h2 className="mt-5 font-serif text-[34px] leading-[1.1] text-ink-950 md:text-[43px]">
                 Bring one Cabinet decision to a confidential briefing.
               </h2>
               <p className="mt-5 max-w-xl text-[16.5px] leading-relaxed text-ink-700">
-                A short, dignified enquiry from a member of a sitting government or their designated
-                advisor. OPEN Interactive responds within one working day.
+                Tell us the priority, the evidence available and what government needs to decide. We
+                can discuss the work a pilot should test and the terms that would need agreement.
+                Share sensitive material only after confidentiality and handling arrangements are
+                agreed.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <a
@@ -627,7 +647,7 @@ function BusinessCasePage() {
                   to="/op-eds"
                   className="btn-secondary inline-flex px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em]"
                 >
-                  Read the arguments
+                  Read the supporting papers
                 </Link>
               </div>
             </div>

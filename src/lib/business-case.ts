@@ -1,50 +1,44 @@
 // @domain marketing
 // @tables none
 // @ui src/routes/business-case.tsx
-//
-// Public copy for the GDPVision decision paper ("The business case").
-// Single source of truth for the page — the route component is presentational.
+// Public decision-paper copy and its evidence links. Deployment terms are not delivered outcomes.
 
 export const BUSINESS_CASE_META = {
-  eyebrow: "A decision paper",
-  title: "Decide whether GDPVision belongs in government.",
+  eyebrow: "The business case for GDPVision",
+  title: "Better national decisions. Stronger economic progress.",
   standfirst:
-    "Why national economic decisions need a governed, government-controlled system—prepared for heads of government, Cabinet Secretaries, ministries of finance, and officials responsible for deciding whether GDPVision should be procured.",
+    "GDPVision connects national evidence, policy choices and government delivery in one system. It helps Cabinet and ministries direct resources, prepare investment and keep action accountable—with sources they can check and decisions that remain in government hands.",
   author: "Adam Anderson",
   org: "OPEN Interactive",
 };
-
 export interface LabelledPara {
   label: string;
   body: string;
 }
-
 export const EXECUTIVE_SUMMARY: LabelledPara[] = [
   {
-    label: "The decision",
-    body: "Whether to manage national economic decisions through a governed system under government control—or continue relying on arrangements built only to publish statistics and on uncontrolled personal use of consumer AI inside ministries.",
+    label: "The problem",
+    body: "Government must make choices about spending, investment and resilience while the evidence sits across ministries. Reconciling that evidence can take attention away from the decision itself.",
   },
   {
-    label: "Why now",
-    body: "Three pressures now arrive at once. Citizenship by Investment, which can provide half of government revenue, faces a scheduled end without a costed replacement. Trade rules are being rewritten in capitals the region does not control. The hurricane threat is rising after one storm cost 226 per cent of GDP. Government must respond while debt can reach ninety per cent of GDP, interest already takes a quarter of revenue, and official data may arrive eighteen months late.",
+    label: "The practical change",
+    body: "Bring the evidence together, compare options, record an approved decision and follow its delivery. GDPVision connects these activities so Cabinet and ministries can work from a shared picture.",
   },
   {
-    label: "The central argument",
-    body: "A government can act only as well as the information and decision tools available to it. The region’s existing systems were built to publish a record of the past, not to guide live decisions. They are not enough for the economic transition now under way.",
+    label: "The economic value",
+    body: "Better-prepared investment, more focused public spending and clearer delivery responsibility can support economic progress. The value comes from the choices government makes and the action it delivers—not from software alone.",
   },
   {
-    label: "On the obvious cheap answer",
-    body: "A capable official using a leading AI model can draft a note, summarise a report, and compare two options. But an AI model is only one part of a government system. It keeps no shared national evidence record, may answer the same question differently, cannot enforce official roles, and should not receive Cabinet material through a personal account. Government is already using AI. The decision is whether that use will be governed.",
+    label: "What to verify",
+    body: "Test the sources, methods, access controls and decision workflow. Agree the deployment, security, ownership and exit terms before committing; do not treat a demonstration as proof of national results.",
   },
   {
-    label: "What is recommended",
-    body: "Begin with a confidential Cabinet briefing. Then run a time-limited pilot against one live decision, with agreed tests for moving to national use. If those tests are met, deploy a separate system for the country, owned by government, with written rights to export its data and leave the service.",
+    label: "The next step",
+    body: "Bring one real government decision to a briefing. Follow with a time-limited pilot, clear responsibilities and agreed tests. Decide on wider use only after reviewing the evidence from that pilot.",
   },
 ];
-
 export const NOT_CLAIMED =
-  "No measured outcome is published for GDPVision. No percentage improvement, no time saved, no revenue attributed. The case below argues from mechanism and from the size of the decisions involved, not from results we cannot yet evidence.";
-
+  "Potential value is not a proven result. This paper does not claim measured GDP growth, savings, revenue gained or time saved by GDPVision. Test the case against your country’s evidence and one real decision.";
 export interface StakeFigure {
   value: number;
   unit?: string;
@@ -52,375 +46,281 @@ export interface StakeFigure {
   label: string;
   grade: "A" | "B" | "C" | "D";
   citation: string;
+  sourceUrl: string;
   note: string;
 }
-
+const MARIA_URL =
+  "https://www.gfdrr.org/en/publication/dominica-post-disaster-needs-assessment-following-hurricane-maria";
 export const STAKES: StakeFigure[] = [
-  {
-    value: 50,
-    unit: "%",
-    label: "of government revenue, upper band",
-    grade: "B",
-    citation: "IMF Article IV consultations, 2022–2024",
-    note: "Citizenship by Investment at the upper band across the five OECS states operating a programme. That money is in hospitals, in schools, and in the reserve a small island reaches for in the weeks after a storm.",
-  },
-  {
-    value: 90,
-    unit: "%",
-    label: "debt-to-GDP, upper band",
-    grade: "A",
-    citation: "IMF WEO, 2024",
-    note: "In high-debt cases interest consumes around a quarter of revenue before Cabinet takes its first discretionary decision of the year. Remove up to half of what remains, and no version of the arithmetic resolves through prudence.",
-  },
   {
     value: 226,
     unit: "%",
-    label: "of GDP lost in a single night",
+    label: "Damage and losses relative to Dominica’s 2016 GDP",
     grade: "A",
-    citation: "Government of Dominica Post-Disaster Needs Assessment, 2017",
-    note: "Hurricane Maria. The storm is the most predictable feature of the regional fiscal environment; only its timing and landfall are uncertain.",
-  },
-  {
-    value: 0,
-    label: "OECS votes on the Inclusive Framework steering committee",
-    grade: "A",
-    citation: "OECD Inclusive Framework governance roster, 2024",
-    note: "Rules are written elsewhere. External decisions arrive as facts, on timetables the region does not set.",
-  },
-  {
-    value: 70,
-    unit: "%",
-    label: "of tertiary-educated citizens have emigrated",
-    grade: "A",
-    citation: "World Bank / OECD DIOC, 2020",
-    note: "Institutional capability is being lost faster than it is being replaced.",
-  },
-  {
-    value: 18,
-    unit: "mo",
-    label: "lag before authoritative sector data reaches Cabinet",
-    grade: "B",
-    citation: "ECCB & NSO release cadence review, 2024",
-    note: "A decision taken today rests on a settled picture of the year before last.",
+    citation: "Dominica Post-Disaster Needs Assessment · Hurricane Maria, 2017",
+    sourceUrl: MARIA_URL,
+    note: "The assessment estimated combined damage and economic losses equivalent to 226% of the previous year’s GDP. This is the cost of a specific disaster—not a fall of 226% in annual GDP, nor a forecast for another country.",
   },
 ];
-
+export const PRESSURES: LabelledPara[] = [
+  {
+    label: "Revenue resilience",
+    body: "Reliance on a narrow revenue base makes government vulnerable when conditions or external rules change. Citizenship-investment income should be assessed country by country; replacement options need realistic costs and delivery times.",
+  },
+  {
+    label: "Investment readiness",
+    body: "Investors need answers about land, approvals, infrastructure and workforce. A credible proposal connects those requirements to evidence and identifies what government must resolve.",
+  },
+  {
+    label: "Delivery capacity",
+    body: "Budget constraints and staff turnover make coordination essential. A shared record helps ministries see priorities, dependencies and responsibility instead of rebuilding the picture for each decision.",
+  },
+];
 export const STAKES_CLOSE =
-  "Taken together, the problem is clear. A revenue model that can fund half the state is ending. Trade rules that shape competitiveness are being written elsewhere. Hurricanes are now a permanent risk to national finances, not a seasonal concern. Government faces all three with little room in the budget, fewer skilled people, and evidence that may describe the country as it was two years ago. The problem is not a lack of effort. It is a lack of decision tools fit for the transition ahead.";
-
+  "The lesson is not that every country faces the same exposure. It is that major decisions need a clear view of revenue, risk and delivery capacity. Use regional experience as context; build the national decision on the country’s own evidence.";
 export const INSTRUMENTATION_INTRO = [
-  "It would be easy to attribute the gap to capacity or to will. In my experience that is both wrong and unfair.",
-  "Officials in these ministries are capable and overworked. The analysis has not been done because the underlying evidence does not exist in a usable form. Ministries hold fragments in incompatible formats. The dependency relationships between sectors — what happens to construction when tourism moves, what happens to public revenue when construction moves — live in the heads of a small number of people, some of them close to retirement.",
-  "When Cabinet asks what happens if half the revenue disappears, a ministry may need months to commission an answer. The study can arrive after the decision window has closed, describing conditions that have already changed.",
+  "Capable officials cannot make scattered information useful by effort alone. Ministries may hold different versions, reporting periods and definitions of the same issue.",
+  "A useful system connects those records, identifies gaps and keeps assumptions visible. It should help government answer a question while there is still time to act—not simply produce another report.",
 ];
-
 export const THREE_FAILURES: LabelledPara[] = [
   {
-    label: "The evidence is scattered",
-    body: "No single place a Cabinet can look, and no single number everyone accepts. A great deal of the most expensive time in the country is consumed reconciling figures that were each built on a different basis at a different time, and all of which are defensible.",
+    label: "Agree the starting point",
+    body: "Show where each figure comes from, when it was updated and what it measures. Differences between sources should be visible, not hidden behind a single confident number.",
   },
   {
-    label: "The evidence is ungraded",
-    body: "A precisely measured figure and a well-intentioned estimate appear in identical type in the same Cabinet paper. Nothing tells a minister which is which — which is why leaders hesitate before saying a number in public, and why a dispute about a national figure can run for days.",
+    label: "Separate evidence from assumptions",
+    body: "An official statistic and a working estimate should not look equally certain. Ministers need to know which conclusions are well supported and which depend on further checks.",
   },
   {
-    label: "And nothing is rehearsed",
-    body: "Policy is committed to and its consequences discovered afterwards. The question that actually matters — what happens if we do this, and what happens if we do the other thing — goes unanswered at the moment it is asked.",
+    label: "Compare before committing",
+    body: "Make the choices, assumptions and trade-offs explicit. A scenario supports judgement; it does not remove uncertainty or replace government approval.",
   },
 ];
-
 export const CHEAP_ANSWER_INTRO = [
-  "Leading AI models are powerful. With a consumer subscription, a competent permanent secretary can summarise an IMF review, draft a Cabinet note, compare two policy options, outline an investment case, and prepare a press line in an afternoon. Why procure anything more?",
-  "Most of that is true, and any vendor who denies it should be treated with suspicion. An official who is not using these tools is at a disadvantage to one who is.",
-  "The comparison misses an important distinction. An AI model is one component, not a complete government system. GDPVision uses several models through a controlled service, records the source and history of returned facts, and has a documented backup order. The real choice is between ungoverned and governed AI use.",
+  "AI tools can help officials summarise reports, draft notes and explore options. That assistance has real value. GDPVision also uses AI; the case is not that government should reject it.",
+  "The additional requirement is a connected government workflow: shared evidence, defined methods, access controls, approvals and delivery records. A personal AI account does not establish that workflow on its own.",
+  "Enterprise AI services can offer administration, retention controls and audit features. Those features still need to be assessed and connected to government’s evidence, responsibilities and legal requirements.",
 ];
-
 export const CANNOTS: LabelledPara[] = [
   {
-    label: "It cannot hold what your government knows",
-    body: "A personal chat starts again each time and disappears when the session closes. Nothing builds into a shared government record. Fifteen officials can quickly produce fifteen different, unreconciled views.",
+    label: "A shared evidence base",
+    body: "Chat histories can persist, but individual conversations are not automatically a reconciled national record. GDPVision brings evidence into a common structure with sources and access rules.",
   },
   {
-    label: "It cannot lawfully receive your Cabinet material",
-    body: "To get a useful answer an official must paste in the thing that makes it useful — the draft budget, the term sheet, the memorandum — into a service hosted elsewhere, under terms no ministry has reviewed, with retention the government cannot audit.",
+    label: "Appropriate handling of sensitive material",
+    body: "Whether an AI service may receive Cabinet material depends on law, approved terms and configuration. Sensitive records require an agreed handling arrangement; the Sovereign Vault is the proposed in-country route for private-data analysis.",
   },
   {
-    label: "It cannot reproduce its own answer",
-    body: "Ask the same fiscal question twice and a chat tool may give two answers. GDPVision separates advice from calculation: AI proposes, while a fixed, versioned calculation produces the numbers. A projection made in March can be run again with the same inputs in September and return the same result.",
+    label: "Calculations that can be checked",
+    body: "A fluent answer is not a verified economic calculation. GDPVision’s calculation tools expose inputs and assumptions; repeatability should be tested for the particular tool and version. AI-generated advice may vary.",
   },
   {
-    label: "It has one actor",
-    body: "Government work involves many people with different authority: one official maintains a data series, a minister reviews a portfolio, a principal decides, and a secretary records. A personal chat does not understand those roles. GDPVision enforces each person’s access in the underlying data system, not merely by hiding buttons on a screen.",
+    label: "Authority and responsibility",
+    body: "Government needs to know who can view, change, approve and act on information. Access controls and approval workflows must be verified against the actual users and records in the pilot.",
   },
   {
-    label: "It produces text, not a record",
-    body: "A chat session produces a message. GDPVision produces a permanent government record. A scenario keeps its assumptions; a Cabinet decision becomes a commitment with a named owner; and delivery is measured against the mandate each quarter. Work moves between the ten Chambers without being retyped, reducing the handoffs where government work is often lost.",
-  },
-  {
-    label: "It waits to be asked",
-    body: "A source may become unavailable or an overnight research task may fail. GDPVision keeps working: it gathers and groups new reporting, refreshes watchlists, retries unavailable sources, and restarts failed work through a documented backup process.",
-  },
-  {
-    label: "And it cannot be governed",
-    body: "A personal chat has no approval process and no permanent record of its advice. GDPVision applies a clear rule: the system drafts, authorised principals decide, and nothing is released automatically. Every route from a new signal to a public statement passes through a named, accountable official.",
+    label: "A decision that leads to action",
+    body: "A draft note is only a starting point. The useful outcome is an approved decision with an owner, a delivery record and a way to review progress.",
   },
 ];
-
 export const SHADOW_AI_INTRO = [
-  "This is the part most often missing from the comparison, and it is the one that should concern a Cabinet Secretary most.",
-  "Personal use of consumer AI is not a hypothetical future state. It is the current state in ministries across the region, undertaken by conscientious people trying to do difficult work with inadequate tools. The government therefore already carries four liabilities, none of which appears in any budget line.",
+  "Where officials use personal AI accounts without an approved process, government can lose visibility over evidence and sensitive material. The response should be practical: approved tools, clear handling rules and responsibilities—not a blanket claim that all AI use is unsafe.",
 ];
-
 export const SHADOW_LIABILITIES: LabelledPara[] = [
   {
-    label: "Disclosure exposure",
-    body: "Sovereign material outside the jurisdiction with retention nobody can audit. This is discoverable, and it will eventually be discovered by someone unfriendly.",
+    label: "Information handling",
+    body: "Check what may be uploaded, where it is processed and retained, and who has access. A subscription alone is not permission to share sensitive records.",
   },
   {
-    label: "Unattributable advice",
-    body: "When a figure in a Cabinet paper proves wrong, there is no record of where it came from. “The AI said so” is not a defence in Parliament, and the official who relied on it carries the exposure personally.",
+    label: "Advice without a source",
+    body: "A figure used in a Cabinet paper needs a source and a method. An AI answer should be checked before it becomes an official position.",
   },
   {
-    label: "Fragmented positions",
-    body: "The reconciliation problem accelerated rather than solved.",
+    label: "Competing versions",
+    body: "Separate conversations can produce inconsistent assumptions and drafts. Agree the evidence and record the approved version.",
   },
   {
-    label: "Key-person concentration",
-    body: "The capability sits with whichever official is good at prompting — in a region where seven in ten tertiary-educated citizens have already emigrated.",
+    label: "Knowledge tied to individuals",
+    body: "Useful work should remain accessible to authorised successors when an official leaves. Continuity needs a shared record and agreed retention rules.",
   },
 ];
-
 export const SHADOW_CLOSE =
-  "So the choice is not “spend money or spend nothing”. It is: continue carrying an uncontrolled liability at no visible cost, or convert it into a governed capability at a visible one. Finance ministries make that trade in every other domain. It is the same argument as moving from informal borrowing to a documented facility.";
-
+  "The choice is how to make AI assistance useful, accountable and safe within government’s wider decision process. GDPVision should be judged on that added capability—not on a comparison with the price of a personal subscription alone.";
 export const TIER_ONE_INTRO = [
-  "Every government runs a small number of tier-one systems—systems important enough to require formal control, continuity, and senior approval. These include treasury and financial management, revenue collection, the national identity register, and payment infrastructure.",
-  "Nobody evaluates a treasury system against a spreadsheet. Not because spreadsheets are bad at arithmetic, but because the two objects are in different classes — and the class is determined by consequence, not capability.",
+  "The more consequential the decision, the more important it is to inspect the evidence, control access and record who approved action. Government needs these safeguards whether it builds a system or procures one.",
+  "The comparison below concerns personal AI use without a government workflow. It is not a claim that enterprise AI services lack controls, or that every GDPVision deployment already meets every requirement.",
 ];
-
 export const TIER_ONE_TESTS: Array<{ test: string; chat: string; instrument: string }> = [
-  { test: "System of record others read as authoritative", chat: "No", instrument: "Yes" },
   {
-    test: "Multi-actor, permissioned, enforced",
-    chat: "No",
-    instrument: "Yes — enforced for each record in the data system",
-  },
-  { test: "Outputs auditable after the fact", chat: "No", instrument: "Yes — immutable audit log" },
-  {
-    test: "Outputs reproducible",
-    chat: "No",
-    instrument: "Yes — fixed calculation, recorded version",
+    test: "Shared national evidence",
+    chat: "Individual histories; a shared, checked record must be organised separately",
+    instrument: "Connected evidence records; verify coverage, source quality and update dates",
   },
   {
-    test: "Holds sovereign data lawfully",
-    chat: "No",
-    instrument: "Yes — isolated instance, chosen region",
+    test: "Access by responsibility",
+    chat: "Personal accounts do not establish government roles",
+    instrument: "Record-access controls; test permissions for the pilot’s users",
   },
   {
-    test: "Survives a change of administration",
-    chat: "No",
-    instrument: "Yes — the data is the government's",
+    test: "Traceable work",
+    chat: "History may be retained; official decisions need a separate record",
+    instrument: "Source and workflow records; inspect available audit coverage",
   },
-  { test: "Named supplier accountable", chat: "No", instrument: "Yes" },
-  { test: "Defined exit, export and escrow", chat: "No", instrument: "Yes — contracted" },
+  {
+    test: "Checkable calculations",
+    chat: "Generated answers may differ and require verification",
+    instrument: "Inspect inputs, methods and supported calculation repeatability",
+  },
+  {
+    test: "Sensitive-data custody",
+    chat: "Depends on approved terms, law and configuration",
+    instrument: "Agree cloud and Vault boundaries, hosting, keys and security testing",
+  },
+  {
+    test: "Continuity and exit",
+    chat: "Depends on account administration, retention and export arrangements",
+    instrument: "Specify ownership, export, deletion, support and any escrow in the contract",
+  },
 ];
-
 export const TIER_ONE_CLOSE =
-  "The question is not whether GDPVision beats the price of a subscription. It is whether the evidence behind decisions affecting half of government revenue requires the same formal control as other critical national systems. Answering “no” is itself a decision, whether intended or not.";
-
+  "Require demonstrations and written commitments for the controls that matter to your government. A stronger model does not replace a sound method, an accountable official or an agreed deployment.";
 export interface OptionPath {
   key: string;
   title: string;
   owns: string[];
   body: string;
 }
-
 export const OPTION_PATHS: OptionPath[] = [
   {
     key: "A",
-    title: "Subscriptions and capable officials",
-    owns: ["Accounts", "Sessions", "Drafts"],
-    body: "This has a low recurring cost per person. After three years, however, government owns no shared evidence record, decision history, or measured mandate that can transfer to a successor. Stop paying and the capability ends because the work remained in individual sessions. Government is renting assistance, not building a national asset.",
+    title: "Use AI tools with an approved process",
+    owns: ["Drafting", "Research", "Internal controls"],
+    body: "A practical way to improve individual work. Government must still organise shared evidence, calculations, approvals and delivery tracking. Enterprise features and export rights vary; assess the service rather than assuming they are absent.",
   },
   {
     key: "B",
-    title: "Build it internally",
-    owns: ["Code", "Staffing", "Liability"],
-    body: "This requires major upfront investment and permanent specialist staff. The work goes far beyond adding chat to a document library. It requires secure access rules, economic methods, a shared structure for national data, repeatable calculations, duplicate controls, a twenty-stage country setup process, checks that reject unbalanced capital-flow drafts, permanent activity records, and reliable movement of work between Chambers. It also requires continuing maintenance in a labour market already losing skilled people. The hardest part is not writing software; it is encoding sound government and economic judgement.",
+    title: "Build and maintain a government system",
+    owns: ["Internal capability", "Control", "Maintenance"],
+    body: "Government can retain expertise and tailor the system to its needs. It must sustain the economic methods, security, data quality, integration and specialist staffing—not only the initial software build. Compare full lifecycle costs and delivery risk.",
   },
   {
     key: "C",
-    title: "Procure the instrument",
-    owns: ["Evidence", "Decisions", "Mandate"],
-    body: "Government owns the deployment in both contract and practice, with full data export and verified deletion when the service ends. After three years, it holds a structured record of its economy, a decision history spanning several Cabinets, quarterly results against the mandate, and a map of how sectors depend on one another. All can transfer to the next administration.",
+    title: "Evaluate GDPVision",
+    owns: ["Connected evidence", "Decision workflow", "Delivery records"],
+    body: "Test an existing connected approach rather than assembling each function separately. Value depends on evidence quality, adoption and implementation. Agree costs, ownership, hosting, support and exit terms, and verify the pilot before wider deployment.",
   },
 ];
-
 export const OPTIONS_CLOSE =
-  "For a government carrying debt at ninety per cent of GDP, the distinction between recurring expenditure that leaves a residue and recurring expenditure that does not is not philosophical. It is how the estimates are argued.";
-
+  "Compare what each option enables, what government must still provide and what remains usable if the arrangement ends. The right choice is the one that meets the country’s needs at an acceptable cost and risk.";
 export const INSTRUMENT_INTRO =
-  "Ten Chambers connect national evidence, decisions, delivery, and accountability.";
-
+  "Ten connected digital workspaces support different government responsibilities—from understanding the economy to approving action and tracking delivery.";
 export const CHAMBER_LINES: Record<string, string> = {
-  "01": "A shared structure for twelve sectors, with a decade of history, a confidence grade on every data series, major risks linked to their sources, and detailed sector records. It is the trusted evidence base used by every other Chamber.",
-  "02": "Every minister's contribution to GDP as a standing figure, their dependency web, and their levers ranked by effect with the cost of each attached.",
-  "03": "Test a decision before committing. See how effects move between sectors, work backwards from the result Cabinet needs, compare which assumptions matter most, and show what each gain may cost elsewhere.",
-  "04": "Price the revenue gap year by year under the planned transition. Build investment packages with realistic links between capital and GDP, make time to impact clear, assess readiness across law, land, workforce, incentives, and institutions, and sequence the investment pipeline across years.",
-  "05": "Monitoring, response and syndication in one place. Entity feeds and watchlists refreshed on schedule, a signal desk ordered by economic consequence, structured strategy, channel drafts, an explicit approval workflow, scheduled publication, and a retained archive of what was issued.",
-  "06": "Support the Cabinet meeting itself, record decisions live with named owners, keep commitments visible between sessions, and update a National Scorecard against consistent measures.",
-  "07": "Rehearsing how a policy, incentive or message lands, privately, before announcement. Explicitly a rehearsal instrument and not a substitute for polling.",
-  "08": "Turn the manifesto into priorities, pledges, and ministry-owned deliverables. Use quarterly scorecards and a Prime Minister’s Report Card, keep a signed record of every change, and pass the approved plan directly to the Narrative Chamber so public statements match government decisions.",
-  "09": "Define the nation’s e-government platform from its own evidence in eleven sourced sections, with independent approval. A secure, read-only connection supplies approved indicators, commitments, government structure, open data, procurement, and projects so the public site is not maintained by retyping records.",
-  "10": "Run sector development as a continuing government programme. Rank every sector from the evidence, choose up to four national priorities with a written rule for ending support, and prepare a complete plan for each sector. Two people approve the plan before it goes to Cabinet as a commitment.",
+  "01": "Bring national figures, sector evidence and sources into a shared picture. See the starting point, data gaps and confidence behind a decision.",
+  "02": "Connect ministry responsibilities to economic priorities. See dependencies, coordinate action and keep delivery ownership clear.",
+  "03": "Compare policy scenarios before committing. Examine projected effects, assumptions and trade-offs; treat the outputs as estimates, not forecasts guaranteed to occur.",
+  "04": "Assess revenue exposure and investment readiness. Prepare proposals that connect funding needs to practical requirements and delivery timelines.",
+  "05": "Track reporting, assess issues and prepare evidence-backed communications. Keep review and approval separate from drafting.",
+  "06": "Prepare Cabinet decisions, record owners and commitments, and keep progress visible between meetings.",
+  "07": "Explore how a policy or message could be received through simulated personas. Use the exercise to find questions and risks—not as polling or measured public opinion.",
+  "08": "Turn government priorities into ministry-owned deliverables. Review progress and retain a clear record of approved changes.",
+  "09": "Plan digital government services from national evidence. Define requirements and approved information flows rather than treating a generated plan as a delivered public service.",
+  "10": "Compare sector priorities and prepare development plans. Connect evidence, delivery requirements and review before proposals become government commitments.",
 };
-
 export const CORPUS_FOOTNOTE =
-  "Underneath all of it is one national evidence record. Public evidence and private Cabinet material remain separate but can be considered together. Duplicate information is removed, and every record states who owns it and who may see it.";
-
+  "The Second Brain is the connected national evidence library underneath these workspaces. Sources and records can be reused across authorised work. Public evidence and sensitive government material require distinct access and handling arrangements; private Vault records stay within the in-country boundary.";
 export const WORTH_INTRO =
-  "These are mechanisms, not measured results. We publish no outcome figures and will not until one is cleared.";
-
+  "These are practical pathways to value, not measured GDPVision outcomes. A pilot should establish whether the system improves the specific work your government needs to do.";
 export const WORTH: LabelledPara[] = [
   {
-    label: "A transition that is priced rather than described",
-    body: "The Gap year by year, a costed replacement book with lags made explicit, and readiness scored so a government can say precisely why a package is not yet investable. Investors do not walk away because a country is small; they walk away because nobody could tell them whether the land title would clear.",
+    label: "Put resources where they can deliver more",
+    body: "Connect priorities to evidence, costs and delivery responsibilities. Government can compare where additional spending is justified and where the evidence needs strengthening.",
   },
   {
-    label: "A channel, not only a document",
-    body: "OPEN Interactive has convened the Caribbean Investment Summit since 2009 — the room where the packages this instrument produces meet capital. A strategy document dies in a drawer; a package with a channel does not.",
+    label: "Prepare investment with fewer unanswered questions",
+    body: "Bring land, infrastructure, approvals, workforce and timing into the proposal. Address readiness gaps before asking an investor to commit; preparation does not guarantee financing.",
   },
   {
-    label: "Senior time returned",
-    body: "The volume of Cabinet and permanent-secretary time lost to reconciling incompatible numbers is among the largest hidden costs in small-state government, and is almost never measured because nobody has been asked to account for it.",
+    label: "Compare risks before committing",
+    body: "Use scenarios to examine assumptions and exposure. Prepare response options in advance while recognising that a model cannot predict the exact course of a shock.",
   },
   {
-    label: "Fiscal leakage closed",
-    body: "Where a quarter of revenue is committed to interest before Cabinet decides anything, a decision taken and then quietly forgotten is money the country did not have to lose. A commitments record makes that visible while it is still recoverable.",
+    label: "Keep ministries working toward the same priorities",
+    body: "Link decisions to owners and progress reviews. A visible commitment record helps government identify delays and decide when intervention is needed.",
   },
   {
-    label: "Shocks priced before they arrive",
-    body: "Recovery financing negotiated after a storm is negotiated from the weakest position a country ever occupies. Negotiated against a modelled position, it is a different conversation with the same lenders.",
+    label: "Communicate from checked evidence",
+    body: "Prepare a consistent explanation of the decision, its basis and its uncertainties. Authorised officials remain responsible for what is approved and published.",
   },
   {
-    label: "A defensible national position in hours rather than days",
-    body: "Investor confidence, currency sentiment and the tone of the next credit review move on narrative before they move on fundamentals.",
-  },
-  {
-    label: "Institutional memory retained",
-    body: "When seven in ten highly educated citizens have emigrated, a national evidence record helps preserve knowledge when officials leave.",
-  },
-  {
-    label: "And an asset that survives an election",
-    body: "A decision record is politically neutral by construction: it states what was decided, by whom, and what happened — as useful to an incoming government as to the one that built it.",
+    label: "Retain knowledge beyond personnel changes",
+    body: "Preserve sources, assumptions and approved decisions for authorised successors. Continuity depends on good records, access administration and agreed ownership and retention terms.",
   },
 ];
-
 export const APPROVALS: LabelledPara[] = [
   {
-    label: "The Principal",
-    body: "Buying defensibility and control of their own record: a number they can state in Parliament and immediately source, and a scorecard against their own manifesto published before a journalist builds one.",
+    label: "Government leadership",
+    body: "Is this useful for a real national priority? Can ministers inspect the evidence and retain responsibility for the decision?",
   },
   {
-    label: "The Gatekeeper — Chief of Staff or Cabinet Secretary",
-    body: "Buying time and the absence of embarrassment: a State of the Nation brief generated rather than assembled over days, and a commitments record so the principal is never surprised eleven months later.",
+    label: "Cabinet coordination",
+    body: "Does it fit the way officials prepare, approve and follow up decisions? Who owns the work and maintains the record?",
   },
   {
-    label: "The Technical Validator — Ministry of Finance or central bank",
-    body: "Buying a method they can examine: documented confidence grades, repeatable projections, views showing which assumptions matter, and a clear link to every source. They will ask the same question twice and notice if the answers differ.",
+    label: "Finance and technical review",
+    body: "Are the sources and methods credible? Can the relevant calculations be checked, and are costs, assumptions and uncertainty clear?",
   },
   {
-    label: "Procurement",
-    body: "Buying a lawful route to award, a named accountable supplier, written exit terms, escrow, and a contract that survives a change of government.",
+    label: "Procurement and legal review",
+    body: "Is the procurement route lawful? Specify supplier obligations, costs, ownership, support, export and exit rights, and any required escrow.",
   },
   {
-    label: "The Sovereignty Gate — national security adviser or data protection commissioner",
-    body: "Buying an answer they can give in public: one isolated deployment per nation; separate database, storage and encryption keys; no cross-instance queries anywhere in the architecture — not disabled, absent; hosting region chosen with the government; no third-party trackers inside the instance.",
+    label: "Data protection and security",
+    body: "Confirm what data is held where, who controls access and keys, and what testing is required. Verify the actual deployment and handling terms before using sensitive material.",
   },
 ];
-
 export const APPROVALS_CLOSE =
-  "Note the pattern. The validator and the sovereignty gate do not reject a subscription for being less capable. They reject it for being the wrong class of system — an objection no better model can answer.";
-
+  "These are five areas of responsibility, not a universal rule requiring five signatories. Your government’s laws, procurement process and data-protection requirements determine who must approve.";
 export const PROVENANCE_PARAS = [
-  "A reasonable technologist will ask why a competent team could not assemble this in two quarters.",
-  "Some of it they could. The hard parts are not the screens. They are the shared structure that lets figures from different ministries appear in one picture; the confidence-grading method; the rules that prevent duplicate evidence; the checks that reject an unbalanced capital-flow draft; the separation between AI advice and repeatable calculation; and the judgement that a minister may have ninety seconds on a phone between engagements, not an afternoon at a dashboard.",
-  "Those do not come from software experience. They come from having been in the room.",
-  "OPEN Interactive has convened the Caribbean Investment Summit since 2009, delivered national digital government infrastructure through a confidential engagement with the Office of the Prime Minister of St. Kitts & Nevis, and maintained relationships with heads of government across the OECS for seventeen years. SEDE, the Saint Lucia prototype, proved the core approach through a live economic model, voice access, detailed evidence records, and a controlled process for adding documents and data.",
-  "This is not a global product adapted downward. It is an instrument designed against the exposures small island states actually carry.",
+  "A government system needs more than well-designed screens. It must reflect how evidence is checked, how authority is exercised and how a decision becomes work that ministries can deliver.",
+  "OPEN Interactive has convened the Caribbean Investment Summit since 2009 and delivered national digital government infrastructure through a confidential engagement with the Office of the Prime Minister of St. Kitts & Nevis. SEDE was the Saint Lucia prototype for the approach.",
+  "That experience informs GDPVision’s focus on small-state government. It is relevant context—not a substitute for technical review, procurement checks or evidence from your own pilot.",
 ];
-
 export const RISKS_PROCEEDING =
-  "Adoption is the real one: an instrument ministers do not open is worth nothing, which is why the console is three tabs built for ninety seconds on a phone. Second, scope — a single-chamber entry that never instruments the Ledger underneath has nowhere to expand to. Third, ordinary supplier risk, answered with escrow, export and defined exit terms agreed early rather than late.";
-
+  "Poor data, limited adoption or unclear responsibility can undermine value. Control scope, verify methods and permissions, train the people who will use the system and agree supplier support, security and exit terms. The pilot should expose these risks before wider commitment.";
 export const RISKS_NOT_PROCEEDING =
-  "The shadow-AI liability continues, uncosted and undocumented. Institutional memory continues to leave with departing officials. The transition continues to be planned against evidence describing the year before last. And the first serious public dispute about a national figure is met with days of ministries telephoning one another while the doubt hardens.";
-
+  "Keeping disconnected arrangements can leave government reconciling evidence repeatedly, losing knowledge when staff leave and struggling to follow decisions through delivery. These risks vary by country; assess the current process rather than assuming every ministry faces the same problem.";
 export const STAGES: LabelledPara[] = [
   {
-    label: "Stage 1 — Confidential Cabinet briefing",
-    body: "Sixty minutes, in person or over secure video, under NDA on request, nothing recorded. Prepared against the nation's own public data, so what is seen is that economy rather than a generic demonstration.",
+    label: "Briefing — choose the decision",
+    body: "Bring one Cabinet or ministry priority. Review the available public evidence, the work required and the people who would use the system. Agree confidentiality arrangements before sharing sensitive information.",
   },
   {
-    label: "Stage 2 — Time-boxed pilot",
-    body: "Test GDPVision against one live decision, with the National Ledger in place from day one and agreed tests for moving to national use. Without those tests, a pilot can become an open-ended exercise that ends when its sponsor changes role. The path should be agreed in advance.",
+    label: "Pilot — test the work",
+    body: "Set a clear duration, scope and review point. Agree the evidence base, permissions, users and acceptance tests. Check sources, calculations, approvals and whether decisions can be followed through to owners and progress.",
   },
   {
-    label: "Stage 3 — National deployment",
-    body: "One isolated instance per nation, owned outright by the government, with contracted export, escrow and exit, and a hosting region chosen with the government.",
+    label: "Deployment — decide on the evidence",
+    body: "Review the pilot before expanding. Agree national deployment boundaries, security, responsibilities, costs, ownership, support and export and exit terms in writing. Wider use is a government decision, not an automatic next step.",
   },
 ];
-
 export const SEVEN_QUESTIONS = [
-  "Show me the source document behind this figure, and its confidence grade.",
-  "Run this projection again and give me the identical numbers.",
-  "Tell me who in this government has read this analysis, and when.",
-  "Show me the decision this analysis led to, its named owner, and where it stands.",
-  "Where is this data held, under whose keys, and in which jurisdiction?",
-  "If we stop paying you, what do we keep — and in what format?",
-  "Who is accountable, by name, when this is wrong?",
+  "Can we open the source behind this figure and understand its date, scope and confidence?",
+  "Can we inspect the inputs and repeat this supported calculation using the same method and version?",
+  "Can we test who may view, change and approve this record, and inspect the available audit history?",
+  "Can we trace this decision to its owner and review progress?",
+  "Where will each type of data be held, who controls access and keys, and what security checks are required?",
+  "If the arrangement ends, what can we keep, export or recover—and on what written terms?",
+  "Who is responsible for checking the work, resolving errors and supporting government?",
 ];
-
 export const RECOMMENDATION =
-  "Proceed to a confidential Cabinet briefing, and require the seven-question test above of us and of every alternative considered.";
-
-export const SOURCES: Array<{ figure: string; grade: string; source: string }> = [
+  "Start with one real decision and a briefing. Require these tests of GDPVision and every alternative. Proceed only when the evidence, controls and terms meet your government’s needs.";
+export const SOURCES: Array<{ figure: string; grade: string; source: string; url: string }> = [
   {
-    figure: "CBI share of government revenue, upper band — 50%",
-    grade: "B",
-    source: "IMF Article IV consultations, 2022–2024.",
-  },
-  {
-    figure: "Debt-to-GDP, upper band — 90%",
+    figure: "Hurricane Maria: damage and losses equivalent to 226% of Dominica’s 2016 GDP",
     grade: "A",
-    source: "IMF World Economic Outlook, 2024.",
-  },
-  {
-    figure: "Interest as a share of revenue, high-debt cases — c. 25%",
-    grade: "B",
-    source: "IMF Article IV consultations.",
-  },
-  {
-    figure: "Hurricane Maria cost to Dominica — 226% of GDP",
-    grade: "A",
-    source: "Government of Dominica Post-Disaster Needs Assessment, 2017.",
-  },
-  {
-    figure: "Authoritative sector data lag to Cabinet — c. 18 months",
-    grade: "B",
-    source: "ECCB & national statistical office release cadence review, 2024.",
-  },
-  {
-    figure: "Tertiary-educated emigration rate, upper-band Caribbean states — 70%",
-    grade: "A",
-    source: "World Bank / OECD DIOC skilled-migration database, 2020.",
-  },
-  {
-    figure: "OECS votes on the OECD Inclusive Framework steering committee — 0",
-    grade: "A",
-    source: "OECD Inclusive Framework governance roster, 2024.",
+    source: "Government of Dominica · Post-Disaster Needs Assessment, 2017; hosted by GFDRR.",
+    url: MARIA_URL,
   },
 ];
-
 export const SOURCES_NOTE =
-  "Every figure in this paper is published with the grade GDPVision assigns it. A grade is not a claim of accuracy — it is a statement of how much weight a number will bear. We publish ours because we ask governments to do the same.";
+  "Grades are GDPVision’s assessment of the evidence, not a certification by the source. A means the stated historical figure is traceable to an official assessment; it does not establish the likely impact in another country. Check the source, date and definition before using it.";

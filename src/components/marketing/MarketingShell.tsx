@@ -90,7 +90,14 @@ export function MarketingShell({ children }: MarketingShellProps) {
       onClick={() => setDetailsOpen((v) => !v)}
       className="btn-ghost shrink-0 whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.18em]"
     >
-      {detailsOpen ? "Hide details" : "Click to enable details"}
+      {detailsOpen ? (
+        <span className="block text-center leading-[1.15]">
+          <span className="block whitespace-nowrap">Hide</span>
+          <span className="block whitespace-nowrap">Details</span>
+        </span>
+      ) : (
+        "Click to enable details"
+      )}
     </button>
   );
 

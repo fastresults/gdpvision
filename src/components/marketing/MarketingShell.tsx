@@ -50,27 +50,29 @@ function useDetailsUnlocked() {
   return [open, setOpen] as const;
 }
 
-type NavLink = { to: string; hash?: string; label: string; maxCh: number };
+type NavLink = { to: string; hash?: string; lines: string[] };
 
-// Desktop nav labels are capped at two wrapped rows: maxCh is the widest a
-// row may run (in ch) so the label breaks at the intended word boundary.
-const PRIMARY_LINK: NavLink = { to: "/", hash: "instrument", label: "How it works", maxCh: 8 };
+// Every nav label of two or more words renders as two fixed lines so the top
+// navigation keeps a consistent two-row rhythm; single-word labels stay one line.
+const PRIMARY_LINK: NavLink = { to: "/", hash: "instrument", lines: ["How", "it works"] };
 
 const DETAIL_LINKS: NavLink[] = [
-  { to: "/", hash: "sovereignty", label: "Sovereignty", maxCh: 13.5 },
-  { to: "/vault", label: "The Vault", maxCh: 7 },
-  { to: "/record", label: "The National Record", maxCh: 16 },
-  { to: "/business-case", label: "The business case", maxCh: 16 },
-  { to: "/business-case/brief", label: "The Decision Brief", maxCh: 16 },
-  { to: "/op-eds", label: "The writing", maxCh: 10 },
+  { to: "/", hash: "sovereignty", lines: ["Sovereignty"] },
+  { to: "/vault", label: "The Vault", lines: ["The", "Vault"] } as never,
+  { to: "/record", lines: ["The National", "Record"] },
+  { to: "/business-case", lines: ["The business", "case"] },
+  { to: "/business-case/brief", lines: ["The Decision", "Brief"] },
+  { to: "/op-eds", lines: ["The", "writing"] },
 ];
 
 function NavItem({ link }: { link: NavLink }) {
   return (
     <Link to={link.to} hash={link.hash} className="min-w-0 py-1 hover:text-ink-950">
-      <span className="block" style={{ maxWidth: `${link.maxCh}ch` }}>
-        {link.label}
-      </span>
+      {link.lines.map((line) => (
+        <span key={line} className="block whitespace-nowrap">
+          {line}
+        </span>
+      ))}
     </Link>
   );
 }

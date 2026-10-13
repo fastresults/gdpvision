@@ -1,9 +1,19 @@
 // The ten bodies whose measures investors and lenders read first, and the
 // indexes each publishes. Shown on the home page under the hero (IndexBand).
 //
-// Names are set in type: no body's logo is used without its written
-// permission (UN name and emblem: GA resolution 92(I)). Add `logo` to an entry
-// only once that permission is on file. Editions checked 29 Sep 2026.
+// Official logos identify sources, not partnerships. The user confirmed
+// permission for all ten on 13 Oct 2026; preserve institutional variants.
+// Logo provenance: src/assets/measuring-bodies/sources.md.
+// Editions checked 29 Sep 2026.
+
+import worldBankLogo from "@/assets/measuring-bodies/world-bank.svg.asset.json";
+import undpLogo from "@/assets/measuring-bodies/undp.svg.asset.json";
+import whoLogo from "@/assets/measuring-bodies/who.svg.asset.json";
+import tiLogo from "@/assets/measuring-bodies/ti.svg.asset.json";
+import wefLogo from "@/assets/measuring-bodies/wef.svg.asset.json";
+import wipoLogo from "@/assets/measuring-bodies/wipo.svg.asset.json";
+import unodcLogo from "@/assets/measuring-bodies/unodc.svg.asset.json";
+import unDesaLogo from "@/assets/measuring-bodies/un-desa.svg.asset.json";
 
 export interface GlobalIndex {
   name: string;
@@ -20,13 +30,14 @@ export interface MeasuringBody {
   indexes: GlobalIndex[];
   /** The GDPVision chambers that work on these measures. */
   chambers: string;
-  /** Optional logo URL — only with written permission from the body. */
+  /** Optional official logo URL — only with permission from the body. */
   logo?: string;
 }
 
 export const MEASURING_BODIES: MeasuringBody[] = [
   {
     key: "world-bank",
+    logo: worldBankLogo.url,
     short: "World Bank",
     name: "World Bank Group",
     area: "Business climate · governance",
@@ -71,6 +82,7 @@ export const MEASURING_BODIES: MeasuringBody[] = [
   },
   {
     key: "undp",
+    logo: undpLogo.url,
     short: "UNDP",
     name: "UN Development Programme",
     area: "Quality of life",
@@ -83,6 +95,7 @@ export const MEASURING_BODIES: MeasuringBody[] = [
   },
   {
     key: "who",
+    logo: whoLogo.url,
     short: "WHO",
     name: "World Health Organization",
     area: "Health",
@@ -102,6 +115,7 @@ export const MEASURING_BODIES: MeasuringBody[] = [
   },
   {
     key: "unodc",
+    logo: unodcLogo.url,
     short: "UNODC",
     name: "UN Office on Drugs and Crime",
     area: "Crime and safety",
@@ -117,6 +131,7 @@ export const MEASURING_BODIES: MeasuringBody[] = [
   },
   {
     key: "ti",
+    logo: tiLogo.url,
     short: "TI",
     name: "Transparency International",
     area: "Governance",
@@ -131,6 +146,7 @@ export const MEASURING_BODIES: MeasuringBody[] = [
   },
   {
     key: "wef",
+    logo: wefLogo.url,
     short: "WEF",
     name: "World Economic Forum",
     area: "Tourism competitiveness",
@@ -150,6 +166,7 @@ export const MEASURING_BODIES: MeasuringBody[] = [
   },
   {
     key: "wipo",
+    logo: wipoLogo.url,
     short: "WIPO",
     name: "World Intellectual Property Organization",
     area: "Innovation",
@@ -164,6 +181,7 @@ export const MEASURING_BODIES: MeasuringBody[] = [
   },
   {
     key: "un-desa",
+    logo: unDesaLogo.url,
     short: "UN DESA",
     name: "UN Department of Economic and Social Affairs",
     area: "Digital government",

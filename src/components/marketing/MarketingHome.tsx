@@ -56,17 +56,6 @@ import { ExplainProvider } from "@/components/explain/ExplainProvider";
 import type { CalcCtx } from "@/lib/explain/calculator-entries";
 import "@/lib/explain/calculator-entries";
 
-const FEATURE_LABELS: Record<string, string> = {
-  "04": "04 →  Where the revenue cliff is priced",
-  "08": "08 →  Where the manifesto becomes a delivery plan",
-};
-
-const FEATURED_CHAMBERS = CHAMBERS.filter((c) => c.index === "04" || c.index === "08").map((c) => ({
-  ...c,
-  featureLabel: FEATURE_LABELS[c.index],
-}));
-
-const GRID_CHAMBERS = CHAMBERS.filter((c) => c.index !== "04" && c.index !== "08");
 
 const LOOP_STEPS = [
   {

@@ -178,13 +178,13 @@ export function MarketingShell({ children }: MarketingShellProps) {
               {detailsOpen &&
                 DETAIL_LINKS.map((l) => (
                   <Link
-                    key={l.label}
+                    key={l.to}
                     to={l.to}
                     hash={l.hash}
                     onClick={() => setMenuOpen(false)}
                     className="border-b border-line-100 py-3 pl-3 hover:text-ink-950"
                   >
-                    {l.label}
+                    {l.lines.join(" ")}
                   </Link>
                 ))}
               <Link

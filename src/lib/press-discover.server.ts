@@ -1,5 +1,6 @@
 // Chamber 05 · source discovery (Layer 4).
 // Ask Perplexity for outlets, probe RSS/atom endpoints, insert into narrative_feeds.
+import { perplexityFetch } from "@/lib/perplexity-agent";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const CANDIDATE_PATHS = ["/feed", "/rss", "/rss.xml", "/atom.xml", "/feed/", "/index.xml", "/news/feed"];
@@ -35,9 +36,7 @@ and any regional wires that consistently cover this country.
 
 Return STRICT JSON array only, each item:
 {"scope":"local|regional|international","name":"Outlet name","domain":"example.com","rss":"https://... or null"}`;
-  const res = await fetchWithTimeout(
-    "https://api.perplexity.ai/chat/completions",
-    {
+  const res = await perplexityFetch({
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({

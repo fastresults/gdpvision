@@ -3,6 +3,7 @@
 // @ui src/components/narrative/CoverageBadge.tsx; src/components/narrative/RadarHeatStrip.tsx; src/components/narrative/SignalSourcesPanel.tsx
 
 // Chamber 05 · server functions exposed to the UI (feeds CRUD, suggest, manual run, radar stats).
+import { perplexityFetch } from "@/lib/perplexity-agent";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -242,7 +243,7 @@ Split across:
 
 Return strict JSON array, each item: { "scope": "local|regional|international", "kind": "rss|json|html", "endpoint": "https://...", "label": "..." }.
 Only include feeds you have real evidence for. No commentary.`;
-    const res = await fetch("https://api.perplexity.ai/chat/completions", {
+    const res = await perplexityFetch({
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({

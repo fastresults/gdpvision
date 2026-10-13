@@ -14,7 +14,6 @@ interface ChamberPanelProps {
   image?: string;
   /** Curated 16:9 capture of the chamber's strongest product view. */
   screenshot?: string;
-  valueEstimate?: ReactNode;
   children?: ReactNode;
   className?: string;
 }
@@ -29,7 +28,6 @@ export function ChamberPanel({
   bullets,
   accentVar,
   screenshot,
-  valueEstimate,
   className,
 }: ChamberPanelProps) {
   const frameRef = useRef<HTMLDivElement>(null);
@@ -110,8 +108,6 @@ export function ChamberPanel({
             />
           </div>
         ) : null}
-
-        {valueEstimate}
 
         <div className="mt-6">
           <span

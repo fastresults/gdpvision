@@ -386,9 +386,9 @@ export function MarketingHome() {
       <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <SectionHeader
-            eyebrow="Ten working areas for government decisions"
-            title="Ten Chambers connect national evidence to delivery."
-            lede="Each Chamber is a dedicated working area for one government responsibility. Together, the ten Chambers connect national evidence, Cabinet choices, ministry delivery, public understanding, and accountability."
+            eyebrow="Ten connected workspaces. One national purpose."
+            title="Govern with confidence. Turn national priorities into economic progress."
+            lede="GDPVision’s ten Chambers are connected digital workspaces for the work of government—from understanding the economy to shaping policy, attracting investment and delivering results. Each brings your country’s evidence and decision tools together, helping Cabinet and ministries act as one, direct resources where they matter and build the conditions for lasting GDP growth—with government in control."
           />
           <div className="relative mt-10 overflow-hidden border border-charcoal bg-charcoal px-5 py-6 shadow-sm sm:px-8 sm:py-8">
             <div aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-gold-500" />

@@ -1,8 +1,8 @@
 // The measures investors read first: a row of ten measuring bodies under the
 // home page hero, each with the indexes it publishes and the GDPVision chamber
 // that works on them. Visitor-controlled scrolling (scroll snap + buttons),
-// never an auto-marquee. Names in type; no third-party logos without written
-// permission (see src/lib/marketing/global-indexes.ts).
+// never an auto-marquee. Official institutional logos identify data sources;
+// permission confirmed by the user (see src/lib/marketing/global-indexes.ts).
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -98,13 +98,15 @@ export function IndexBand() {
                 className="flex w-[78%] shrink-0 snap-start flex-col border border-line-200 border-t-2 border-t-gold-500 bg-paper-0 sm:w-[280px]"
               >
                 <div className="px-5 pt-5">
-                  {b.logo ? (
-                    <img src={b.logo} alt="" className="h-8 w-auto" loading="lazy" />
-                  ) : (
-                    <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-500">
-                      {b.short}
-                    </div>
-                  )}
+                  <div className="flex h-20 items-center" aria-hidden="true">
+                    {b.logo ? (
+                      <img src={b.logo} alt="" className="max-h-20 w-auto max-w-[180px] object-contain" loading="lazy" decoding="async" />
+                    ) : (
+                      <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-500">
+                        {b.short}
+                      </div>
+                    )}
+                  </div>
                   <h3 className="mt-2 font-serif text-[19px] leading-snug text-ink-950">
                     {b.name}
                   </h3>

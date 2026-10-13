@@ -4,7 +4,7 @@
 
 # Roadmap
 
-- [ ] Streamline both decision presentations: focused browser, readable scenes, stage-aware guide and reliable playback; verify both views
+- [x] Streamline both decision presentations: focused browser, readable scenes, stage-aware guide and reliable playback; verify both views
 
 - [x] Dock “How this flow works” to the right edge as an expanded-by-default collapsible tray
 

@@ -44,3 +44,7 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 ## Map drift guard
 
 After adding a server fn, migration or route: `bun run headers && bun run map`. CI runs `bun run check:maps`.
+
+<!-- LOVABLE:BEGIN -->
+- Homepage scrollers share a once-per-visit visible-entry horizontal step; manual input and reduced motion cancel it so discovery never competes with browsing.
+<!-- LOVABLE:END -->

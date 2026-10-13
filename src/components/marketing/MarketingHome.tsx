@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+
 import { MarketingShell } from "./MarketingShell";
 import {
   Select,
@@ -35,10 +35,10 @@ function useHashScroll() {
 }
 
 import { EXISTENTIAL_THREATS } from "@/lib/existential-threats";
-import { MOMENT_VARIANTS } from "@/lib/moment-variants";
+import { ExposureCarousel } from "./ExposureCarousel";
 import { SignatureRing } from "./SignatureRing";
 import { DataDecisionFlowDialog } from "./DataDecisionFlowDialog";
-import { NumberTile } from "./NumberTile";
+
 import { ChamberPanel } from "./ChamberPanel";
 import { IndexBand } from "./IndexBand";
 import { SectionHeader } from "./SectionHeader";
@@ -48,7 +48,7 @@ import { Illustration } from "./Illustration";
 import { SovereignCustodySeal } from "./SovereignCustodySeal";
 import { NationalCustodyRelay } from "./NationalCustodyRelay";
 import { FloatingBackToTop } from "./FloatingBackToTop";
-import illMoment from "@/assets/illustrations/section-moment.jpg.asset.json";
+
 import illCorpus from "@/assets/illustrations/section-corpus.jpg.asset.json";
 import illCounsel from "@/assets/illustrations/section-counsel.jpg.asset.json";
 import illProvenance from "@/assets/illustrations/section-provenance.jpg.asset.json";
@@ -87,29 +87,6 @@ const LOOP_STEPS = [
   },
 ];
 
-/** Large, unmistakable prev/next arrow for the regional-exposures slider. */
-function MomentArrow({
-  direction,
-  onClick,
-  className,
-}: {
-  direction: "prev" | "next";
-  onClick: () => void;
-  className?: string;
-}) {
-  const Icon = direction === "prev" ? ArrowLeft : ArrowRight;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={direction === "prev" ? "Previous exposure" : "Next exposure"}
-      className={`btn-primary h-11 w-11 shrink-0 !rounded-full !p-0 sm:h-14 sm:w-14 ${className ?? ""}`}
-    >
-      <Icon strokeWidth={1.75} className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden />
-    </button>
-  );
-}
-
 function shuffleTail() {
   const tail = EXISTENTIAL_THREATS.slice(1);
   for (let i = tail.length - 1; i > 0; i--) {
@@ -143,7 +120,6 @@ export function MarketingHome() {
   const [tail, setTail] = useState(() => EXISTENTIAL_THREATS.slice(1));
 
   const [index, setIndex] = useState(0);
-  const [momentIndex, setMomentIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [stopped, setStopped] = useState(false);
   const { hover: heroHover } = useHoverIntent<true>(
@@ -152,7 +128,6 @@ export function MarketingHome() {
   );
   useEffect(() => {
     setTail(shuffleTail());
-    setMomentIndex(1 + Math.floor(Math.random() * (MOMENT_VARIANTS.length - 1)));
   }, []);
   useEffect(() => {
     if (paused || stopped) return;
@@ -167,15 +142,7 @@ export function MarketingHome() {
   }, [paused, stopped]);
 
   const current = index === 0 ? EXISTENTIAL_THREATS[0] : tail[index - 1];
-  const moment = MOMENT_VARIANTS[momentIndex];
-  const total = MOMENT_VARIANTS.length;
   const threatTotal = EXISTENTIAL_THREATS.length;
-  const goPrev = () => {
-    setMomentIndex((i) => (i - 1 + total) % total);
-  };
-  const goNext = () => {
-    setMomentIndex((i) => (i + 1) % total);
-  };
   const goPrevThreat = () => {
     setStopped(true);
     setIndex((i) => (i - 1 + threatTotal) % threatTotal);
@@ -325,60 +292,7 @@ export function MarketingHome() {
       {/* PROBLEM ---------------------------------------------------------- */}
       <section id="problem" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
-          <div
-            key={moment.id}
-            className="animate-in fade-in duration-500 motion-reduce:animate-none"
-          >
-            <div className="flex items-center gap-2 sm:gap-4">
-              <MomentArrow direction="prev" onClick={goPrev} className="shrink-0 self-center" />
-              <div className="grid min-w-0 flex-1 items-center gap-6 md:grid-cols-[320px_minmax(0,1fr)] md:gap-10 lg:grid-cols-[384px_minmax(0,1fr)] lg:gap-12">
-                <Illustration
-                  key={moment.id}
-                  src={moment.illustration ?? illMoment.url}
-                  alt={moment.title}
-                  variant="spot"
-                  className="mx-auto shrink-0 !w-[200px] sm:!w-[232px] md:mx-0 md:!w-[320px] lg:!w-[384px]"
-                />
-                <div className="min-w-0">
-                  <SectionHeader
-                    eyebrow="The moment · Eight regional exposures, graded and cited"
-                    title={moment.title}
-                    lede={moment.lede}
-                  />
-                </div>
-              </div>
-              <MomentArrow direction="next" onClick={goNext} className="shrink-0 self-center" />
-            </div>
-
-            <div className="mt-10 grid gap-10 border-t border-line-200 pt-10 sm:mt-16 sm:gap-12 sm:pt-12 md:grid-cols-3">
-              {moment.stats.map((s, i) => (
-                <NumberTile
-                  key={i}
-                  value={s.value}
-                  unit={s.unit}
-                  label={s.label}
-                  grade={s.grade}
-                  citation={s.citation}
-                />
-              ))}
-            </div>
-          </div>
-          <p className="mt-12 max-w-2xl text-[15px] leading-relaxed text-ink-700">
-            Every figure carries a source and a confidence grade. Grade A means an official or
-            directly verified source; lower grades show where further checking is needed. GDPVision
-            applies the same standard to figures prepared for Cabinet.
-          </p>
-
-          <nav
-            aria-label="Position in the regional exposures"
-            className="mt-10 flex items-center justify-end gap-5 border-t border-line-200 pt-4 sm:mt-16 sm:gap-6 sm:pt-6"
-          >
-            <span className="font-mono text-[11px] tabular-nums tracking-[0.22em] text-ink-950">
-              {String(momentIndex + 1).padStart(2, "0")}
-              <span className="mx-2 text-ink-300">/</span>
-              {String(total).padStart(2, "0")}
-            </span>
-          </nav>
+          <ExposureCarousel />
         </div>
       </section>
 

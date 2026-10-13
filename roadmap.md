@@ -4,7 +4,7 @@
 
 # Roadmap
 
-- [ ] Refine Vault value-led copy, add six engraved companion illustrations and verify layouts and existing interactions
+- [x] Refine Vault value-led copy, add six engraved companion illustrations and verify layouts and existing interactions
 
 - [x] Streamline both decision presentations: focused browser, readable scenes, stage-aware guide and reliable playback; verify both views
 

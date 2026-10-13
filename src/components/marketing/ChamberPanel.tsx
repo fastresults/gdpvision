@@ -1,6 +1,5 @@
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { Illustration } from "./Illustration";
 
 interface ChamberPanelProps {
   index: string; // "01" .. "10"
@@ -29,7 +28,6 @@ export function ChamberPanel({
   purpose,
   bullets,
   accentVar,
-  image,
   screenshot,
   valueEstimate,
   className,
@@ -80,13 +78,6 @@ export function ChamberPanel({
               Chamber {index}
             </span>
           </span>
-          {image ? (
-            <Illustration
-              src={image}
-              variant="mark"
-              className="shrink-0 !w-[104px] sm:!w-[130px] md:!w-[160px]"
-            />
-          ) : null}
         </div>
 
         {screenshot ? (

@@ -435,7 +435,7 @@ export function MarketingHome() {
                   id="chamber-estimate-country"
                   value={estimateCountry}
                   onChange={(event) => setEstimateCountry(event.target.value)}
-                  className="mt-2 min-h-14 w-full border border-paper-0 bg-paper-0 px-4 py-3 font-serif text-[19px] text-ink-950 shadow-sm focus:border-gold-500 focus:outline-none"
+                  className="mt-2 min-h-20 w-full border border-paper-0 bg-paper-0 px-4 py-4 font-serif text-[38px] leading-tight text-ink-950 shadow-sm focus:border-gold-500 focus:outline-none"
                 >
                   {(estimateCountriesQ.data ?? [{ code: "LCA", name: "St Lucia" }]).map(
                     (country) => (

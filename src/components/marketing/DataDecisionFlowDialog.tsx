@@ -184,7 +184,12 @@ export function DataDecisionFlowDialog() {
         </div>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-paper-0" />
-          <DialogPrimitive.Content className="fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-y-auto bg-paper-0 p-4 md:p-8">
+          <DialogPrimitive.Content
+            className={cn(
+              "fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-y-auto bg-paper-0 p-4 md:p-8",
+              mode === "national" && "lg:overflow-hidden lg:pb-0",
+            )}
+          >
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">

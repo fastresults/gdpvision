@@ -24,42 +24,42 @@ const AUTHORITY: Record<string, string> = {
 };
 
 const EXPOSURES: Record<string, string[]> = {
-  "01": ["GDP", "Fiscal", "Credibility"],
-  "02": ["Delivery", "Fiscal", "Ownership"],
+  "01": ["GDP", "Public budget", "Credibility"],
+  "02": ["Delivery", "Public budget", "Responsibility"],
   "03": ["GDP", "Debt", "Jobs", "Foreign exchange"],
   "04": ["Investment", "Jobs", "Revenue"],
-  "05": ["Credibility", "Continuity", "Public trust"],
-  "06": ["Delivery", "Fiscal", "Accountability"],
-  "07": ["Acceptance", "Trust", "Implementation"],
+  "05": ["Credibility", "Essential services", "Public trust"],
+  "06": ["Delivery", "Public budget", "Accountability"],
+  "07": ["Public response", "Trust", "Implementation"],
   "08": ["Delivery", "Mandate", "Accountability"],
   "09": ["Service", "Trust", "Productivity"],
   "10": ["GDP", "Jobs", "Investment", "Imports"],
 };
 
 const CONSTRAINTS: Record<string, string[]> = {
-  "01": ["Official-series integrity", "Source currency"],
+  "01": ["Consistent official figures", "Up-to-date sources"],
   "02": ["Ministerial mandate", "Budget authority"],
-  "03": ["Fiscal envelope", "Uncertainty ranges"],
-  "04": ["National return", "Legal readiness"],
+  "03": ["Available budget", "Uncertain projections"],
+  "04": ["Value for the country", "Legal requirements"],
   "05": ["Verified facts", "Lawful disclosure"],
-  "06": ["Evidence readiness", "Collective authority"],
-  "07": ["Representative audiences", "Sovereign privacy"],
-  "08": ["Manifesto authority", "Delivery capacity"],
-  "09": ["Privacy by design", "Service accessibility"],
+  "06": ["Evidence readiness", "Cabinet approval"],
+  "07": ["Representative audiences", "Government privacy rules"],
+  "08": ["Approved government priorities", "Delivery capacity"],
+  "09": ["Privacy from the start", "Service accessibility"],
   "10": ["Fundable projects", "Delivery capacity"],
 };
 
 const OPERATIONS: Record<string, string[]> = {
-  "01": ["Define", "Reconcile", "Trace", "Explain", "Defend"],
+  "01": ["Define", "Check figures", "Trace", "Explain", "Defend"],
   "02": ["Read", "Map", "Connect", "Assign", "Commit"],
-  "03": ["Baseline", "Stress", "Model", "Compare", "Recommend"],
-  "04": ["Measure", "Audit", "Target", "Structure", "Package"],
+  "03": ["Set the starting point", "Test a disruption", "Estimate effects", "Compare", "Recommend"],
+  "04": ["Measure", "Audit", "Target", "Prepare the offer", "Package"],
   "05": ["Detect", "Verify", "Position", "Challenge", "Authorise"],
-  "06": ["Rank", "Assure", "Compare", "Record", "Assign"],
-  "07": ["Frame", "Segment", "Simulate", "Diagnose", "Improve"],
-  "08": ["Read", "Align", "Define", "Contract", "Review"],
-  "09": ["Diagnose", "Specify", "Design", "Approve", "Measure"],
-  "10": ["Read", "Prioritise", "Diagnose", "Build", "Commit"],
+  "06": ["Rank", "Check readiness", "Compare", "Record", "Assign"],
+  "07": ["Frame", "Group profiles", "Simulate", "Find the problem", "Improve"],
+  "08": ["Read", "Align", "Define", "Assign responsibility", "Review"],
+  "09": ["Find the problem", "Set requirements", "Design", "Approve", "Measure"],
+  "10": ["Read", "Prioritise", "Find the problem", "Build", "Commit"],
 };
 
 export function decisionFrame(journey: ChamberJourney): DecisionFrame {

@@ -1,5 +1,4 @@
-import { useHoverIntent } from "@/hooks/useHoverIntent";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { SCENARIOS, CHAMBER_NAMES } from "./dataDecisionScenarios";
 
@@ -18,7 +17,7 @@ interface FlowNode {
   paths: Path[];
 }
 
-const BANDS = ["Evidence in", "The Second Brain", "Ten Chambers", "Decisions", "GDP outcomes"];
+const BANDS = ["Gather information", "Connect and protect", "Work through choices", "Approve and assign", "Track and improve"];
 
 const NODES: FlowNode[] = [
   {
@@ -26,8 +25,8 @@ const NODES: FlowNode[] = [
     band: 0,
     label: "Public statistics",
     what: "National accounts, trade, prices and labour figures from official and international sources.",
-    feeds: "The Corpus, with a citation for every number.",
-    gdp: "Starts every decision from the same trusted figures.",
+    feeds: "The national evidence library, with source references.",
+    gdp: "Gives government a shared starting point, with sources it can check.",
     paths: ["evidence"],
   },
   {
@@ -35,14 +34,14 @@ const NODES: FlowNode[] = [
     band: 0,
     label: "Ministries & ministers",
     what: "Mandates, programmes and the current minister for every ministry.",
-    feeds: "The Corpus and the Portfolios chamber.",
-    gdp: "Shows who owns each lever of growth.",
+    feeds: "The national evidence library and Ministry Growth & Delivery workspace.",
+    gdp: "Shows which ministry is responsible for each economic priority.",
     paths: ["evidence", "delivery"],
   },
   {
     id: "kpis",
     band: 0,
-    label: "National KPIs",
+    label: "National progress measures",
     what: "Targets and latest values the government tracks.",
     feeds: "The Ledger, Cabinet Room and the National Record.",
     gdp: "Makes progress measurable instead of anecdotal.",
@@ -51,10 +50,10 @@ const NODES: FlowNode[] = [
   {
     id: "flows",
     band: 0,
-    label: "Capital flows",
+    label: "Investment & money flows",
     what: "Where money enters and leaves the economy — investment, fiscal spending, imports.",
-    feeds: "The Ledger, Scenarios and the FDI Studio.",
-    gdp: "Reveals leakages and where capital can be kept at home.",
+    feeds: "National evidence, policy scenarios and investment planning.",
+    gdp: "Shows where money leaves the economy and where local production or investment could add value.",
     paths: ["evidence", "money"],
   },
   {
@@ -71,7 +70,7 @@ const NODES: FlowNode[] = [
     band: 0,
     label: "Caribbean peer benchmarks",
     what: "Comparison with 22 regional nations, refreshed monthly.",
-    feeds: "The Corpus and the Global view.",
+    feeds: "The national evidence library and country comparisons.",
     gdp: "Shows what neighbours already achieve — realistic ambition.",
     paths: ["evidence"],
   },
@@ -89,10 +88,10 @@ const NODES: FlowNode[] = [
   {
     id: "corpus",
     band: 1,
-    label: "The Corpus",
-    what: "The national evidence library: every source deduplicated, cited and graded.",
+    label: "Second Brain · evidence library",
+    what: "The connected national evidence library: sources brought together with references and reliability checks.",
     feeds: "All ten Chambers.",
-    gdp: "One version of the truth removes weeks of reconciling conflicting numbers.",
+    gdp: "Helps ministries compare sources and resolve conflicting figures before deciding.",
     href: "/record",
     paths: ["evidence", "safeguards"],
   },
@@ -100,7 +99,7 @@ const NODES: FlowNode[] = [
     id: "vault",
     band: 1,
     label: "Sovereign Vault",
-    what: "State-owned, state-managed servers for private data and AI analysis.",
+    what: "Protected government-controlled storage for sensitive records and analysis.",
     feeds: "Approved findings only — to the Chambers.",
     gdp: "Adds private evidence to decisions while the data stays in the country.",
     href: "/vault",
@@ -109,10 +108,10 @@ const NODES: FlowNode[] = [
   {
     id: "safeguards",
     band: 1,
-    label: "Citations, grades & Explain",
-    what: "Every figure shows its source, its quality grade and how it was calculated.",
+    label: "Sources & reliability checks",
+    what: "Review source references, reliability and the reasoning behind figures before using them.",
     feeds: "Every Chamber output and brief.",
-    gdp: "Trusted numbers get acted on sooner.",
+    gdp: "Lets ministers see the evidence and limitations behind a recommendation.",
     paths: ["safeguards"],
   },
 
@@ -120,7 +119,7 @@ const NODES: FlowNode[] = [
     id: "c01",
     band: 2,
     group: "Understand",
-    label: "01 National Ledger",
+    label: "01 National Evidence Ledger",
     what: "The economy on one page — ask any question and see why a number is what it is.",
     feeds: "Scenarios, Cabinet Room, Decision Brief.",
     gdp: "Faster diagnosis of where growth is stalling.",
@@ -130,27 +129,27 @@ const NODES: FlowNode[] = [
     id: "c02",
     band: 2,
     group: "Understand",
-    label: "02 Portfolios",
-    what: "Maps every ministry to the sectors it moves.",
+    label: "02 Ministry Growth & Delivery",
+    what: "Connect ministry responsibilities with sector priorities, shared dependencies and progress measures.",
     feeds: "Cabinet Room and Sector Studio.",
-    gdp: "Puts the right ministry on the right growth lever.",
+    gdp: "Clarifies which ministry should lead an action and which should support it.",
     paths: ["delivery"],
   },
   {
     id: "c03",
     band: 2,
     group: "Rehearse",
-    label: "03 Scenarios",
-    what: "Tests policy options against a GDP fan chart before committing.",
+    label: "03 Policy Scenarios",
+    what: "Compare policy options and projected economic effects, with assumptions and uncertainty visible.",
     feeds: "Cabinet Room and the Decision Brief.",
-    gdp: "Avoids costly policy mistakes.",
+    gdp: "Helps identify costly trade-offs before committing resources.",
     paths: ["money"],
   },
   {
     id: "c04",
     band: 2,
     group: "Rehearse",
-    label: "04 FDI Transition Studio",
+    label: "04 Investment & Resilience",
     what: "Measures exposure to foreign shocks and finds targets to reach.",
     feeds: "Cabinet Room and investor packages.",
     gdp: "Protects and redirects investment.",
@@ -160,17 +159,17 @@ const NODES: FlowNode[] = [
     id: "c07",
     band: 2,
     group: "Rehearse",
-    label: "07 Persona Lab",
-    what: "Tests policies with simulated citizens and businesses.",
+    label: "07 Policy & Leadership Lab",
+    what: "Explore policies with simulated citizen and business profiles, and study the skills a leadership role needs.",
     feeds: "Narrative and Cabinet Room.",
-    gdp: "Policies that people adopt deliver faster.",
+    gdp: "Highlights possible concerns before launch; simulated responses are not a public survey.",
     paths: ["evidence"],
   },
   {
     id: "c05",
     band: 2,
     group: "Decide",
-    label: "05 Narrative",
+    label: "05 Confidence & Communications",
     what: "Turns decisions into clear public explanation, and answers the opposition.",
     feeds: "Public communication.",
     gdp: "Public trust shortens the path from decision to delivery.",
@@ -180,17 +179,17 @@ const NODES: FlowNode[] = [
     id: "c06",
     band: 2,
     group: "Decide",
-    label: "06 Cabinet Room",
-    what: "The decision queue, situation board and commitments cockpit.",
+    label: "06 Cabinet Decisions & Delivery",
+    what: "Bring priority decisions, supporting evidence and delivery progress into one Cabinet workspace.",
     feeds: "Cabinet decisions and commitments.",
-    gdp: "Cuts decision delay — the single biggest hidden cost.",
+    gdp: "Helps Cabinet address urgent priorities without losing sight of delivery.",
     paths: ["delivery", "safeguards"],
   },
   {
     id: "c08",
     band: 2,
     group: "Decide",
-    label: "08 Mandate Compact",
+    label: "08 Mandate & Accountability",
     what: "Turns the mandate into signed, trackable commitments.",
     feeds: "Commitments and the National Record.",
     gdp: "Keeps delivery aligned with priorities.",
@@ -200,20 +199,20 @@ const NODES: FlowNode[] = [
     id: "c09",
     band: 2,
     group: "Deliver",
-    label: "09 Digital Government",
+    label: "09 Digital Government Planning",
     what: "Designs and approves digital public services.",
     feeds: "Delivery results.",
-    gdp: "Removes friction that slows businesses and citizens.",
+    gdp: "Helps plan simpler services that can save time for citizens and businesses.",
     paths: ["delivery"],
   },
   {
     id: "c10",
     band: 2,
     group: "Deliver",
-    label: "10 Sector Studio",
+    label: "10 Sector Growth & Delivery",
     what: "Builds evidence-based growth plans for each sector.",
     feeds: "Investor packages and delivery.",
-    gdp: "Targets spending where it grows output most.",
+    gdp: "Helps compare sector priorities before committing public money.",
     paths: ["money", "delivery"],
   },
 
@@ -240,18 +239,18 @@ const NODES: FlowNode[] = [
     id: "commit",
     band: 3,
     label: "Tracked commitments",
-    what: "Owners, deadlines and KPIs for every decision.",
+    what: "Responsible leaders, deadlines and progress measures for agreed actions.",
     feeds: "Delivery and the National Record.",
-    gdp: "Decisions actually get delivered.",
+    gdp: "Makes agreed actions and missed deadlines visible to government.",
     paths: ["delivery"],
   },
   {
     id: "invest",
     band: 3,
     label: "Investor packages",
-    what: "Open-standard (OC4IDS) project packages for investors.",
+    what: "Project information in a recognised open format, with costs, checks and delivery responsibilities for investor review.",
     feeds: "Investment pipeline.",
-    gdp: "Brings capital to national priorities.",
+    gdp: "Helps investors review projects aligned with national priorities.",
     paths: ["money"],
   },
 
@@ -259,27 +258,27 @@ const NODES: FlowNode[] = [
     id: "delay",
     band: 4,
     label: "Less decision delay",
-    what: "Weeks saved between evidence and action.",
-    feeds: "Efficiency.",
-    gdp: "Growth arrives sooner.",
+    what: "Prepared evidence and clear responsibility can reduce avoidable delays.",
+    feeds: "Better use of public resources.",
+    gdp: "Lets government move from discussion to approved action with less wasted time.",
     paths: ["delivery"],
   },
   {
     id: "spend",
     band: 4,
     label: "Better-targeted spending",
-    what: "Public money directed to the highest-return uses.",
-    feeds: "Efficiency.",
-    gdp: "More output per dollar spent.",
+    what: "Compare expected value, costs and evidence before allocating public money.",
+    feeds: "Better use of public resources.",
+    gdp: "Helps government assess whether public spending is producing the intended results.",
     paths: ["money"],
   },
   {
     id: "capital",
     band: 4,
-    label: "Investment attracted",
-    what: "Credible packages and stable policy draw capital.",
-    feeds: "Elevation.",
-    gdp: "New capacity and jobs.",
+    label: "Stronger investment preparation",
+    what: "Clear project information and consistent policy help investors assess national opportunities.",
+    feeds: "Investment and employment opportunities.",
+    gdp: "Helps prepare investment that could expand production and employment.",
     paths: ["money"],
   },
   {
@@ -287,8 +286,8 @@ const NODES: FlowNode[] = [
     band: 4,
     label: "Delivery on the record",
     what: "Results published to the National Record.",
-    feeds: "Back into the Corpus.",
-    gdp: "Credibility compounds — each cycle decides faster.",
+    feeds: "Back into the national evidence library.",
+    gdp: "Recorded results help government improve the next decision.",
     href: "/record",
     paths: ["delivery", "evidence"],
   },
@@ -361,8 +360,8 @@ if (import.meta.env.DEV) {
   );
 }
 
-const STEP_MS = 1400;
-const HOLD_MS = 3000;
+const STEP_MS = 4200;
+const HOLD_MS = 5500;
 const DRAW_MS = 9000;
 
 const PATH_LABEL: Record<Path, string> = {
@@ -424,12 +423,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<Path | null>(null);
   const [reduce, setReduce] = useState(false);
-  const [hoverHold, setHoverHold] = useState(false);
-  const { hover: holdHover } = useHoverIntent<true>(
-    useCallback(() => setHoverHold(true), []),
-    useCallback(() => setHoverHold(false), []),
-  );
-  const paused = selected !== null || hoverHold;
+  const paused = selected !== null;
 
   useEffect(() => {
     setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -530,7 +524,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
         presentation ? "gap-3" : "gap-4",
       )}
     >
-      <div className="flex flex-col md:min-h-0 md:flex-1">
+      <div className="flex min-w-0 flex-col md:min-h-0 md:flex-1">
         <div
           className={cn(
             "flex flex-wrap items-center gap-3 shrink-0",
@@ -577,7 +571,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
         {chamberScenarios.length > 0 && (
           <div className={cn("grid gap-2 sm:grid-cols-2 shrink-0", presentation ? "mb-2" : "mb-3")}>
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 sm:col-span-2">
-              Chamber {chamber} · {CHAMBER_NAMES[chamber]} — choose a scenario to run
+              Chamber {chamber} · {CHAMBER_NAMES[chamber]} — choose a national priority
             </div>
             {chamberScenarios.map((sc, i) => (
               <button
@@ -625,14 +619,14 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
                 ) : (
                   <span className="text-ink-950">
                     Outcome: {S.outcome}{" "}
-                    <span className="text-ink-500">(a pathway, never a forecast)</span>
+                    <span className="text-ink-500">(illustrative benefit, not a growth forecast)</span>
                   </span>
                 )}
               </div>
             </>
           ) : (
             <div className="pt-2 text-[14px] text-ink-500">
-              Drawing the national decision engine…
+              Connecting the national evidence and decision tools…
             </div>
           )}
         </div>
@@ -665,14 +659,22 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
         <div className="hidden min-h-0 flex-1 overflow-auto md:block">
           <svg
             viewBox={`0 0 ${W} ${H}`}
-            {...holdHover(true)}
+            onClick={() => !reduce && setPlaying((value) => !value)}
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.target !== event.currentTarget) return;
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                if (!reduce) setPlaying((value) => !value);
+              }
+            }}
             className={cn(
               "ddf h-full w-full",
-              presentation ? "min-h-0" : "min-h-[520px]",
+              "min-h-0",
               (paused || !playing) && "ddf-paused",
             )}
             role="group"
-            aria-label="Data and decision flow map"
+            aria-label={playing ? "National decision flow — pause animation" : "National decision flow — resume animation"}
           >
             <defs>
               <pattern
@@ -704,7 +706,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
                   textAnchor="middle"
                   className="fill-ink-950 font-mono"
                   fontSize={11}
-                  letterSpacing="2.5"
+                  letterSpacing="0"
                 >
                   {String(i + 1).padStart(2, "0")} · {b.toUpperCase()}
                 </text>
@@ -785,7 +787,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
               letterSpacing="2"
               style={{ animationDelay: "8.4s" }}
             >
-              RESULTS RETURN AS EVIDENCE — EACH CYCLE DECIDES FASTER
+              USE THE RESULTS TO IMPROVE THE NEXT DECISION
             </text>
 
             {NODES.map((n) => {
@@ -861,7 +863,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
                       letterSpacing="1.2"
                       className={cn("font-mono", isSel ? "fill-paper-50" : "fill-ink-500")}
                     >
-                      {n.group.toUpperCase()}
+                    {""}
                     </text>
                   )}
                 </g>
@@ -922,13 +924,13 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
               </div>
               <div>
                 <dt className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                  What it feeds
+                  Where it helps next
                 </dt>
                 <dd>{sel.feeds}</dd>
               </div>
               <div>
                 <dt className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-500">
-                  Why it matters for GDP
+                  Value for the economy
                 </dt>
                 <dd className="text-ink-950">{sel.gdp}</dd>
               </div>
@@ -952,24 +954,24 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
             <ol className="mt-2 space-y-2.5">
               {[
                 [
-                  "Evidence in.",
-                  "Real national data enters: statistics, ministries, KPIs, capital flows, peer benchmarks — and private records too.",
+                  "Gather the information.",
+                  "Bring together official figures, ministry plans, progress measures and investment data, alongside comparisons with other countries.",
                 ],
                 [
-                  "Protected.",
-                  "Every source is checked, cited and graded in the Second Brain. Private data stays on state-owned servers in the Vault.",
+                  "Connect and protect it.",
+                  "The Second Brain is the connected national evidence library. Check sources and reliability; use sensitive records only under government control.",
                 ],
                 [
-                  "Worked.",
-                  "Ten Chambers understand, rehearse, decide and deliver — every option tested before it is announced.",
+                  "Work through the choices.",
+                  "Ten Chambers—connected digital workspaces—help ministries understand problems, compare options and prepare action for approval.",
                 ],
                 [
-                  "Decided.",
-                  "Costed, cited briefs; tracked commitments; investor packages ready to fund the plan.",
+                  "Approve and assign action.",
+                  "Cabinet reviews the evidence and choices. Record approved actions, responsible leaders and deadlines; prepare projects for investor review.",
                 ],
                 [
-                  "GDP rises.",
-                  "Less decision delay, better-targeted spending, new investment — results published, and each cycle decides faster.",
+                  "Track results and improve.",
+                  "Track delivery and learn what worked. Better use of public money, stronger investment preparation and coordinated action can support lasting economic progress.",
                 ],
               ].map(([head, body], i) => (
                 <li key={i} className="flex gap-2">
@@ -983,16 +985,14 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
               ))}
             </ol>
             <p className="mt-4 border-l-2 border-gold-500 pl-3 font-display text-[14px] italic leading-relaxed text-ink-950">
-              This is the loop that elevates GDP — and GDPVision runs it end to end: every number
-              cited, every decision traceable, every record under national control. No other
-              platform does this for a sovereign state.
+              GDPVision connects evidence, policy, investment and delivery so government can act
+              with a clearer picture, a record of its decisions and responsibility for results.
             </p>
             <p className="mt-3 text-ink-500">
-              A pathway, never a forecast. Private data never leaves national control.
+              Illustrative scenarios, not measured results or growth forecasts. Government remains in control of sensitive information.
             </p>
             <p className="mt-3 text-[13px] text-ink-500">
-              Select any box to pause and see what it does. Use the path buttons to follow one
-              thread.
+              Sources, approval and responsibility stay visible throughout the decision.
             </p>
           </div>
         )}

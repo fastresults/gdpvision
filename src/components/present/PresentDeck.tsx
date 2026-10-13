@@ -119,12 +119,12 @@ function DecisionEngineStep() {
           </Reveal>
           <Reveal delay={100}>
             <h2 className={cn(H2, "mt-2 text-[clamp(1.8rem,3.4vw,3rem)]")}>
-              How a nation decides faster — and why that raises GDP
+              How government turns national evidence into economic progress.
             </h2>
           </Reveal>
           <Reveal delay={200}>
             <p className={cn(LEDE, "mt-1 text-[clamp(1rem,1.2vw,1.15rem)]")}>
-              One flow, five steps: evidence in, protected, worked, decided, GDP up.
+              Bring information together, protect sensitive records and turn evidence into approved action—with clear responsibility for delivery.
             </p>
           </Reveal>
         </div>
@@ -186,7 +186,6 @@ function PresentationFlowStage() {
 }
 
 function ChamberJourneyStep() {
-  const [ref, seen] = useInView<HTMLDivElement>(0.15);
   return (
     <Step id="journeys" label="By Chamber" tone="tint">
       <Reveal>
@@ -194,20 +193,18 @@ function ChamberJourneyStep() {
       </Reveal>
       <Reveal delay={100}>
         <h2 className={cn(H2, "mt-4 text-[clamp(1.8rem,3.4vw,3rem)]")}>
-          Follow one decision through the Chamber built to handle it
+          See how GDPVision helps government tackle a real national priority.
         </h2>
       </Reveal>
       <Reveal delay={200}>
         <p className={cn(LEDE, "mt-3 text-[clamp(1rem,1.2vw,1.15rem)]")}>
-          Choose a real scenario, watch GDPVision select the Chamber, then open its method and
-          executive value.
+          Choose a situation facing government. Follow it into a Chamber—a connected digital workspace—and review the evidence, choices and actions it prepares for Cabinet and ministries.
         </p>
       </Reveal>
       <div
-        ref={ref}
         className="mt-6 flex min-h-[70dvh] w-full min-w-0 lg:h-[80dvh] lg:overflow-hidden"
       >
-        {seen ? <ChamberDecisionJourneys /> : null}
+        <ChamberDecisionJourneys />
       </div>
     </Step>
   );

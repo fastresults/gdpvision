@@ -4,7 +4,7 @@
 
 # Roadmap
 
-- [ ] Add and verify one-panel entry introductions for the two homepage scrollers
+- [x] Add and verify one-panel entry introductions for the two homepage scrollers
 
 - [x] Rewrite and reorder the business case around economic value; correct evidence and assurance claims; verify reading flow and links
 

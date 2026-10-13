@@ -58,7 +58,7 @@ const PRIMARY_LINK: NavLink = { to: "/", hash: "instrument", lines: ["How", "it 
 
 const DETAIL_LINKS: NavLink[] = [
   { to: "/", hash: "sovereignty", lines: ["Sovereignty"] },
-  { to: "/vault", label: "The Vault", lines: ["The", "Vault"] } as never,
+  { to: "/vault", lines: ["The", "Vault"] },
   { to: "/record", lines: ["The National", "Record"] },
   { to: "/business-case", lines: ["The business", "case"] },
   { to: "/business-case/brief", lines: ["The Decision", "Brief"] },

@@ -8,7 +8,8 @@ import { questionSignals, routing } from "./journeyRouting";
 export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat: number }) {
   const { keywords, tags } = questionSignals(journey);
   const fits = routing(journey);
-  const lead = fits.find((f) => f.role === "lead")!;
+  const lead = fits.find((f) => f.role === "lead");
+  if (!lead) return null;
   const support = fits.filter((f) => f.role === "support");
   const pattern = new RegExp(`(${keywords.map((k) => k.replace(/[^\w-]/g, "")).join("|")})`, "g");
 
@@ -40,7 +41,7 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
               className="cjj-beat border border-gold-500 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-950"
               style={{ animationDelay: `${0.4 + i * 0.25}s` }}
             >
-              Signal · {tag}
+              Relevant to · {tag}
             </span>
           ))}
         </div>
@@ -50,7 +51,7 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
       {beat >= 1 && (
         <div className="cjj-beat">
           <div className="flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
-            <span>02 · Weighing all ten Chambers</span>
+            <span>02 · Compare the ten workspaces</span>
             <Explain id="journeys.fit">Illustrative fit</Explain>
           </div>
           <ol className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-5">
@@ -75,7 +76,7 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
                     {settled && f.role !== "other" && (
                       <span
                         className={cn(
-                          "px-1 font-mono text-[8px] uppercase tracking-[0.12em]",
+                          "px-1 font-mono text-[10px] uppercase tracking-[0.12em]",
                           f.role === "lead"
                             ? "bg-ink-950 text-gold-500"
                             : "border border-ink-700 text-ink-700",
@@ -85,8 +86,8 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
                       </span>
                     )}
                   </div>
-                  <strong className="mt-1 text-[12px] leading-tight text-ink-950">{f.name}</strong>
-                  <span className="mt-0.5 text-[10px] leading-snug text-ink-500">{f.purpose}</span>
+                  <strong className="mt-1 text-[13px] leading-snug text-ink-950">{f.name}</strong>
+                  <span className="mt-0.5 text-[12px] leading-snug text-ink-500">{f.purpose}</span>
                   <span className="mt-2 block h-1 w-full bg-line-100">
                     <span
                       className="cjj-fit block h-full bg-gold-500"
@@ -106,7 +107,7 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
       {/* Beat 3 — route */}
       {beat >= 3 && support.length > 0 && (
         <div className="cjj-beat border border-ink-700 bg-paper-0 p-3">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">04 · Supporting Chambers remain connected</div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">04 · Keep supporting workspaces connected</div>
           <div className="mt-2 flex flex-wrap gap-2">
             {support.map((s) => <span key={s.index} className="border border-gold-500 px-2 py-1 text-[11px] text-ink-950"><span className="font-mono text-gold-500">{s.index}</span> · {s.name} — {s.purpose}</span>)}
           </div>
@@ -117,19 +118,19 @@ export function ChamberRouter({ journey, beat }: { journey: ChamberJourney; beat
         <div className="cjj-beat grid gap-3 border border-gold-500 bg-ink-950 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
           <div className="min-w-0">
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-500">
-              05 · Routing authorised · Lead Chamber
+              05 · Workspace for this priority · illustrative route
             </div>
             <p className="mt-1 font-display text-xl text-paper-0 md:text-2xl">
               Chamber {lead.index} · {journey.method.name}
             </p>
             <p className="mt-1 text-[13px] text-paper-0 opacity-80">
-              Because this is a question of {lead.purpose.toLowerCase()}.
+              This workspace helps government answer: {lead.purpose}.
             </p>
           </div>
           {support.length > 0 && (
             <div className="shrink-0 text-paper-0">
               <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-gold-300">
-                Will call on
+                Works alongside
               </div>
               <ul className="mt-1 space-y-1">
                 {support.map((s) => (

@@ -2,7 +2,6 @@ import {
   Fragment,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
@@ -109,10 +108,10 @@ function DecisionEngineStep() {
     <Step
       id="engine"
       label="The decision engine"
-      className="md:h-dvh md:min-h-dvh md:max-h-dvh md:justify-start md:overflow-hidden md:pb-3 md:pt-[70px]"
-      contentClassName="md:grid md:h-full md:min-h-0 md:grid-rows-[auto_minmax(0,1fr)]"
+      className="pr-0 md:h-dvh md:min-h-dvh md:max-h-dvh md:justify-start md:overflow-hidden md:pr-0 md:pb-0 md:pt-[70px] lg:pr-0"
+      contentClassName="max-w-none md:grid md:h-full md:min-h-0 md:grid-rows-[auto_minmax(0,1fr)]"
     >
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3 pr-6 md:pr-16 lg:pr-24">
         <div className="min-w-0">
           <Reveal>
             <div className={MICRO}>05 · The decision engine</div>
@@ -136,51 +135,10 @@ function DecisionEngineStep() {
   );
 }
 
-const FLOW_STAGE_WIDTH = 1400;
-const FLOW_STAGE_HEIGHT = 760;
-
 function PresentationFlowStage() {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const [fit, setFit] = useState({ scale: 0.6, left: 0 });
-
-  useLayoutEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
-    const update = () => {
-      const width = host.clientWidth;
-      const height = host.clientHeight;
-      const scale = Math.min(1, width / FLOW_STAGE_WIDTH, height / FLOW_STAGE_HEIGHT);
-      setFit({ scale, left: Math.max(0, (width - FLOW_STAGE_WIDTH * scale) / 2) });
-    };
-    update();
-    const frame = requestAnimationFrame(update);
-    const observer = new ResizeObserver(update);
-    observer.observe(host);
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-    };
-  }, []);
-
   return (
-    <div
-      ref={hostRef}
-      className="relative h-full w-full min-w-0 overflow-x-clip md:overflow-hidden"
-    >
-      <div className="md:hidden">
-        <DataDecisionFlow />
-      </div>
-      <div
-        className="absolute top-0 hidden origin-top-left md:block"
-        style={{
-          width: FLOW_STAGE_WIDTH,
-          height: FLOW_STAGE_HEIGHT,
-          left: fit.left,
-          transform: `scale(${fit.scale})`,
-        }}
-      >
-        <DataDecisionFlow presentation />
-      </div>
+    <div className="h-full w-full min-w-0">
+      <DataDecisionFlow presentation />
     </div>
   );
 }

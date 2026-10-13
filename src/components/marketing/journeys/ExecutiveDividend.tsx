@@ -9,7 +9,7 @@ export function ExecutiveDividend({ journey, beat }: { journey: ChamberJourney; 
   const benefits = Object.values(journey.benefits);
   const frame = decisionFrame(journey);
   return (
-    <div className="h-full overflow-auto px-4 py-5 md:px-7">
+    <div className="h-full overflow-auto px-4 py-4 md:px-6">
       <div className="flex items-end justify-between gap-4">
         <div>
           <BeatLabel index={0}>Value for government</BeatLabel>
@@ -21,7 +21,7 @@ export function ExecutiveDividend({ journey, beat }: { journey: ChamberJourney; 
           Before → With GDPVision
         </span>
       </div>
-      <ol className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+      <ol className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {benefits.map((benefit, index) => {
           const slot = BENEFIT_SLOTS[index];
           const active = index <= beat;
@@ -29,7 +29,7 @@ export function ExecutiveDividend({ journey, beat }: { journey: ChamberJourney; 
             <li
               key={slot.label}
               className={cn(
-                "relative min-h-48 overflow-hidden border bg-paper-0 p-3 transition-all duration-500",
+                "relative min-h-40 overflow-hidden border bg-paper-0 p-2.5 transition-all duration-500",
                 active ? "cjj-benefit border-gold-500" : "border-line-200",
               )}
             >
@@ -39,7 +39,7 @@ export function ExecutiveDividend({ journey, beat }: { journey: ChamberJourney; 
                 </span>
                 {active && <Check className="h-3.5 w-3.5 text-gold-500" />}
               </div>
-              <div className="mt-3 border-l border-line-200 pl-2">
+              <div className="mt-2 border-l border-line-200 pl-2">
                 <div className="font-mono text-[11px] text-ink-500">Before</div>
                 <p className="mt-1 text-[12px] italic leading-snug text-ink-500">
                   {slot.before.replace(/^Before:\s*/i, "")}
@@ -60,8 +60,8 @@ export function ExecutiveDividend({ journey, beat }: { journey: ChamberJourney; 
         })}
       </ol>
       {beat >= 5 && (
-        <div className="cjj-beat mt-4 grid border border-gold-500 bg-ink-950 text-paper-0 md:grid-cols-[1.3fr_1fr]">
-          <div className="p-4">
+        <div className="cjj-beat mt-3 grid border border-gold-500 bg-ink-950 text-paper-0 md:grid-cols-[1.3fr_1fr]">
+          <div className="p-3">
             <div className="font-mono text-[11px] tracking-[0.16em] text-gold-300">
               Decision brief prepared
             </div>
@@ -70,7 +70,7 @@ export function ExecutiveDividend({ journey, beat }: { journey: ChamberJourney; 
               Ready for review: sources, checks and delivery responsibility are set out clearly.
             </p>
           </div>
-          <div className="border-t border-gold-500 p-4 md:border-l md:border-t-0">
+          <div className="border-t border-gold-500 p-3 md:border-l md:border-t-0">
             <ShieldCheck className="h-5 w-5 text-gold-500" />
             <div className="mt-2 font-mono text-[11px] text-gold-300">
               How this supports economic progress

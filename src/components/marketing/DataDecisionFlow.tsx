@@ -853,7 +853,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
                     <text
                       x={p.x + 10}
                       y={p.y + BOXH / 2 + 4}
-                      fontSize={12.5}
+                      fontSize={14}
                       className={isSel ? "fill-paper-0" : "fill-ink-950"}
                     >
                       {n.label}

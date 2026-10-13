@@ -43,7 +43,7 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
       </div>
 
       {/* Stage rail */}
-      <ol className="grid grid-cols-5 gap-1" aria-label="Chamber stages">
+      <ol className="grid grid-cols-2 gap-1 sm:grid-cols-5" aria-label="Chamber stages">
         {stages.map((s, i) => (
           <li
             key={s.stage}
@@ -64,7 +64,7 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
         ))}
       </ol>
 
-      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[150px_minmax(0,1fr)_200px]">
+      <div className="grid shrink-0 gap-3 xl:grid-cols-[150px_minmax(0,1fr)_200px]">
         {/* Information used */}
         <div className="p-2">
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
@@ -78,7 +78,7 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
                 <li
                   key={c.id}
                   className={cn(
-                    "flex flex-col border px-2 py-1 text-[11px] transition-all duration-500",
+                    "flex flex-col border px-2 py-1 text-[12px] transition-all duration-500",
                     lit
                       ? "translate-x-1 border-gold-500 text-ink-950"
                       : "border-line-200 text-ink-700",
@@ -107,19 +107,6 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
               </p>
             </div>
           )}
-          <div className="mt-3 grid grid-cols-3 gap-1" aria-label="Decision checks">
-            {["Question", "Evidence", "Action", "Finding", "Check", "Approval"].map((label, i) => (
-              <span
-                key={label}
-                className={cn(
-                  "border px-1 py-1 text-center font-mono text-[10px] uppercase",
-                  i <= stageBeat ? "border-gold-500 text-ink-950" : "border-line-200 text-ink-500",
-                )}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
           <dl className="mt-3 space-y-3 text-[14px]">
             {stageBeat >= 1 && (
               <div>

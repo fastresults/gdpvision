@@ -108,7 +108,7 @@ export function ChamberDecisionJourneys() {
 
   return (
     <div className="flex w-full min-h-0 min-w-0 flex-1 flex-col gap-4 lg:flex-row">
-      <aside className="w-full shrink-0 border-b border-line-200 pb-4 lg:max-h-full lg:w-[300px] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r lg:pb-4 lg:pr-4">
+      <aside className="max-h-[260px] w-full shrink-0 overflow-y-auto border-b border-line-200 pb-4 lg:max-h-full lg:w-[300px] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r lg:pb-4 lg:pr-4">
         <div className="text-[14px] font-semibold text-ink-950">Explore a national priority</div>
         <button
           type="button"
@@ -158,9 +158,7 @@ export function ChamberDecisionJourneys() {
                 item.id === journey.id && "card-choice-active",
               )}
             >
-              <span className="block font-mono text-[10px] font-semibold opacity-80">
-                {item.title}
-              </span>
+              <span className="block text-[12px] font-semibold opacity-80">{item.title}</span>
               <span className="mt-1 block text-[12px] leading-snug">{item.question}</span>
             </button>
           ))}
@@ -191,7 +189,7 @@ export function ChamberDecisionJourneys() {
                 setPlaying(false);
               }}
               className={cn(
-                "card-choice min-w-[112px] flex-1 px-2 py-2 text-left",
+                "card-choice min-w-[112px] flex-1 px-2 py-2 text-left transition-none",
                 act === index && "card-choice-active",
               )}
             >
@@ -225,11 +223,6 @@ export function ChamberDecisionJourneys() {
             act={act}
             beat={reduce ? beatCount(act, journey) - 1 : beat}
           />
-          {!playing && !reduce && (
-            <span className="pointer-events-none absolute right-3 top-3 border border-gold-500 bg-ink-950 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-gold-300">
-              Paused
-            </span>
-          )}
         </div>
 
         <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-line-200 pt-2">

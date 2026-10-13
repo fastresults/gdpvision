@@ -91,7 +91,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
       className="btn-ghost shrink-0 whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.18em]"
     >
       {detailsOpen ? (
-        <span className="block text-left leading-[1.15]">
+        <span className="block text-left">
           <span className="block whitespace-nowrap text-left">Hide</span>
           <span className="block whitespace-nowrap text-left">Details</span>
         </span>

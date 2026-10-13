@@ -55,7 +55,7 @@ import illProvenance from "@/assets/illustrations/section-provenance.jpg.asset.j
 import illBriefing from "@/assets/illustrations/section-briefing.jpg.asset.json";
 import { CHAMBERS } from "@/lib/chambers";
 import { getBriefCountries, getCountryFacts } from "@/lib/calculator/facts.functions";
-import { computeValue } from "@/lib/calculator/model";
+import { computeValue, formatUsd } from "@/lib/calculator/model";
 import { proposedInputForCountry } from "@/lib/calculator/proposal";
 import { encodeBrief } from "@/lib/calculator/brief-link";
 import { ChamberValueEstimate } from "./ChamberValueEstimate";
@@ -464,6 +464,32 @@ export function MarketingHome() {
                 <p className="mt-2 font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-300">
                   All ten Chamber values update together
                 </p>
+                <div
+                  key={estimateCountry}
+                  aria-live="polite"
+                  className="mt-5 min-h-[92px] animate-in fade-in slide-in-from-top-2 border-y border-ink-500/40 py-4 duration-500 motion-reduce:animate-none"
+                >
+                  <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold-300">
+                    Estimated value · year three
+                  </div>
+                  {estimateFactsQ.isLoading ? (
+                    <div className="mt-2 h-8 w-28 animate-pulse bg-ink-500/30 motion-reduce:animate-none" />
+                  ) : (
+                    <>
+                      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <span className="font-serif text-[25px] leading-none text-paper-0">
+                          +{formatUsd(estimateResult.upliftUsd)}
+                        </span>
+                        <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-300">
+                          All ten Chambers · combined
+                        </span>
+                      </div>
+                      <p className="mt-2 text-[12px] leading-relaxed text-ink-300">
+                        {estimateCountryName} · central public estimate
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>

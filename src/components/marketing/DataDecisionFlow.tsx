@@ -1,3 +1,4 @@
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { SCENARIOS, CHAMBER_NAMES } from "./dataDecisionScenarios";
@@ -423,6 +424,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<Path | null>(null);
   const [reduce, setReduce] = useState(false);
+  const [trayOpen, setTrayOpen] = useState(true);
   const paused = selected !== null;
 
   useEffect(() => {
@@ -515,12 +517,18 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
     return true;
   };
 
-  const toggle = (id: string) => setSelected((s) => (s === id ? null : id));
+  const toggle = (id: string) => {
+    setSelected((current) => {
+      const next = current === id ? null : id;
+      if (next) setTrayOpen(true);
+      return next;
+    });
+  };
 
   return (
     <div
       className={cn(
-        "flex flex-col md:h-full md:min-h-0 lg:flex-row",
+        "flex w-full min-w-0 flex-col md:h-full md:min-h-0 lg:flex-row",
         presentation ? "gap-3" : "gap-4",
       )}
     >
@@ -906,10 +914,47 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
       </div>
 
       <aside
-        className="w-full shrink-0 border-t border-line-200 pt-4 lg:w-[320px] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0"
+        id="decision-flow-guide"
+        className={cn(
+          "relative mt-4 w-full shrink-0 border-t border-line-200 bg-paper-0 transition-[width] duration-300 motion-reduce:transition-none lg:mt-0 lg:h-full lg:border-l lg:border-t-0",
+          trayOpen
+            ? "lg:w-[min(30vw,360px)]"
+            : "lg:w-12",
+        )}
         aria-live="polite"
       >
-        {sel ? (
+        <div className="sticky top-0 z-10 flex h-12 items-center justify-between border-b border-line-200 bg-paper-0 px-3 lg:h-11">
+          <span
+            className={cn(
+              "font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500",
+              !trayOpen && "lg:sr-only",
+            )}
+          >
+            {sel ? "Selected connection" : "How this flow works"}
+          </span>
+          <button
+            type="button"
+            className="btn-ghost ml-auto h-8 w-8 shrink-0 p-0"
+            aria-expanded={trayOpen}
+            aria-controls="decision-flow-guide-content"
+            aria-label={trayOpen ? "Collapse how this flow works" : "Expand how this flow works"}
+            onClick={() => setTrayOpen((open) => !open)}
+          >
+            {trayOpen ? (
+              <PanelRightClose className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <PanelRightOpen className="h-4 w-4" aria-hidden="true" />
+            )}
+          </button>
+        </div>
+        <div
+          id="decision-flow-guide-content"
+          className={cn(
+            "overflow-y-auto px-4 py-4 lg:h-[calc(100%-2.75rem)] lg:px-5",
+            !trayOpen && "hidden",
+          )}
+        >
+          {sel ? (
           <div>
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
               {BANDS[sel.band]}
@@ -948,9 +993,6 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
           </div>
         ) : (
           <div className="text-[14px] leading-relaxed text-ink-700">
-            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-              How this flow works
-            </div>
             <ol className="mt-2 space-y-2.5">
               {[
                 [
@@ -995,7 +1037,8 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
               Sources, approval and responsibility stay visible throughout the decision.
             </p>
           </div>
-        )}
+          )}
+        </div>
       </aside>
 
       {/* Screen-reader outline */}

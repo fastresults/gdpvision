@@ -229,7 +229,12 @@ export function DataDecisionFlowDialog() {
                 <X className="h-5 w-5" />
               </DialogPrimitive.Close>
             </div>
-            <div className="flex min-w-0 md:min-h-0 md:flex-1">
+            <div
+              className={cn(
+                "flex min-w-0 md:min-h-0 md:flex-1",
+                mode === "national" && "md:-mr-8 md:w-[calc(100%+2rem)]",
+              )}
+            >
               {mode === "national" ? <DataDecisionFlow /> : <ChamberDecisionJourneys />}
             </div>
           </DialogPrimitive.Content>

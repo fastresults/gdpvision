@@ -99,6 +99,8 @@
   --color-sector-10: var(--sector-10);
   --color-sector-11: var(--sector-11);
   --color-sector-12: var(--sector-12);
+  --color-chamber-09: var(--chamber-09);
+  --color-chamber-10: var(--chamber-10);
 
   /* Typography */
   --font-serif: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
@@ -154,6 +156,10 @@
   --sector-10: #7a4a6b; /* Financial services */
   --sector-11: #8a6d3a; /* Real estate */
   --sector-12: #4a4a4a; /* Other services */
+
+  /* Chamber identity hues — reserved for chambers whose sector hue collides */
+  --chamber-09: #2f5d8a; /* Digital Government Studio */
+  --chamber-10: #6b5b3a; /* Sector Studio */
 
   /* Motion tokens (PRD §11) */
   --dur-instant: 80ms;

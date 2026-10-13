@@ -65,8 +65,13 @@ export function ChamberPanel({
       )}
     >
       <div className="pl-5 pr-4 py-5 sm:pl-6 sm:pr-5 sm:py-6">
-        <div className="flex items-start justify-between gap-3 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500 sm:gap-4">
-          <span className="pt-1">Chamber {index}</span>
+        <div className="flex items-start justify-between gap-3 sm:gap-4">
+          <span
+            className="pt-1 font-serif text-[26px] leading-none tracking-tight text-ink-950 sm:text-[32px]"
+            style={{ color: `var(${accentVar})` }}
+          >
+            Chamber {index}
+          </span>
           {image ? (
             <Illustration
               src={image}

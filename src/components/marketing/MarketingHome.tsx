@@ -5,6 +5,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { MarketingShell } from "./MarketingShell";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /**
  * Cross-page hash arrivals (e.g. /business-case → "/#sovereignty") land here
@@ -426,25 +433,34 @@ export function MarketingHome() {
               </div>
               <div>
                 <label
+                  id="chamber-estimate-country-label"
                   htmlFor="chamber-estimate-country"
                   className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold-300"
                 >
                   Select country
                 </label>
-                <select
-                  id="chamber-estimate-country"
-                  value={estimateCountry}
-                  onChange={(event) => setEstimateCountry(event.target.value)}
-                  className="mt-2 min-h-20 w-full border border-paper-0 bg-paper-0 px-4 py-4 font-serif text-[38px] leading-tight text-ink-950 shadow-sm focus:border-gold-500 focus:outline-none"
-                >
-                  {(estimateCountriesQ.data ?? [{ code: "LCA", name: "St Lucia" }]).map(
-                    (country) => (
-                      <option key={country.code} value={country.code}>
-                        {country.name}
-                      </option>
-                    ),
-                  )}
-                </select>
+                <Select value={estimateCountry} onValueChange={setEstimateCountry}>
+                  <SelectTrigger
+                    id="chamber-estimate-country"
+                    aria-labelledby="chamber-estimate-country-label"
+                    className="mt-2 h-auto min-h-20 w-full rounded-none border border-paper-0 bg-paper-0 px-4 py-4 font-serif text-[38px] leading-tight text-ink-950 shadow-sm focus:border-gold-500 focus:outline-none focus:ring-0"
+                  >
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[340px] rounded-none border-line-200 bg-paper-0 text-ink-950">
+                    {(estimateCountriesQ.data ?? [{ code: "LCA", name: "St Lucia" }]).map(
+                      (country) => (
+                        <SelectItem
+                          key={country.code}
+                          value={country.code}
+                          className="rounded-none py-2 pl-3 pr-9 font-serif text-[15px] text-ink-900 focus:bg-gold-500/10 focus:text-ink-950"
+                        >
+                          {country.name}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
                 <p className="mt-2 font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-300">
                   All ten Chamber values update together
                 </p>

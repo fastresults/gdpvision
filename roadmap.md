@@ -4,7 +4,7 @@
 
 # Roadmap
 
-- [ ] Polish both homepage decision presentations in clear government and economic language; verify all journeys and controls
+- [x] Polish both homepage decision presentations in clear government and economic language; verify all journeys and controls
 
 - [x] Add authentic official logos above all ten measuring-body cards and verify scrolling and image rendering
 

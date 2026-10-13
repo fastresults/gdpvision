@@ -4,7 +4,7 @@
 
 # Roadmap
 
-- [ ] Correct and verify reversible homepage auto-pan on vertical scroll direction changes
+- [x] Correct and verify reversible homepage auto-pan on vertical scroll direction changes
 
 - [x] Add and verify one-panel entry introductions for the two homepage scrollers
 

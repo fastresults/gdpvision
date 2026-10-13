@@ -57,10 +57,6 @@ import { CHAMBERS } from "@/lib/chambers";
 import { getBriefCountries, getCountryFacts } from "@/lib/calculator/facts.functions";
 import { computeValue, formatUsd } from "@/lib/calculator/model";
 import { proposedInputForCountry } from "@/lib/calculator/proposal";
-import { encodeBrief } from "@/lib/calculator/brief-link";
-import { ChamberValueEstimate } from "./ChamberValueEstimate";
-import { ExplainProvider } from "@/components/explain/ExplainProvider";
-import type { CalcCtx } from "@/lib/explain/calculator-entries";
 import "@/lib/explain/calculator-entries";
 
 
@@ -145,27 +141,6 @@ export function MarketingHome() {
     estimateFacts?.name ??
     estimateCountriesQ.data?.find((country) => country.code === estimateCountry)?.name ??
     "St Lucia";
-  const estimateConfig = encodeBrief(estimateInput);
-  const estimateContext: CalcCtx = {
-    input: estimateInput,
-    result: estimateResult,
-    countryName: estimateCountryName,
-  };
-  const chamberValue = (chamberIndex: string) => {
-    const contribution = estimateResult.chambers.find((item) => item.index === chamberIndex);
-    return (
-      <ChamberValueEstimate
-        index={chamberIndex}
-        countryName={estimateCountryName}
-        countryCode={estimateCountry}
-        config={estimateConfig}
-        usd={contribution?.usd ?? 0}
-        adoption={contribution?.adoption ?? 0}
-        context={estimateContext}
-        loading={estimateFactsQ.isLoading}
-      />
-    );
-  };
   const [tail, setTail] = useState(() => EXISTENTIAL_THREATS.slice(1));
 
   const [index, setIndex] = useState(0);
@@ -493,13 +468,11 @@ export function MarketingHome() {
               </div>
             </div>
           </div>
-          <ExplainProvider value={{ ctx: estimateContext }}>
-            <div className="mt-10 grid gap-x-8 gap-y-6 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2 lg:grid-cols-3">
-              {CHAMBERS.map((c) => (
-                <ChamberPanel key={c.index} {...c} valueEstimate={chamberValue(c.index)} />
-              ))}
-            </div>
-          </ExplainProvider>
+          <div className="mt-10 grid gap-x-8 gap-y-6 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2 lg:grid-cols-3">
+            {CHAMBERS.map((c) => (
+              <ChamberPanel key={c.index} {...c} />
+            ))}
+          </div>
         </div>
       </section>
 

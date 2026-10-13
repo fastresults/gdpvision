@@ -54,14 +54,13 @@ export function IndexBand() {
               id="measures-title"
               className="mt-5 font-serif text-[24px] leading-[1.2] tracking-tight text-ink-950 md:text-[30px]"
             >
-              Ten bodies set the standard measures that rank a country for investors and lenders.
-              GDPVision connects directly to those indexes and data sets — a near-live interface
-              where evidence combines into decisions, policy, investment and management: the
-              environment for GDP growth.
+              Ten bodies set the measures that rank a country for investors and lenders.
+              GDPVision connects directly to them — a near-live feed where evidence becomes
+              decisions, policy and investment: the environment where GDP grows.
             </h2>
             <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-ink-500">
-              The connections run both ways: measures come in as they are published, and the
-              decisions that move them go out to Cabinet, ministries and investors.
+              Measures come in as they are published. The decisions that move them go out
+              to Cabinet, ministries and investors.
             </p>
           </div>
           <div className="flex items-center gap-3">

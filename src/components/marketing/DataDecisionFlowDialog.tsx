@@ -187,7 +187,8 @@ export function DataDecisionFlowDialog() {
           <DialogPrimitive.Content
             className={cn(
               "fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-y-auto bg-paper-0 p-4 md:p-8",
-              mode === "national" && "lg:overflow-hidden lg:pb-0",
+              "lg:overflow-hidden",
+              mode === "national" && "lg:pb-0",
             )}
           >
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
@@ -195,15 +196,15 @@ export function DataDecisionFlowDialog() {
                 <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
                   GDPVision · Evidence into action
                 </div>
-                <DialogPrimitive.Title className="mt-1 font-display text-2xl text-ink-950 md:text-3xl">
+                <DialogPrimitive.Title className="mt-1 font-display text-2xl leading-tight text-ink-950 md:text-3xl">
                   {mode === "national"
-                    ? "How government turns national evidence into economic progress."
-                    : "See how GDPVision helps government tackle a real national priority."}
+                    ? "How GDPVision connects evidence to government action."
+                    : "See a national priority become a government decision."}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="mt-1 max-w-2xl text-[14px] text-ink-700">
                   {mode === "national"
-                    ? "See how GDPVision brings information together, protects sensitive records and helps government choose, approve and deliver action—with a clear record of who is responsible."
-                    : "Choose a situation facing government. Follow it into a Chamber—a connected digital workspace—and see the evidence, options and actions it brings together for Cabinet and ministries."}
+                    ? "Bring national information together, compare policy and investment choices, and turn approved decisions into accountable delivery."
+                    : "Follow a real-world example through a Chamber—a connected government workspace—from checked evidence to choices, approval and action."}
                 </DialogPrimitive.Description>
               </div>
               <div

@@ -1650,8 +1650,18 @@
     transform: none;
   }
 }
+.flow-example-picker {
+  border: 1px solid var(--line-200);
+  border-radius: 3px;
+  background: var(--paper-0);
+  color: var(--ink-950);
+}
+.flow-example-picker:focus-visible {
+  outline: 2px solid var(--gold-500);
+  outline-offset: 2px;
+}
 .ddf .ddf-fade {
-  animation: ddf-fade 0.8s ease-out both;
+  animation: ddf-fade 0.35s ease-out both;
 }
 .ddf .ddf-rise > * {
   animation: ddf-rise 0.7s ease-out both;
@@ -1671,6 +1681,14 @@
 .ddf-paused *,
 .ddf-paused {
   animation-play-state: paused !important;
+}
+.ddf-paused .ddf-fade {
+  opacity: 1;
+  animation: none;
+}
+.ddf-paused .ddf-draw {
+  stroke-dashoffset: 0;
+  animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .ddf * {
@@ -1954,6 +1972,8 @@
   animation-play-state: paused !important;
 }
 .cjj[data-held] .cjj-beat,
+.cjj[data-held] .cjj-docket,
+.cjj[data-held] .cjj-document,
 .cjj[data-held] .cjj-benefit {
   opacity: 1;
   animation: none;

@@ -4,12 +4,12 @@ import { visualAudit } from "./journeys/journeyVisuals";
 import { evidenceChips } from "./journeys/journeyRouting";
 
 export const JOURNEY_ACTS = [
-  "The national priority",
-  "Ask the right question",
-  "Bring the evidence together",
-  "Choose the right workspace",
-  "Work through the decision",
-  "Value for government and the economy",
+  "The priority",
+  "Frame the question",
+  "Check the evidence",
+  "Select the Chamber",
+  "Work through options",
+  "Government value",
 ] as const;
 
 export interface ChamberMethod {
@@ -324,7 +324,9 @@ const FEATURED = new Set([
 /** Map the journey's own route steps onto the Chamber's five method stages. */
 function buildStages(scenario: Scenario, method: ChamberMethod): StageDetail[] {
   const details: StageDetail[] = [];
-  const sources = evidenceChips(scenario).map((chip) => chip.label).join(" · ");
+  const sources = evidenceChips(scenario)
+    .map((chip) => chip.label)
+    .join(" · ");
   method.stages.forEach((stage, index) => {
     const step = scenario.steps[Math.min(index, scenario.steps.length - 1)];
     details.push({

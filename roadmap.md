@@ -4,6 +4,8 @@
 
 # Roadmap
 
+- [x] Streamline both decision presentations: focused browser, readable scenes, stage-aware guide and reliable playback; verify both views
+
 - [x] Dock “How this flow works” to the right edge as an expanded-by-default collapsible tray
 
 - [x] Polish both homepage decision presentations in clear government and economic language; verify all journeys and controls

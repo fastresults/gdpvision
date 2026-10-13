@@ -6,6 +6,7 @@
 // Adds AI-grounded ingestion, triage recommendation, strategy drafting,
 // channel drafting, publish + coverage — layered on top of the existing
 // narrative.functions.ts (intake_items, strategy_statements, comms_artifacts).
+import { perplexityFetch } from "@/lib/perplexity-agent";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -225,7 +226,7 @@ async function classifyWithPerplexity(input: {
     ],
   };
 
-  const res = await fetch("https://api.perplexity.ai/chat/completions", {
+  const res = await perplexityFetch({
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -427,7 +428,7 @@ export const generateStrategyDraft = createServerFn({ method: "POST" })
       ],
     };
 
-    const res = await fetch("https://api.perplexity.ai/chat/completions", {
+    const res = await perplexityFetch({
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -608,7 +609,7 @@ export const generateChannelDraft = createServerFn({ method: "POST" })
       "Write the artifact as plain markdown. Do not include commentary. Ground in the strategy — no invented figures.",
     ].join("\n");
 
-    const res = await fetch("https://api.perplexity.ai/chat/completions", {
+    const res = await perplexityFetch({
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({

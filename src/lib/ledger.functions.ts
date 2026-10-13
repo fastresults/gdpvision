@@ -6,6 +6,7 @@
 // authenticated user's RLS via requireSupabaseAuth; writes are additionally
 // role-gated inside the handler with has_role().
 
+import { perplexityFetch } from "@/lib/perplexity-agent";
 import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { z } from "zod";
@@ -1046,7 +1047,7 @@ async function perplexityDeepResearch(
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
-    const res = await fetch("https://api.perplexity.ai/chat/completions", {
+    const res = await perplexityFetch({
       method: "POST",
       headers: {
         Authorization: `Bearer ${key}`,

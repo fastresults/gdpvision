@@ -5,6 +5,7 @@
 // Chamber 07 · Research Studio Wizard — server functions.
 // Corpus-first, McKinsey-grade brief → outcome → cast → commit pipeline.
 
+import { perplexityFetch } from "@/lib/perplexity-agent";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -191,7 +192,7 @@ async function perplexityDeepResearch(query: string, country: string, timeoutMs 
   if (!key) return { answer: "", citations: [] };
   let res: Response;
   try {
-    res = await fetch("https://api.perplexity.ai/chat/completions", {
+    res = await perplexityFetch({
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({

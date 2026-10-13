@@ -1,3 +1,4 @@
+import { perplexityFetch } from "@/lib/perplexity-agent";
 // Server-only Perplexity Sonar client.
 // Used by the AI-first country onboarding agents. Never imported from the client.
 
@@ -94,7 +95,7 @@ export async function callSonar(opts: {
     // sonar-reasoning-pro / sonar-deep-research can take 2-4 minutes; give them room.
     const timeout = setTimeout(() => ctrl.abort(), 240_000);
     try {
-      const r = await fetch("https://api.perplexity.ai/chat/completions", {
+      const r = await perplexityFetch({
         method: "POST",
         signal: ctrl.signal,
         headers: {

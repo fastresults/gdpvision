@@ -1,5 +1,6 @@
 // Server-only helpers for Chamber 05 press monitoring.
 // Imported by /api/public/hooks/press-tick and press-monitor.functions.ts (inside handlers).
+import { perplexityFetch } from "@/lib/perplexity-agent";
 import { createHash } from "crypto";
 
 export type Scope = "local" | "regional" | "international";
@@ -338,9 +339,7 @@ export async function classifySignal(input: {
       "rationale",
     ],
   };
-  const res = await fetchWithTimeout(
-    "https://api.perplexity.ai/chat/completions",
-    {
+  const res = await perplexityFetch({
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({

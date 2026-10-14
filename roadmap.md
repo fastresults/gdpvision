@@ -4,6 +4,8 @@
 
 # Roadmap
 
+- [x] Replace the homepage Corpus illustration with Antigua’s public-safe live Second Brain; verify 55% layout, controls and small screens
+
 - [x] Correct and verify reversible homepage auto-pan on vertical scroll direction changes
 
 - [x] Add and verify one-panel entry introductions for the two homepage scrollers

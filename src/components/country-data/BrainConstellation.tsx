@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Minus } from "lucide-react";
 
 import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
@@ -74,6 +74,8 @@ type Props = {
   filter: BrainFilter;
   onFilter: (f: BrainFilter) => void;
   onSelectCountry?: (code: string) => void;
+  /** Anonymous homepage presentation; other consumers retain their existing view. */
+  publicView?: boolean;
 };
 
 /**
@@ -90,9 +92,26 @@ export function BrainConstellation({
   filter,
   onFilter,
   onSelectCountry,
+  publicView = false,
 }: Props) {
   const [hover, setHover] = useState<{ label: string; x: number; y: number } | null>(null);
   const [zoom, setZoom] = useState(1);
+  const svgRef = useRef<SVGSVGElement>(null);
+  useEffect(() => {
+    if (!publicView) return;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => {
+      const svg = svgRef.current;
+      if (!svg) return;
+      if (media.matches) {
+        svg.setCurrentTime(0.1);
+        svg.pauseAnimations();
+      } else svg.unpauseAnimations();
+    };
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, [publicView]);
 
   const size = 900;
   const cx = size / 2;
@@ -252,14 +271,15 @@ export function BrainConstellation({
   }
 
   return (
-    <div className="relative w-full">
+    <div className={`relative w-full ${publicView ? "home-brain-view" : ""}`}>
       {/* Legend chip strip */}
       <div className="mb-3 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-ink-500">
         {KINDS.map((k) => (
           <button
             key={k}
+            aria-pressed={filter.kind === k}
             onClick={() => onFilter({ ...filter, kind: filter.kind === k ? undefined : k })}
-            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 border transition ${
+            className={publicView ? "btn-ghost !px-2 !py-1 !text-[10px]" : `inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 border transition ${
               filter.kind === k ? "border-ink-950 text-ink-950 bg-paper-100" : "border-line-200 hover:text-ink-950"
             }`}
           >
@@ -269,33 +289,34 @@ export function BrainConstellation({
         ))}
         <span className="mx-1 text-line-300">|</span>
         <button
+          aria-pressed={filter.verified === true}
           onClick={() => onFilter({ ...filter, verified: filter.verified === true ? undefined : true })}
-          className={`rounded-full px-2 py-0.5 border ${
+          className={publicView ? "btn-ghost !px-2 !py-1 !text-[10px]" : `rounded-full px-2 py-0.5 border ${
             filter.verified === true ? "border-emerald-600 text-emerald-700" : "border-line-200 hover:text-ink-950"
           }`}
         >
           verified
         </button>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-line-200 px-2 py-0.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" /> active 24h
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse motion-reduce:animate-none" /> active 24h
         </span>
-        {(filter.country || filter.sector || filter.kind || filter.verified !== undefined) && (
+        {((!publicView && filter.country) || filter.sector || filter.kind || filter.verified !== undefined) && (
           <button
             onClick={() => onFilter({})}
-            className="rounded-full border border-ink-950 px-2 py-0.5 text-ink-950"
+            className={publicView ? "btn-ghost !px-2 !py-1 !text-[10px]" : "rounded-full border border-ink-950 px-2 py-0.5 text-ink-950"}
           >
             clear ✕
           </button>
         )}
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-line-200 bg-gradient-to-br from-slate-50 via-white to-slate-100">
+      <div className={publicView ? "relative overflow-hidden border-y border-line-200 bg-paper-50" : "relative overflow-hidden rounded-2xl border border-line-200 bg-gradient-to-br from-slate-50 via-white to-slate-100"}>
         {/* Ambient background blobs */}
         <div className="pointer-events-none absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-sky-200/30 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-40 -right-40 h-[560px] w-[560px] rounded-full bg-fuchsia-200/25 blur-3xl" />
         <div className="pointer-events-none absolute top-1/3 right-1/4 h-[380px] w-[380px] rounded-full bg-emerald-200/20 blur-3xl" />
 
-        <svg viewBox={viewBox} className="relative block w-full h-auto" style={{ maxHeight: "82vh" }}>
+        <svg ref={svgRef} viewBox={viewBox} aria-label={publicView ? "Antigua and Barbuda Second Brain, organised by sector" : undefined} className="relative block w-full h-auto" style={publicView ? undefined : { maxHeight: "82vh" }}>
           <defs>
             <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="#1e293b" stopOpacity="1" />
@@ -532,7 +553,7 @@ export function BrainConstellation({
                     <g
                       key={r.id}
                       opacity={op}
-                      onMouseEnter={() => setHover({ label: r.title, x: dx, y: dy })}
+                      onMouseEnter={() => setHover({ label: r.title || `${r.kind} · ${sectorLabel(s.code)}`, x: dx, y: dy })}
                       onMouseLeave={() => setHover(null)}
                       onClick={() => onFilter({ ...filter, sector: s.code, kind: r.kind })}
                       className="cursor-pointer"
@@ -561,6 +582,16 @@ export function BrainConstellation({
 
                 {/* Sector orb */}
                 <g
+                  role={publicView ? "button" : undefined}
+                  tabIndex={publicView ? 0 : undefined}
+                  aria-label={publicView ? `Select ${sectorLabel(s.code)} sector` : undefined}
+                  aria-pressed={publicView ? filter.sector === s.code : undefined}
+                  onKeyDown={publicView ? (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onFilter({ ...filter, sector: filter.sector === s.code ? undefined : s.code });
+                    }
+                  } : undefined}
                   onClick={() => onFilter({ ...filter, sector: filter.sector === s.code ? undefined : s.code })}
                   onMouseEnter={() => setHover({ label: `${s.code} · ${sectorRows.length} memories · ${verified} verified`, x: s.x, y: s.y })}
                   onMouseLeave={() => setHover(null)}
@@ -693,7 +724,7 @@ export function BrainConstellation({
         </svg>
 
         {/* Footer stat pills */}
-        <div className="pointer-events-none absolute bottom-3 left-3 flex flex-wrap gap-1.5">
+        <div className={publicView ? "pointer-events-none flex flex-wrap gap-1.5 px-3 pb-3 pr-28" : "pointer-events-none absolute bottom-3 left-3 flex flex-wrap gap-1.5"}>
           <Pill label="rows" value={activeRows.length} />
           <Pill label="sectors" value={sectorList.length} />
           <Pill label="verified" value={activeRows.filter((r) => r.verified).length} tone="emerald" />
@@ -714,7 +745,7 @@ export function BrainConstellation({
           <button
             onClick={zoomOut}
             disabled={zoom <= MIN_ZOOM}
-            className="flex h-6 w-6 items-center justify-center rounded-full text-ink-500 hover:bg-line-100 hover:text-ink-950 disabled:opacity-40"
+            className={publicView ? "btn-ghost !h-7 !w-7 !p-0" : "flex h-6 w-6 items-center justify-center rounded-full text-ink-500 hover:bg-line-100 hover:text-ink-950 disabled:opacity-40"}
             aria-label="Zoom out"
           >
             <Minus size={14} />
@@ -725,7 +756,7 @@ export function BrainConstellation({
           <button
             onClick={zoomIn}
             disabled={zoom >= MAX_ZOOM}
-            className="flex h-6 w-6 items-center justify-center rounded-full text-ink-500 hover:bg-line-100 hover:text-ink-950 disabled:opacity-40"
+            className={publicView ? "btn-ghost !h-7 !w-7 !p-0" : "flex h-6 w-6 items-center justify-center rounded-full text-ink-500 hover:bg-line-100 hover:text-ink-950 disabled:opacity-40"}
             aria-label="Zoom in"
           >
             <Plus size={14} />

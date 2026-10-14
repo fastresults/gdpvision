@@ -605,12 +605,20 @@ export function MarketingHome() {
       {/* PROVENANCE ------------------------------------------------------- */}
       <section id="provenance" className="border-b border-line-200 bg-paper-100/40">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
-          <SectionHeader
-            eyebrow="Experience and proof"
-            title="Proven regional experience supports a system government can verify."
-            lede="OPEN Interactive brings experience in Caribbean investment, national digital infrastructure, and work with heads of government. GDPVision turns that experience into a working national decision system whose claims can be checked at source."
-          />
-          <Illustration src={illProvenance.url} variant="rule" className="mt-10" />
+          <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-12">
+            <div className="min-w-0">
+              <SectionHeader
+                eyebrow="Experience and proof"
+                title="Proven regional experience supports a system government can verify."
+                lede="OPEN Interactive brings experience in Caribbean investment, national digital infrastructure, and work with heads of government. GDPVision turns that experience into a working national decision system whose claims can be checked at source."
+              />
+            </div>
+            <Illustration
+              src={illProvenance.url}
+              variant="aside"
+              className="justify-self-end max-w-[232px] sm:max-w-[288px] lg:max-w-[400px] xl:max-w-[400px]"
+            />
+          </div>
           <div className="mt-10 grid gap-8 sm:mt-16 md:grid-cols-2 lg:grid-cols-4">
             {[
               {

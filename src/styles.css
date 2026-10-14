@@ -4,6 +4,31 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Public live-brain framing; briefing and admin constellation views are unchanged. */
+.home-brain-view > div:nth-child(2) > div.pointer-events-none.absolute {
+  display: none;
+}
+.home-brain-view [aria-pressed="true"] {
+  background: var(--paper-100);
+  color: var(--ink-950);
+  outline: 1px solid var(--line-200);
+}
+.home-brain-view svg [role="button"]:focus-visible {
+  outline: 2px solid var(--gold-500);
+  outline-offset: 4px;
+}
+.home-brain-view > div:first-child {
+  letter-spacing: 0;
+}
+.home-brain-view > div:nth-child(2) > div:last-child {
+  border-radius: var(--radius-md);
+  background: var(--paper-0);
+}
+.home-brain-view > div:nth-child(2) > div.pointer-events-none > span {
+  border-radius: var(--radius-md);
+  background: var(--paper-0);
+}
+
 /*
  * GDPVision design system — "The Instrument"
  * Register: central bank annual report × mission control.

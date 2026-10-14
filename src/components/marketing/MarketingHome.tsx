@@ -49,7 +49,7 @@ import { SovereignCustodySeal } from "./SovereignCustodySeal";
 import { NationalCustodyRelay } from "./NationalCustodyRelay";
 import { FloatingBackToTop } from "./FloatingBackToTop";
 
-import illCorpus from "@/assets/illustrations/section-corpus.jpg.asset.json";
+import { HomepageSecondBrain } from "./HomepageSecondBrain";
 import illCounsel from "@/assets/illustrations/section-counsel.jpg.asset.json";
 import illProvenance from "@/assets/illustrations/section-provenance.jpg.asset.json";
 import illBriefing from "@/assets/illustrations/section-briefing.jpg.asset.json";
@@ -392,18 +392,18 @@ export function MarketingHome() {
       {/* CORPUS ----------------------------------------------------------- */}
       <section id="corpus" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
-          <div className="grid items-end gap-8 md:grid-cols-[1.3fr_1fr] md:gap-10">
+          <div className="grid items-center gap-x-10 gap-y-8 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="lg:col-start-2 lg:row-start-1">
             <SectionHeader
-              eyebrow="One trusted national record"
+              eyebrow="Second Brain 2.0 · One trusted national record"
               title="Give Cabinet one trusted view of the evidence."
-              lede="GDPVision brings public evidence and authorised government records into one clear view. Restricted records remain protected. Every important claim keeps its source, date, and confidence grade."
+              lede="At GDPVision’s core is Second Brain 2.0: a connected national evidence library. It brings public sources and authorised government records together so Cabinet can shape policy, assess investment and guide delivery with greater confidence. Important claims keep their source, date and confidence grade."
             />
-            <div className="flex justify-center md:justify-end">
-              <Illustration src={illCorpus.url} variant="spot" className="md:hidden" />
-              <Illustration src={illCorpus.url} variant="aside" className="hidden md:block" />
             </div>
-          </div>
-          <div className="mt-10 grid gap-8 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-3">
+            <div className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+              <HomepageSecondBrain />
+            </div>
+          <div className="grid min-w-0 gap-5 lg:col-start-2 lg:row-start-2 lg:self-start">
             {[
               {
                 head: "Public evidence",
@@ -418,20 +418,21 @@ export function MarketingHome() {
                 body: "Briefings and scenarios can use both records without confusing public evidence with restricted information. Every access and change can be reviewed.",
               },
             ].map((p) => (
-              <div key={p.head} className="border-t border-line-200 pt-6">
+              <div key={p.head} className="border-t border-line-200 pt-4">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
                   {p.head}
                 </div>
-                <p className="mt-4 text-[15px] leading-relaxed text-ink-700">{p.body}</p>
+                <p className="mt-2 text-[14px] leading-relaxed text-ink-700">{p.body}</p>
               </div>
             ))}
-          </div>
           <Link
             to="/record"
-            className="mt-10 inline-block border-l-2 border-gold-500 pl-4 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950 hover:text-ink-700"
+            className="btn-ghost !justify-start !px-0 font-mono text-[11px] uppercase tracking-[0.12em]"
           >
             How the national record works, with a live example →
           </Link>
+          </div>
+          </div>
         </div>
       </section>
 

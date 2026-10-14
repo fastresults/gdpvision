@@ -22,6 +22,20 @@ export const CHAMBER_NAMES: Record<string, string> = {
   "10": "Sector Growth & Delivery",
 };
 
+export const CHAMBER_PURPOSES: Record<string, string> = {
+  all: "See how the ten connected government workspaces bring evidence, decisions and delivery together.",
+  "01": "Bring national figures and their sources together so government decisions start with reliable evidence.",
+  "02": "Connect each ministry’s responsibilities to economic priorities and track delivery.",
+  "03": "Compare potential costs, benefits and risks before committing to a policy.",
+  "04": "Assess investment choices and prepare for shocks that could threaten economic progress.",
+  "05": "Spot important media signals and prepare clear, evidence-backed government responses.",
+  "06": "Turn Cabinet decisions into commitments with clear owners and progress tracking.",
+  "07": "Explore how different groups and leadership perspectives may respond to policy choices.",
+  "08": "Connect government promises to delivery milestones and accountable progress.",
+  "09": "Plan public websites and services using national evidence and government approval.",
+  "10": "Turn sector opportunities into practical plans with priorities, responsibilities and measures of progress.",
+};
+
 export const SCENARIOS: Scenario[] = [
   {
     chamber: "01",

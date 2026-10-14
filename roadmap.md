@@ -4,7 +4,7 @@
 
 # Roadmap
 
-- [ ] Replace the homepage Corpus illustration with Antigua’s public-safe live Second Brain; verify 55% layout, controls and small screens
+- [x] Replace the homepage Corpus illustration with Antigua’s public-safe live Second Brain; verify 55% layout, controls and small screens
 
 - [x] Correct and verify reversible homepage auto-pan on vertical scroll direction changes
 

@@ -514,15 +514,14 @@ export function MarketingHome() {
 
       {/* THE COUNSEL ------------------------------------------------------ */}
       <section id="counsel" className="border-b border-line-200">
-        <div className="mx-auto grid max-w-[1280px] items-start gap-10 px-5 py-14 sm:px-6 sm:py-16 md:grid-cols-[1fr_0.8fr] md:gap-12 md:px-10 md:py-24">
-          <div>
+        <div className="mx-auto grid max-w-[1280px] items-center gap-8 px-5 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-12 md:px-10">
+          <div className="min-w-0">
             <SectionHeader
               eyebrow="Counsel between engagements"
               title="Give national leaders a sourced answer when they need it."
               lede="The Counsel gives a President, Prime Minister, or authorised adviser a concise answer drawn from the national evidence record. It is designed for questions asked between meetings and keeps the source behind every important claim."
             />
-          </div>
-          <div className="grid gap-6 border-t border-line-200 pt-8 md:mt-2">
+          <div className="mt-8 grid gap-6 border-t border-line-200 pt-6 sm:grid-cols-3">
             {[
               {
                 head: "Voice-first",
@@ -546,8 +545,9 @@ export function MarketingHome() {
                 </div>
               </div>
             ))}
-            <Illustration src={illCounsel.url} variant="spot" className="mt-2" />
           </div>
+          </div>
+          <Illustration src={illCounsel.url} variant="aside" className="justify-self-end max-w-[232px] sm:max-w-[288px] lg:max-w-[400px] xl:max-w-[400px]" />
         </div>
       </section>
 

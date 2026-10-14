@@ -50,7 +50,7 @@ import { NationalCustodyRelay } from "./NationalCustodyRelay";
 import { FloatingBackToTop } from "./FloatingBackToTop";
 
 import { HomepageSecondBrain } from "./HomepageSecondBrain";
-import illCounsel from "@/assets/illustrations/section-counsel.jpg.asset.json";
+import illCounsel from "@/assets/illustrations/counsel-evidence-to-answer.jpg.asset.json";
 import illProvenance from "@/assets/illustrations/section-provenance.jpg.asset.json";
 import illBriefing from "@/assets/illustrations/section-briefing.jpg.asset.json";
 import { CHAMBERS } from "@/lib/chambers";

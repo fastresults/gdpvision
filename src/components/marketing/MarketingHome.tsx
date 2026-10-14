@@ -393,17 +393,18 @@ export function MarketingHome() {
       <section id="corpus" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <div className="grid items-center gap-x-10 gap-y-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="lg:col-start-2 lg:row-start-1">
+            <div className="order-2 min-w-0 lg:order-1">
+              <HomepageSecondBrain />
+            </div>
+            <div className="contents lg:order-2 lg:block">
+            <div className="order-1">
             <SectionHeader
               eyebrow="Second Brain 2.0 · One trusted national record"
               title="Give Cabinet one trusted view of the evidence."
               lede="At GDPVision’s core is Second Brain 2.0: a connected national evidence library. It brings public sources and authorised government records together so Cabinet can shape policy, assess investment and guide delivery with greater confidence. Important claims keep their source, date and confidence grade."
             />
             </div>
-            <div className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1">
-              <HomepageSecondBrain />
-            </div>
-          <div className="grid min-w-0 gap-5 lg:col-start-2 lg:row-start-2 lg:self-start">
+          <div className="order-3 grid min-w-0 gap-5 lg:mt-8">
             {[
               {
                 head: "Public evidence",
@@ -431,6 +432,7 @@ export function MarketingHome() {
           >
             How the national record works, with a live example →
           </Link>
+          </div>
           </div>
           </div>
         </div>

@@ -574,48 +574,56 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
             )}
           >
             <TooltipProvider delayDuration={200}>
-            <div
-              className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1"
-              role="tablist"
-              aria-label="Chambers"
-            >
-              {["all", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10"].map((c) => (
-                <Tooltip key={c} open={touchControls ? false : undefined}>
-                <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={chamber === c}
-                  aria-label={c === "all" ? "All scenarios" : `Chamber ${c} ${CHAMBER_NAMES[c]}`}
-                  onClick={() => pickChamber(c)}
-                  className={cn(
-                    "card-choice h-9 shrink-0 px-2.5 font-mono text-[12px]",
-                    chamber === c && "card-choice-active",
-                  )}
-                >
-                  {c === "all" ? "All" : c}
-                </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  sideOffset={8}
-                  collisionPadding={12}
-                  className="z-[100] w-[300px] max-w-[calc(100vw-24px)] border border-line-200 bg-ink-950 px-4 py-3 text-left text-paper-0 shadow-lg"
-                >
-                  <p className="mb-1 text-[13px] font-semibold leading-5">
-                    {c === "all" ? "All ten Chambers" : `Chamber ${c} · ${CHAMBER_NAMES[c]}`}
-                  </p>
-                  <p className="text-[13px] font-normal leading-5">{CHAMBER_PURPOSES[c]}</p>
-                </TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
+              <div
+                className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1"
+                role="tablist"
+                aria-label="Chambers"
+              >
+                {["all", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10"].map((c) => (
+                  <Tooltip key={c} open={touchControls ? false : undefined}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={chamber === c}
+                        aria-label={
+                          c === "all" ? "All scenarios" : `Chamber ${c} ${CHAMBER_NAMES[c]}`
+                        }
+                        onClick={() => pickChamber(c)}
+                        className={cn(
+                          "card-choice h-9 shrink-0 px-2.5 font-mono text-[12px]",
+                          chamber === c && "card-choice-active",
+                        )}
+                      >
+                        {c === "all" ? "All" : c}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      sideOffset={8}
+                      collisionPadding={12}
+                      className="z-[100] w-[300px] max-w-[calc(100vw-24px)] border border-line-200 bg-ink-950 px-4 py-3 text-left text-paper-0 shadow-lg"
+                    >
+                      <p className="mb-1 text-[13px] font-semibold leading-5">
+                        {c === "all" ? "All ten Chambers" : `Chamber ${c} · ${CHAMBER_NAMES[c]}`}
+                      </p>
+                      <p className="text-[13px] font-normal leading-5">{CHAMBER_PURPOSES[c]}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
             </TooltipProvider>
           </div>
           {touchControls && (
-            <div className="mb-3 min-h-[100px] shrink-0 border-b border-line-200 pb-3 text-[13px] leading-5 text-ink-700" aria-live="polite" aria-atomic="true">
+            <div
+              className="mb-3 min-h-[100px] shrink-0 border-b border-line-200 pb-3 text-[13px] leading-5 text-ink-700"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               <p className="mb-1 font-semibold text-ink-950">
-                {chamber === "all" ? "All ten Chambers" : `Chamber ${chamber} · ${CHAMBER_NAMES[chamber]}`}
+                {chamber === "all"
+                  ? "All ten Chambers"
+                  : `Chamber ${chamber} · ${CHAMBER_NAMES[chamber]}`}
               </p>
               <p>{CHAMBER_PURPOSES[chamber]}</p>
             </div>

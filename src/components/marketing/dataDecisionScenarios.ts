@@ -57,12 +57,18 @@ export const SCENARIOS: Scenario[] = [
         edges: [["safeguards", "c01"]],
         text: "Explain the growth figure and its assumptions in the evidence workspace.",
       },
-      { edges: [["c01", "brief"]], text: "Prepare a short brief with figures ministers can check." },
+      {
+        edges: [["c01", "brief"]],
+        text: "Prepare a short brief with figures ministers can check.",
+      },
       {
         edges: [["brief", "cabinet"]],
         text: "Cabinet agrees one evidence-based response to the IMF.",
       },
-      { edges: [["cabinet", "delay"]], text: "Prepared evidence can help government respond without avoidable delay." },
+      {
+        edges: [["cabinet", "delay"]],
+        text: "Prepared evidence can help government respond without avoidable delay.",
+      },
     ],
     outcome: "A clearer case for lenders, with limitations openly explained.",
   },
@@ -82,7 +88,10 @@ export const SCENARIOS: Scenario[] = [
         edges: [["corpus", "c01"]],
         text: "Trace the possible effects across tourism and related sectors.",
       },
-      { edges: [["c01", "c03"]], text: "Compare possible responses and their projected economic effects." },
+      {
+        edges: [["c01", "c03"]],
+        text: "Compare possible responses and their projected economic effects.",
+      },
       { edges: [["c03", "brief"]], text: "Set out the options, costs and assumptions for review." },
       {
         edges: [["brief", "spend"]],
@@ -142,7 +151,10 @@ export const SCENARIOS: Scenario[] = [
         edges: [["c02", "commit"]],
         text: "Assign one delivery lead and an agreed budget.",
       },
-      { edges: [["commit", "spend"]], text: "Track spending once so duplicate costs can be challenged." },
+      {
+        edges: [["commit", "spend"]],
+        text: "Track spending once so duplicate costs can be challenged.",
+      },
     ],
     outcome: "Clear responsibility and a better chance of avoiding duplicate spending.",
   },
@@ -204,8 +216,14 @@ export const SCENARIOS: Scenario[] = [
         edges: [["c03", "brief"]],
         text: "Set out tax and spending choices side by side.",
       },
-      { edges: [["brief", "cabinet"]], text: "Cabinet reviews the evidence and approves a course." },
-      { edges: [["cabinet", "spend"]], text: "Assign resources to the agreed tax and spending measures." },
+      {
+        edges: [["brief", "cabinet"]],
+        text: "Cabinet reviews the evidence and approves a course.",
+      },
+      {
+        edges: [["cabinet", "spend"]],
+        text: "Assign resources to the agreed tax and spending measures.",
+      },
     ],
     outcome: "A clearer balance between reducing the budget gap and supporting economic activity.",
   },
@@ -229,7 +247,10 @@ export const SCENARIOS: Scenario[] = [
         edges: [["c04", "invest"]],
         text: "Prepare project costs, evidence and responsibilities for investor review.",
       },
-      { edges: [["invest", "capital"]], text: "Take a clear, government-approved offer to prospective investors." },
+      {
+        edges: [["invest", "capital"]],
+        text: "Take a clear, government-approved offer to prospective investors.",
+      },
     ],
     outcome: "Stronger preparation for attracting investment to a national priority.",
   },
@@ -242,13 +263,22 @@ export const SCENARIOS: Scenario[] = [
         edges: [["flows", "corpus"]],
         text: "Gather evidence on the investor’s contribution to jobs and revenue.",
       },
-      { edges: [["corpus", "c04"]], text: "Assess which businesses, workers and public receipts are exposed." },
+      {
+        edges: [["corpus", "c04"]],
+        text: "Assess which businesses, workers and public receipts are exposed.",
+      },
       {
         edges: [["c04", "c03"]],
         text: "Compare retaining the investor, finding a replacement or managing an exit.",
       },
-      { edges: [["c03", "brief"]], text: "Prepare the costs, risks and assumptions for Cabinet review." },
-      { edges: [["brief", "cabinet"]], text: "Cabinet agrees what negotiators may offer and where the limits lie." },
+      {
+        edges: [["c03", "brief"]],
+        text: "Prepare the costs, risks and assumptions for Cabinet review.",
+      },
+      {
+        edges: [["brief", "cabinet"]],
+        text: "Cabinet agrees what negotiators may offer and where the limits lie.",
+      },
       { edges: [["cabinet", "commit"]], text: "Assign leaders and dates for the agreed response." },
       {
         edges: [["commit", "spend"]],
@@ -302,7 +332,10 @@ export const SCENARIOS: Scenario[] = [
         edges: [["cabinet", "commit"]],
         text: "Assign preparation tasks and deadlines to each ministry.",
       },
-      { edges: [["commit", "delay"]], text: "Track urgent tasks so avoidable delays can be addressed." },
+      {
+        edges: [["commit", "delay"]],
+        text: "Track urgent tasks so avoidable delays can be addressed.",
+      },
     ],
     outcome: "Clearer public guidance and coordinated preparation for the emergency.",
   },
@@ -311,7 +344,10 @@ export const SCENARIOS: Scenario[] = [
     title: "Crowded agenda",
     question: "Five urgent decisions, one Cabinet session — what comes first?",
     steps: [
-      { edges: [["kpis", "corpus"]], text: "Gather the evidence on what each urgent decision affects." },
+      {
+        edges: [["kpis", "corpus"]],
+        text: "Gather the evidence on what each urgent decision affects.",
+      },
       {
         edges: [["corpus", "safeguards"]],
         text: "Check whether each proposal has enough reliable support.",
@@ -345,7 +381,10 @@ export const SCENARIOS: Scenario[] = [
         edges: [["c06", "commit"]],
         text: "Agree a revised action, responsible leader and realistic date.",
       },
-      { edges: [["commit", "record"]], text: "Record the change and publish only information approved for release." },
+      {
+        edges: [["commit", "record"]],
+        text: "Record the change and publish only information approved for release.",
+      },
     ],
     outcome: "A clearer recovery plan and an honest record of progress.",
     loop: true,
@@ -375,7 +414,10 @@ export const SCENARIOS: Scenario[] = [
         edges: [["c05", "cabinet"]],
         text: "Cabinet considers possible reactions alongside evidence before deciding.",
       },
-      { edges: [["cabinet", "delay"]], text: "Identify changes that could reduce implementation delays." },
+      {
+        edges: [["cabinet", "delay"]],
+        text: "Identify changes that could reduce implementation delays.",
+      },
     ],
     outcome: "A better-prepared reform, with concerns explored and private records protected.",
   },
@@ -391,13 +433,22 @@ export const SCENARIOS: Scenario[] = [
         ],
         text: "Gather examples of similar bonds and money sent home by citizens abroad.",
       },
-      { edges: [["corpus", "c07"]], text: "Explore possible investor concerns using simulated diaspora profiles." },
+      {
+        edges: [["corpus", "c07"]],
+        text: "Explore possible investor concerns using simulated diaspora profiles.",
+      },
       {
         edges: [["c07", "brief"]],
         text: "Prepare bond terms, costs and unresolved questions for review.",
       },
-      { edges: [["brief", "cabinet"]], text: "Cabinet considers the offer and approves any next steps." },
-      { edges: [["cabinet", "spend"]], text: "Record how any funds raised would support agreed projects." },
+      {
+        edges: [["brief", "cabinet"]],
+        text: "Cabinet considers the offer and approves any next steps.",
+      },
+      {
+        edges: [["cabinet", "spend"]],
+        text: "Record how any funds raised would support agreed projects.",
+      },
     ],
     outcome: "A clearer offer for citizens abroad to consider—not a promise of demand.",
   },
@@ -476,7 +527,10 @@ export const SCENARIOS: Scenario[] = [
         edges: [["c09", "c06"]],
         text: "Cabinet reviews the rollout plan and proposed timetable.",
       },
-      { edges: [["c06", "commit"]], text: "Assign each agency’s actions, responsibilities and dates." },
+      {
+        edges: [["c06", "commit"]],
+        text: "Assign each agency’s actions, responsibilities and dates.",
+      },
       {
         edges: [
           ["commit", "delay"],
@@ -511,11 +565,18 @@ export const SCENARIOS: Scenario[] = [
         edges: [["safeguards", "c09"]],
         text: "Prepare the digital ID plan for independent review.",
       },
-      { edges: [["c09", "c06"]], text: "Cabinet considers whether and when the service should launch." },
-      { edges: [["c06", "commit"]], text: "Assign implementation responsibilities and review dates." },
+      {
+        edges: [["c09", "c06"]],
+        text: "Cabinet considers whether and when the service should launch.",
+      },
+      {
+        edges: [["c06", "commit"]],
+        text: "Assign implementation responsibilities and review dates.",
+      },
       { edges: [["commit", "record"]], text: "Track use and publish only approved results." },
     ],
-    outcome: "Better preparation for accessible services with personal data under government control.",
+    outcome:
+      "Better preparation for accessible services with personal data under government control.",
     loop: true,
   },
   {
@@ -538,14 +599,18 @@ export const SCENARIOS: Scenario[] = [
         edges: [["c10", "commit"]],
         text: "Prepare a delivery plan for each selected sector.",
       },
-      { edges: [["commit", "spend"]], text: "Allocate approved funding against expected value and evidence." },
+      {
+        edges: [["commit", "spend"]],
+        text: "Allocate approved funding against expected value and evidence.",
+      },
     ],
     outcome: "A clearer basis for directing limited public money to national priorities.",
   },
   {
     chamber: "10",
     title: "Agriculture growth plan",
-    question: "Which agriculture projects could attract investment and strengthen local production?",
+    question:
+      "Which agriculture projects could attract investment and strengthen local production?",
     steps: [
       {
         edges: [
@@ -558,10 +623,17 @@ export const SCENARIOS: Scenario[] = [
         edges: [["corpus", "c10"]],
         text: "Identify production barriers and prepare an evidence-based action plan.",
       },
-      { edges: [["c10", "invest"]], text: "Set out agriculture projects, costs and responsibilities for investor review." },
-      { edges: [["invest", "capital"]], text: "Present opportunities for investing in local production." },
+      {
+        edges: [["c10", "invest"]],
+        text: "Set out agriculture projects, costs and responsibilities for investor review.",
+      },
+      {
+        edges: [["invest", "capital"]],
+        text: "Present opportunities for investing in local production.",
+      },
     ],
-    outcome: "Stronger preparation for local food production, rural jobs and lower import dependence.",
+    outcome:
+      "Stronger preparation for local food production, rural jobs and lower import dependence.",
   },
   ...MORE_SCENARIOS,
 ];

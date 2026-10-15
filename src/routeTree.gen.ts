@@ -14,10 +14,12 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BusinessCaseRouteImport } from './routes/business-case'
 import { Route as KioskRouteImport } from './routes/kiosk'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PresentRouteImport } from './routes/present'
 import { Route as RecordRouteImport } from './routes/record'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as VaultRouteImport } from './routes/vault'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedConsoleRouteImport } from './routes/_authenticated/console'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
@@ -36,6 +38,7 @@ import { Route as OpEdsIndexRouteImport } from './routes/op-eds.index'
 import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminActivityRouteImport } from './routes/_authenticated/admin/activity'
 import { Route as AuthenticatedAdminBrainRouteImport } from './routes/_authenticated/admin/brain'
@@ -199,6 +202,11 @@ const KioskRoute = KioskRouteImport.update({
   path: '/kiosk',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PresentRoute = PresentRouteImport.update({
   id: '/present',
   path: '/present',
@@ -219,6 +227,12 @@ const VaultRoute = VaultRouteImport.update({
   path: '/vault',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -309,6 +323,11 @@ const PTokenRoute = PTokenRouteImport.update({
 const STokenRoute = STokenRouteImport.update({
   id: '/s/$token',
   path: '/s/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
@@ -1133,6 +1152,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/business-case': typeof BusinessCaseRoute
   '/kiosk': typeof KioskRouteWithChildren
+  '/mcp': typeof McpRoute
   '/present': typeof PresentRoute
   '/record': typeof RecordRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -1140,6 +1160,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/console': typeof AuthenticatedConsoleRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
@@ -1155,6 +1176,7 @@ export interface FileRoutesByFullPath {
   '/s/$token': typeof STokenRoute
   '/kiosk/': typeof KioskIndexRoute
   '/op-eds/': typeof OpEdsIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
@@ -1298,10 +1320,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/business-case': typeof BusinessCaseRoute
+  '/mcp': typeof McpRoute
   '/present': typeof PresentRoute
   '/record': typeof RecordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/vault': typeof VaultRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/console': typeof AuthenticatedConsoleRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
@@ -1317,6 +1341,7 @@ export interface FileRoutesByTo {
   '/s/$token': typeof STokenRoute
   '/kiosk': typeof KioskIndexRoute
   '/op-eds': typeof OpEdsIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
@@ -1458,6 +1483,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/business-case': typeof BusinessCaseRoute
   '/kiosk': typeof KioskRouteWithChildren
+  '/mcp': typeof McpRoute
   '/present': typeof PresentRoute
   '/record': typeof RecordRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -1465,6 +1491,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/console': typeof AuthenticatedConsoleRouteWithChildren
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
@@ -1480,6 +1507,7 @@ export interface FileRoutesById {
   '/s/$token': typeof STokenRoute
   '/kiosk/': typeof KioskIndexRoute
   '/op-eds/': typeof OpEdsIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/_authenticated/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/_authenticated/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
@@ -1626,6 +1654,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/business-case'
     | '/kiosk'
+    | '/mcp'
     | '/present'
     | '/record'
     | '/reset-password'
@@ -1633,6 +1662,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/instrument'
     | '/narrative'
+    | '/.well-known/oauth-protected-resource'
     | '/console'
     | '/home'
     | '/auth/invite'
@@ -1648,6 +1678,7 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/kiosk/'
     | '/op-eds/'
+    | '/.lovable/oauth/consent'
     | '/admin/activity'
     | '/admin/brain'
     | '/admin/corpus-audit'
@@ -1791,10 +1822,12 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/business-case'
+    | '/mcp'
     | '/present'
     | '/record'
     | '/reset-password'
     | '/vault'
+    | '/.well-known/oauth-protected-resource'
     | '/console'
     | '/home'
     | '/auth/invite'
@@ -1810,6 +1843,7 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/kiosk'
     | '/op-eds'
+    | '/.lovable/oauth/consent'
     | '/admin/activity'
     | '/admin/brain'
     | '/admin/corpus-audit'
@@ -1950,6 +1984,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/business-case'
     | '/kiosk'
+    | '/mcp'
     | '/present'
     | '/record'
     | '/reset-password'
@@ -1957,6 +1992,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/instrument'
     | '/_authenticated/narrative'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/console'
     | '/_authenticated/home'
     | '/auth/invite'
@@ -1972,6 +2008,7 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/kiosk/'
     | '/op-eds/'
+    | '/.lovable/oauth/consent'
     | '/_authenticated/admin/activity'
     | '/_authenticated/admin/brain'
     | '/_authenticated/admin/corpus-audit'
@@ -2118,10 +2155,12 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   BusinessCaseRoute: typeof BusinessCaseRoute
   KioskRoute: typeof KioskRouteWithChildren
+  McpRoute: typeof McpRoute
   PresentRoute: typeof PresentRoute
   RecordRoute: typeof RecordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   VaultRoute: typeof VaultRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   BusinessCaseBriefRoute: typeof BusinessCaseBriefRoute
   BusinessCaseCalculatorRoute: typeof BusinessCaseCalculatorRoute
   DTokenRoute: typeof DTokenRoute
@@ -2132,6 +2171,7 @@ export interface RootRouteChildren {
   PTokenRoute: typeof PTokenRoute
   STokenRoute: typeof STokenRoute
   OpEdsIndexRoute: typeof OpEdsIndexRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiPublicDeckTokenRoute: typeof ApiPublicDeckTokenRoute
   ApiPublicDossierTokenRoute: typeof ApiPublicDossierTokenRoute
   ApiPublicFieldTokenRoute: typeof ApiPublicFieldTokenRoute
@@ -2186,6 +2226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/present': {
       id: '/present'
       path: '/present'
@@ -2212,6 +2259,13 @@ declare module '@tanstack/react-router' {
       path: '/vault'
       fullPath: '/vault'
       preLoaderRoute: typeof VaultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -2338,6 +2392,13 @@ declare module '@tanstack/react-router' {
       path: '/s/$token'
       fullPath: '/s/$token'
       preLoaderRoute: typeof STokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
@@ -3856,10 +3917,13 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   BusinessCaseRoute: BusinessCaseRoute,
   KioskRoute: KioskRouteWithChildren,
+  McpRoute: McpRoute,
   PresentRoute: PresentRoute,
   RecordRoute: RecordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   VaultRoute: VaultRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   BusinessCaseBriefRoute: BusinessCaseBriefRoute,
   BusinessCaseCalculatorRoute: BusinessCaseCalculatorRoute,
   DTokenRoute: DTokenRoute,
@@ -3870,6 +3934,7 @@ const rootRouteChildren: RootRouteChildren = {
   PTokenRoute: PTokenRoute,
   STokenRoute: STokenRoute,
   OpEdsIndexRoute: OpEdsIndexRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiPublicDeckTokenRoute: ApiPublicDeckTokenRoute,
   ApiPublicDossierTokenRoute: ApiPublicDossierTokenRoute,
   ApiPublicFieldTokenRoute: ApiPublicFieldTokenRoute,

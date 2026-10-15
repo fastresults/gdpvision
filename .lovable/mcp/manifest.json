@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "sdk_version": "3.1.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://zqrhxyxxrdjdnytxcdcs.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "eyeframe-showcase",
+      "version": "0.1.0",
+      "title": "EyeFrame Showcase"
+    },
+    "tools": [
+      {
+        "name": "list_countries",
+        "title": "List countries",
+        "description": "List the countries in GDPVision with region groupings and headline GDP.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_kpis",
+        "title": "Get country indicators",
+        "description": "Public economic indicators for one country, each with its period and source link.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "string",
+              "pattern": "^[A-Za-z]{2,4}$",
+              "description": "Country code, e.g. ATG."
+            },
+            "category": {
+              "type": "string",
+              "maxLength": 60,
+              "description": "Optional category filter, e.g. climate."
+            }
+          },
+          "required": [
+            "country"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "compare_countries",
+        "title": "Compare countries",
+        "description": "Compare one public indicator (code or label text, e.g. 'gdp per capita') across countries.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "metric": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 80,
+              "description": "Indicator code or part of its label."
+            },
+            "countries": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 30,
+              "description": "Country codes; omit for all."
+            }
+          },
+          "required": [
+            "metric"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_second_brain",
+        "title": "Search the Second Brain",
+        "description": "Search verified public facts, risks and positions in the Second Brain by keyword.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 120
+            },
+            "countries": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 30,
+              "description": "Country codes; omit for all."
+            },
+            "sector": {
+              "type": "string",
+              "maxLength": 40
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_sources",
+        "title": "Get official sources",
+        "description": "Official public sources registered for a country, optionally filtered by keyword.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "string",
+              "pattern": "^[A-Za-z]{2,4}$"
+            },
+            "query": {
+              "type": "string",
+              "maxLength": 120
+            }
+          },
+          "required": [
+            "country"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

@@ -7,6 +7,8 @@ Regenerate with `bun run map`. Do not hand-edit.
 | Route | File |
 |-------|------|
 | `/` | `src/routes/index.tsx` |
+| `/.lovable/oauth/consent` | `src/routes/[.]lovable.oauth.consent.tsx` |
+| `/.well-known/oauth-protected-resource` | `src/routes/[.well-known]/oauth-protected-resource.ts` |
 | `/business-case` | `src/routes/business-case.tsx` |
 | `/business-case_/brief` | `src/routes/business-case_.brief.tsx` |
 | `/business-case_/calculator` | `src/routes/business-case_.calculator.tsx` |
@@ -14,6 +16,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/e/$token` | `src/routes/e.$token.tsx` |
 | `/f/$token` | `src/routes/f.$token.tsx` |
 | `/i/$token` | `src/routes/i.$token.tsx` |
+| `/mcp` | `src/routes/mcp.ts` |
 | `/op-eds/` | `src/routes/op-eds.index.tsx` |
 | `/op-eds/$slug` | `src/routes/op-eds.$slug.tsx` |
 | `/p/$token` | `src/routes/p.$token.tsx` |

@@ -44,6 +44,7 @@ import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminGithubRouteImport } from './routes/_authenticated/admin/github'
 import { Route as AuthenticatedAdminInvitationsRouteImport } from './routes/_authenticated/admin/invitations'
 import { Route as AuthenticatedAdminLedgerQaRouteImport } from './routes/_authenticated/admin/ledger-qa'
+import { Route as AuthenticatedAdminPartnerKeysRouteImport } from './routes/_authenticated/admin/partner-keys'
 import { Route as AuthenticatedAdminProformaRouteImport } from './routes/_authenticated/admin/proforma'
 import { Route as AuthenticatedAdminScorecardsRouteImport } from './routes/_authenticated/admin/scorecards'
 import { Route as AuthenticatedAgencyIndexRouteImport } from './routes/_authenticated/agency.index'
@@ -354,6 +355,12 @@ const AuthenticatedAdminLedgerQaRoute =
   AuthenticatedAdminLedgerQaRouteImport.update({
     id: '/ledger-qa',
     path: '/ledger-qa',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminPartnerKeysRoute =
+  AuthenticatedAdminPartnerKeysRouteImport.update({
+    id: '/partner-keys',
+    path: '/partner-keys',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminProformaRoute =
@@ -1155,6 +1162,7 @@ export interface FileRoutesByFullPath {
   '/admin/github': typeof AuthenticatedAdminGithubRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/admin/partner-keys': typeof AuthenticatedAdminPartnerKeysRoute
   '/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/admin/scorecards': typeof AuthenticatedAdminScorecardsRoute
   '/concierge/$id': typeof AuthenticatedConciergeIdRoute
@@ -1316,6 +1324,7 @@ export interface FileRoutesByTo {
   '/admin/github': typeof AuthenticatedAdminGithubRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/admin/partner-keys': typeof AuthenticatedAdminPartnerKeysRoute
   '/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/admin/scorecards': typeof AuthenticatedAdminScorecardsRoute
   '/concierge/$id': typeof AuthenticatedConciergeIdRoute
@@ -1478,6 +1487,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/github': typeof AuthenticatedAdminGithubRoute
   '/_authenticated/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/_authenticated/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/_authenticated/admin/partner-keys': typeof AuthenticatedAdminPartnerKeysRoute
   '/_authenticated/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/_authenticated/admin/scorecards': typeof AuthenticatedAdminScorecardsRoute
   '/_authenticated/concierge/$id': typeof AuthenticatedConciergeIdRoute
@@ -1645,6 +1655,7 @@ export interface FileRouteTypes {
     | '/admin/github'
     | '/admin/invitations'
     | '/admin/ledger-qa'
+    | '/admin/partner-keys'
     | '/admin/proforma'
     | '/admin/scorecards'
     | '/concierge/$id'
@@ -1806,6 +1817,7 @@ export interface FileRouteTypes {
     | '/admin/github'
     | '/admin/invitations'
     | '/admin/ledger-qa'
+    | '/admin/partner-keys'
     | '/admin/proforma'
     | '/admin/scorecards'
     | '/concierge/$id'
@@ -1967,6 +1979,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/github'
     | '/_authenticated/admin/invitations'
     | '/_authenticated/admin/ledger-qa'
+    | '/_authenticated/admin/partner-keys'
     | '/_authenticated/admin/proforma'
     | '/_authenticated/admin/scorecards'
     | '/_authenticated/concierge/$id'
@@ -2381,6 +2394,13 @@ declare module '@tanstack/react-router' {
       path: '/ledger-qa'
       fullPath: '/admin/ledger-qa'
       preLoaderRoute: typeof AuthenticatedAdminLedgerQaRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/partner-keys': {
+      id: '/_authenticated/admin/partner-keys'
+      path: '/partner-keys'
+      fullPath: '/admin/partner-keys'
+      preLoaderRoute: typeof AuthenticatedAdminPartnerKeysRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/proforma': {
@@ -3486,6 +3506,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminGithubRoute: typeof AuthenticatedAdminGithubRoute
   AuthenticatedAdminInvitationsRoute: typeof AuthenticatedAdminInvitationsRoute
   AuthenticatedAdminLedgerQaRoute: typeof AuthenticatedAdminLedgerQaRoute
+  AuthenticatedAdminPartnerKeysRoute: typeof AuthenticatedAdminPartnerKeysRoute
   AuthenticatedAdminProformaRoute: typeof AuthenticatedAdminProformaRoute
   AuthenticatedAdminScorecardsRoute: typeof AuthenticatedAdminScorecardsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -3531,6 +3552,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminGithubRoute: AuthenticatedAdminGithubRoute,
     AuthenticatedAdminInvitationsRoute: AuthenticatedAdminInvitationsRoute,
     AuthenticatedAdminLedgerQaRoute: AuthenticatedAdminLedgerQaRoute,
+    AuthenticatedAdminPartnerKeysRoute: AuthenticatedAdminPartnerKeysRoute,
     AuthenticatedAdminProformaRoute: AuthenticatedAdminProformaRoute,
     AuthenticatedAdminScorecardsRoute: AuthenticatedAdminScorecardsRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,

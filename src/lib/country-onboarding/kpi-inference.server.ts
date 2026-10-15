@@ -1,6 +1,6 @@
 // Pass F — AI inference for KPIs still unresolved after Passes A-E.
 //
-// Uses a reasoning model (Gemini 2.5 Pro via Lovable AI Gateway, GPT-5.5 fallback)
+// Uses a reasoning model (Gemini 3.1 Pro Preview via Lovable AI Gateway, GPT-5.5 fallback)
 // to estimate a value from adjacent context:
 //   - already-resolved KPIs for THIS country
 //   - top RAG chunks from country_source_chunks (semantic search)

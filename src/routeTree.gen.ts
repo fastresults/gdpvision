@@ -38,6 +38,7 @@ import { Route as OpEdsIndexRouteImport } from './routes/op-eds.index'
 import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminActivityRouteImport } from './routes/_authenticated/admin/activity'
 import { Route as AuthenticatedAdminBrainRouteImport } from './routes/_authenticated/admin/brain'
@@ -322,6 +323,11 @@ const PTokenRoute = PTokenRouteImport.update({
 const STokenRoute = STokenRouteImport.update({
   id: '/s/$token',
   path: '/s/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
@@ -1170,6 +1176,7 @@ export interface FileRoutesByFullPath {
   '/s/$token': typeof STokenRoute
   '/kiosk/': typeof KioskIndexRoute
   '/op-eds/': typeof OpEdsIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
@@ -1334,6 +1341,7 @@ export interface FileRoutesByTo {
   '/s/$token': typeof STokenRoute
   '/kiosk': typeof KioskIndexRoute
   '/op-eds': typeof OpEdsIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
@@ -1499,6 +1507,7 @@ export interface FileRoutesById {
   '/s/$token': typeof STokenRoute
   '/kiosk/': typeof KioskIndexRoute
   '/op-eds/': typeof OpEdsIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/_authenticated/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/_authenticated/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
@@ -1669,6 +1678,7 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/kiosk/'
     | '/op-eds/'
+    | '/.lovable/oauth/consent'
     | '/admin/activity'
     | '/admin/brain'
     | '/admin/corpus-audit'
@@ -1833,6 +1843,7 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/kiosk'
     | '/op-eds'
+    | '/.lovable/oauth/consent'
     | '/admin/activity'
     | '/admin/brain'
     | '/admin/corpus-audit'
@@ -1997,6 +2008,7 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/kiosk/'
     | '/op-eds/'
+    | '/.lovable/oauth/consent'
     | '/_authenticated/admin/activity'
     | '/_authenticated/admin/brain'
     | '/_authenticated/admin/corpus-audit'
@@ -2159,6 +2171,7 @@ export interface RootRouteChildren {
   PTokenRoute: typeof PTokenRoute
   STokenRoute: typeof STokenRoute
   OpEdsIndexRoute: typeof OpEdsIndexRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiPublicDeckTokenRoute: typeof ApiPublicDeckTokenRoute
   ApiPublicDossierTokenRoute: typeof ApiPublicDossierTokenRoute
   ApiPublicFieldTokenRoute: typeof ApiPublicFieldTokenRoute
@@ -2379,6 +2392,13 @@ declare module '@tanstack/react-router' {
       path: '/s/$token'
       fullPath: '/s/$token'
       preLoaderRoute: typeof STokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
@@ -3914,6 +3934,7 @@ const rootRouteChildren: RootRouteChildren = {
   PTokenRoute: PTokenRoute,
   STokenRoute: STokenRoute,
   OpEdsIndexRoute: OpEdsIndexRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiPublicDeckTokenRoute: ApiPublicDeckTokenRoute,
   ApiPublicDossierTokenRoute: ApiPublicDossierTokenRoute,
   ApiPublicFieldTokenRoute: ApiPublicFieldTokenRoute,

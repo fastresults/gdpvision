@@ -246,6 +246,13 @@
       "when": 1791922758641,
       "tag": "0034_narrative_retention_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792103882749,
+      "tag": "0035_partner_api_keys",
+      "breakpoints": true
     }
   ]
 }

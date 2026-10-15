@@ -6,6 +6,7 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import type { Plugin } from "vite";
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
 
 // Some build environments inject `define` entries shaped like
 // `(globalThis.process.env.X ?? ("fallback"))`. esbuild rejects any define value that is
@@ -37,6 +38,6 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
-    plugins: [stripInvalidDefines],
+    plugins: [stripInvalidDefines, mcpPlugin()],
   },
 });

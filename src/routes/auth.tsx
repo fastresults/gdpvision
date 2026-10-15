@@ -1,3 +1,4 @@
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
@@ -24,12 +25,15 @@ export const Route = createFileRoute("/auth")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { mode?: Mode; blocked?: number } => {
+  validateSearch: (search: Record<string, unknown>): { mode?: Mode; blocked?: number; next?: string } => {
     const m = search.mode;
     const blocked = search.blocked === 1 || search.blocked === "1" ? 1 : undefined;
     return {
       ...(m === "forgot" || m === "sign-in" ? { mode: m } : {}),
       ...(blocked ? { blocked } : {}),
+      ...(typeof search.next === "string" && oauthReturnPath(search.next) !== "/"
+        ? { next: oauthReturnPath(search.next) }
+        : {}),
     };
   },
   component: AuthPage,
@@ -50,9 +54,9 @@ function AuthPage() {
   // If already signed in, get out of the way.
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
-      if (data.user) navigate({ href: await postSignInRedirect() });
+      if (data.user) navigate({ href: search.next ?? (await postSignInRedirect()) });
     });
-  }, [navigate]);
+  }, [navigate, search.next]);
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -70,7 +74,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         router.invalidate();
-        navigate({ href: await postSignInRedirect() });
+        navigate({ href: search.next ?? (await postSignInRedirect()) });
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,

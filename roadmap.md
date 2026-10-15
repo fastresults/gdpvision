@@ -4,6 +4,8 @@
 
 # Roadmap
 
+- [x] Create five symbolic GDP Advisor logo concepts with genuine outlined SVGs and PNG previews; inspect and group in Files without changing the website brand.
+
 - [x] Add and verify Chamber name-and-purpose tooltips for all national-flow filters, with touch descriptions and unchanged playback behavior.
 
 - [x] Replace the homepage Corpus illustration with Antigua’s public-safe live Second Brain; verify 55% layout, controls and small screens

@@ -21,7 +21,7 @@ import type { BrandTokens } from "./brand";
 import type { ContextLine, PrdScope, SectionRow, SectionStatus } from "./db";
 import { EGOV_STAGE_BY_KEY, EGOV_STAGE_KEYS, type EgovStage } from "./stages";
 
-const DEFAULT_MODEL = "google/gemini-2.5-pro";
+const DEFAULT_MODEL = "google/gemini-3.1-pro-preview";
 
 /** Set EGOV_MODEL on the server to route drafting to another gateway model. */
 function modelId(): string {

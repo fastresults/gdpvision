@@ -1,6 +1,6 @@
 // Pass F — AI inference for KPIs still unresolved after Passes A-E.
 //
-// Uses a reasoning model (Gemini 2.5 Pro via Lovable AI Gateway, GPT-5.5 fallback)
+// Uses a reasoning model (Gemini 3.1 Pro Preview via Lovable AI Gateway, GPT-5.5 fallback)
 // to estimate a value from adjacent context:
 //   - already-resolved KPIs for THIS country
 //   - top RAG chunks from country_source_chunks (semantic search)
@@ -36,7 +36,7 @@ export type InferenceAttempt = {
   error: string | null;
 };
 
-const PRIMARY_MODEL = "google/gemini-2.5-pro";
+const PRIMARY_MODEL = "google/gemini-3.1-pro-preview";
 const FALLBACK_MODEL = "openai/gpt-5.5";
 
 // ============================================================

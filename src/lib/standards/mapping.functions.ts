@@ -18,7 +18,7 @@ import { db, governanceError, type MappingRow } from "@/lib/syndication/db";
 
 import { computeCountryAudit } from "./audit-data.server";
 
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "google/gemini-3.8-flash";
 const MAX_SUGGESTIONS = 40;
 const Code = z.string().min(2).max(3);
 

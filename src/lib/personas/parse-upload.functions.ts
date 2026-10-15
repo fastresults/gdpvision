@@ -90,7 +90,7 @@ async function callGateway(body: unknown): Promise<string> {
 
 async function visionExtract(base64: string, mime: string) {
   return callGateway({
-    model: "google/gemini-2.5-flash",
+    model: "google/gemini-3.1-flash-lite",
     temperature: 0.1,
     messages: [
       { role: "system", content: "Transcribe and describe the image faithfully. Extract every visible text verbatim." },
@@ -104,7 +104,7 @@ async function visionExtract(base64: string, mime: string) {
 
 async function documentExtract(base64: string, mime: string, filename: string) {
   return callGateway({
-    model: "google/gemini-2.5-pro",
+    model: "google/gemini-3.1-pro-preview",
     temperature: 0.1,
     messages: [
       { role: "system", content: "Extract the full readable text of the attached document. Preserve section headings. Return plain text only." },
@@ -122,7 +122,7 @@ async function transcribeBuffer(buf: Buffer, mime: string): Promise<string> {
   const extMap: Record<string, string> = { "audio/webm": "webm", "audio/mp4": "mp4", "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/wav": "wav" };
   const ext = extMap[mime.split(";")[0] ?? ""] ?? "webm";
   const form = new FormData();
-  form.append("model", "openai/gpt-4o-mini-transcribe");
+  form.append("model", "google/gemini-3.5-transcribe");
   form.append("file", new Blob([new Uint8Array(buf)], { type: mime }), `upload.${ext}`);
   const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
     method: "POST",

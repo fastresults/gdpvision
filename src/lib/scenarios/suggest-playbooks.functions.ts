@@ -170,7 +170,7 @@ export const suggestPlaybooks = createServerFn({ method: "POST" })
         "X-Lovable-AIG-SDK": "raw-fetch",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.5-flash",
+        model: "google/gemini-3.8-flash",
         messages: [
           {
             role: "system",

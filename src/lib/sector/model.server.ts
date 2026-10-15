@@ -9,7 +9,7 @@ import type { z } from "zod";
 
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 
-const DEFAULT_MODEL = "google/gemini-2.5-pro";
+const DEFAULT_MODEL = "google/gemini-3.1-pro-preview";
 
 export function sectorModelId(): string {
   return process.env.SECTOR_MODEL?.trim() || process.env.EGOV_MODEL?.trim() || DEFAULT_MODEL;

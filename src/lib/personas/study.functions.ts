@@ -19,7 +19,7 @@ import {
   validCitationsForRefs,
 } from "@/lib/citations/hygiene";
 
-const MODEL = "google/gemini-2.5-pro";
+const MODEL = "google/gemini-3.1-pro-preview";
 type AppSupabaseClient = SupabaseClient<Database>;
 
 function toJson(value: unknown): Json {

@@ -737,7 +737,7 @@ export const runKpiSeedAgent = createServerFn({ method: "POST" })
       userId: context.userId,
       model_stack: {
         perplexity: "sonar-pro",
-        lovable_ai: "google/gemini-2.5-pro",
+        lovable_ai: "google/gemini-3.1-pro-preview",
         worldbank: "wdi-api",
         imf: "datamapper-api",
       },
@@ -930,7 +930,7 @@ export const planKpiSeed = createServerFn({ method: "POST" })
       userId: context.userId,
       model_stack: {
         perplexity: "sonar-pro",
-        lovable_ai: "google/gemini-2.5-pro",
+        lovable_ai: "google/gemini-3.1-pro-preview",
         worldbank: "wdi-api",
         imf: "datamapper-api",
       },

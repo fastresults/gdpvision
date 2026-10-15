@@ -1146,7 +1146,7 @@ async function callMemoryExtractor(opts: {
   ].filter(Boolean).join("\n");
 
   const result: any = await generateText({
-    model: gateway("google/gemini-2.5-flash"),
+    model: gateway("google/gemini-3.1-flash-lite"),
     prompt,
     experimental_output: Output.object({ schema: Schema }) as any,
   } as any);

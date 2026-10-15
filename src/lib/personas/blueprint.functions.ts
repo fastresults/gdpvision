@@ -18,8 +18,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
 
-const MODEL_PRIMARY = "google/gemini-2.5-pro";
-const MODEL_FALLBACK = "google/gemini-2.5-flash";
+const MODEL_PRIMARY = "google/gemini-3.1-pro-preview";
+const MODEL_FALLBACK = "google/gemini-3.8-flash";
 const AI_TIMEOUT_MS = 60_000;
 
 const STUDY_KINDS = ["survey", "focus_group", "creative_test"] as const;

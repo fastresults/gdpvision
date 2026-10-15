@@ -14,8 +14,8 @@ export type GeminiJsonResult<T> = {
   model: string;
 };
 
-const PRIMARY = "google/gemini-2.5-pro";
-const RETRY = "google/gemini-2.5-flash";
+const PRIMARY = "google/gemini-3.1-pro-preview";
+const RETRY = "google/gemini-3.8-flash";
 const LAST_RESORT = "openai/gpt-5.5";
 
 export async function callGeminiJson<T = any>(opts: {

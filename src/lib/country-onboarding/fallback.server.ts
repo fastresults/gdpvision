@@ -2,7 +2,7 @@
 //
 // Tier 1: Perplexity Sonar (grounded, cited). Runs a discovery pass to widen
 //         the domain allowlist, then 3 extraction attempts with real validators.
-// Tier 2: Lovable AI Gateway — Gemini 2.5 Pro/Flash/gpt-5.5 as a REPAIR tier:
+// Tier 2: Lovable AI Gateway — Gemini 3.1 Pro Preview / 3.8 Flash / gpt-5.5 as a REPAIR tier:
 //         fed Perplexity's raw partial output + country context + fetched
 //         citation text, so it extracts rather than guesses blind.
 // Tier 3: Contextual inference from seed data — never throws.

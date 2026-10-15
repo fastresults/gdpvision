@@ -17,7 +17,7 @@ import {
   type ChamberId,
 } from "./minister-lexicon";
 
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "google/gemini-3.8-flash";
 
 async function llmJson<T>(system: string, user: string): Promise<T> {
   const apiKey = process.env.LOVABLE_API_KEY;

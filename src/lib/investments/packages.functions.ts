@@ -57,7 +57,7 @@ import {
   type TeaserContent,
 } from "./package-schema";
 
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "google/gemini-3.8-flash";
 const DATA_ROOM_MODEL = "rules:data-room-v1";
 
 const Code = z.string().min(2).max(3);

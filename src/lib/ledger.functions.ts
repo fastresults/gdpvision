@@ -1420,7 +1420,7 @@ export const askTheLedger = createServerFn({ method: "POST" })
       try {
         const gateway = createLovableAiGatewayProvider(key!);
         const result = await generateText({
-          model: gateway("google/gemini-3.5-flash"),
+          model: gateway("google/gemini-3.8-flash"),
           system,
           prompt: `Question: ${data.question}\n\nCONTEXT:\n${buildContextBlock(cits)}\n\nReturn ONLY the JSON object now.`,
         });
@@ -1666,7 +1666,7 @@ export const transcribeAudio = createServerFn({ method: "POST" })
     const ext = extMap[data.mime.split(";")[0]] ?? "webm";
 
     const form = new FormData();
-    form.append("model", "openai/gpt-4o-mini-transcribe");
+    form.append("model", "google/gemini-3.5-transcribe");
     form.append("file", blob, `voice.${ext}`);
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
@@ -2316,7 +2316,7 @@ export const expandLedgerAnswer = createServerFn({ method: "POST" })
     let bodyMd = "";
     try {
       const result = await generateText({
-        model: gateway("google/gemini-3.5-flash"),
+        model: gateway("google/gemini-3.8-flash"),
         system: artifactSystemPrompt(data.artifact, data.countryName),
         prompt,
       });

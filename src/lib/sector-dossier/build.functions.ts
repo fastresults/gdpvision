@@ -17,7 +17,7 @@ import {
   type CitableCitation,
 } from "@/lib/citations/hygiene";
 
-const MODEL = "google/gemini-2.5-pro";
+const MODEL = "google/gemini-3.1-pro-preview";
 const SCHEMA_VERSION = 1;
 
 const Input = z.object({

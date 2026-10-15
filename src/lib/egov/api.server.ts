@@ -749,3 +749,29 @@ export async function serveHandshake(request: Request, identity: ApiIdentity): P
     corsHeaders(request, identity),
   );
 }
+
+/**
+ * Shared public-data read used by the partner API (v2) and the MCP server.
+ * Same public/approved filters as v1; `sinceIso` replaces the ?since param.
+ */
+export async function readPublicResource(
+  code: string,
+  resource: ApiScope,
+  sinceIso?: string | null,
+): Promise<{ data: unknown[]; extra: Record<string, unknown> }> {
+  const sb = await admin();
+  const url = new URL("https://internal/read");
+  if (sinceIso) url.searchParams.set("since", sinceIso);
+  const identity: ApiIdentity = {
+    keyId: "partner",
+    country: code.toUpperCase(),
+    prdId: null,
+    label: "partner",
+    scopes: [resource],
+    allowedOrigins: [],
+  };
+  const result = await RESOURCES[resource](sb, identity, new Request(url));
+  return Array.isArray(result)
+    ? { data: result, extra: {} }
+    : { data: result.data, extra: result.extra ?? {} };
+}

@@ -20,6 +20,7 @@ const NAV = [
   { to: "/home", label: "Home" },
   { to: "/admin/countries", label: "Countries" },
   { to: "/admin/brain", label: "Second brain" },
+  { to: "/admin/partner-keys", label: "Partner API" },
   { to: "/admin/proforma", label: "Pro forma" },
   { to: "/admin", label: "Users" },
   { to: "/admin/invitations", label: "Invitations" },

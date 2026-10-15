@@ -7305,6 +7305,57 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_api_keys: {
+        Row: {
+          allowed_origins: string[]
+          countries: string[]
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          key_hash: string
+          key_hint: string
+          label: string
+          last_used_at: string | null
+          partner: string
+          request_count: number
+          revoked_at: string | null
+          scopes: string[]
+        }
+        Insert: {
+          allowed_origins?: string[]
+          countries?: string[]
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          key_hash: string
+          key_hint: string
+          label: string
+          last_used_at?: string | null
+          partner: string
+          request_count?: number
+          revoked_at?: string | null
+          scopes?: string[]
+        }
+        Update: {
+          allowed_origins?: string[]
+          countries?: string[]
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          key_hash?: string
+          key_hint?: string
+          label?: string
+          last_used_at?: string | null
+          partner?: string
+          request_count?: number
+          revoked_at?: string | null
+          scopes?: string[]
+        }
+        Relationships: []
+      }
       party_backfill_country_runs: {
         Row: {
           attempted: number
@@ -11401,6 +11452,17 @@ export type Database = {
           id: string
           label: string
           prd_id: string
+          scopes: string[]
+        }[]
+      }
+      resolve_partner_api_key: {
+        Args: { _key_hash: string }
+        Returns: {
+          allowed_origins: string[]
+          countries: string[]
+          id: string
+          label: string
+          partner: string
           scopes: string[]
         }[]
       }

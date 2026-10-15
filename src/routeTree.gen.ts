@@ -44,6 +44,7 @@ import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminGithubRouteImport } from './routes/_authenticated/admin/github'
 import { Route as AuthenticatedAdminInvitationsRouteImport } from './routes/_authenticated/admin/invitations'
 import { Route as AuthenticatedAdminLedgerQaRouteImport } from './routes/_authenticated/admin/ledger-qa'
+import { Route as AuthenticatedAdminPartnerKeysRouteImport } from './routes/_authenticated/admin/partner-keys'
 import { Route as AuthenticatedAdminProformaRouteImport } from './routes/_authenticated/admin/proforma'
 import { Route as AuthenticatedAdminScorecardsRouteImport } from './routes/_authenticated/admin/scorecards'
 import { Route as AuthenticatedAgencyIndexRouteImport } from './routes/_authenticated/agency.index'
@@ -109,6 +110,9 @@ import { Route as ApiPublicHooksPressDiscoverRouteImport } from './routes/api/pu
 import { Route as ApiPublicHooksPressTickRouteImport } from './routes/api/public/hooks/press-tick'
 import { Route as ApiPublicHooksSourceHealthRouteImport } from './routes/api/public/hooks/source-health'
 import { Route as ApiPublicV1HandshakeRouteImport } from './routes/api/public/v1/handshake'
+import { Route as ApiPublicV2CompareRouteImport } from './routes/api/public/v2/compare'
+import { Route as ApiPublicV2CountriesRouteImport } from './routes/api/public/v2/countries'
+import { Route as ApiPublicV2SearchRouteImport } from './routes/api/public/v2/search'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
 import { Route as AuthenticatedAdminCountriesCodeEgovRouteImport } from './routes/_authenticated/admin/countries.$code.egov'
@@ -152,6 +156,7 @@ import { Route as AuthenticatedAdminCountriesCodeScenariosNewRouteImport } from 
 import { Route as AuthenticatedAdminCountriesCodeSectorPlanIdRouteImport } from './routes/_authenticated/admin/countries.$code.sector_.$planId'
 import { Route as AuthenticatedAdminCountriesCodeStudioIndexRouteImport } from './routes/_authenticated/admin/countries.$code.studio.index'
 import { Route as ApiPublicV1CountriesCodeResourceRouteImport } from './routes/api/public/v1/countries.$code.$resource'
+import { Route as ApiPublicV2CountriesCodeResourceRouteImport } from './routes/api/public/v2/countries.$code.$resource'
 import { Route as AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.agenda.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.minutes.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.session.$sid'
@@ -350,6 +355,12 @@ const AuthenticatedAdminLedgerQaRoute =
   AuthenticatedAdminLedgerQaRouteImport.update({
     id: '/ledger-qa',
     path: '/ledger-qa',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminPartnerKeysRoute =
+  AuthenticatedAdminPartnerKeysRouteImport.update({
+    id: '/partner-keys',
+    path: '/partner-keys',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminProformaRoute =
@@ -733,6 +744,21 @@ const ApiPublicV1HandshakeRoute = ApiPublicV1HandshakeRouteImport.update({
   path: '/api/public/v1/handshake',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV2CompareRoute = ApiPublicV2CompareRouteImport.update({
+  id: '/api/public/v2/compare',
+  path: '/api/public/v2/compare',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV2CountriesRoute = ApiPublicV2CountriesRouteImport.update({
+  id: '/api/public/v2/countries',
+  path: '/api/public/v2/countries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV2SearchRoute = ApiPublicV2SearchRouteImport.update({
+  id: '/api/public/v2/search',
+  path: '/api/public/v2/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const KioskApiPublicPresentationPdfRoute =
   KioskApiPublicPresentationPdfRouteImport.update({
     id: '/api/public/presentation-pdf',
@@ -991,6 +1017,12 @@ const ApiPublicV1CountriesCodeResourceRoute =
     path: '/api/public/v1/countries/$code/$resource',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicV2CountriesCodeResourceRoute =
+  ApiPublicV2CountriesCodeResourceRouteImport.update({
+    id: '/$code/$resource',
+    path: '/$code/$resource',
+    getParentRoute: () => ApiPublicV2CountriesRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute =
   AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport.update({
     id: '/countries/$code/cabinet/agenda/$sid',
@@ -1130,6 +1162,7 @@ export interface FileRoutesByFullPath {
   '/admin/github': typeof AuthenticatedAdminGithubRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/admin/partner-keys': typeof AuthenticatedAdminPartnerKeysRoute
   '/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/admin/scorecards': typeof AuthenticatedAdminScorecardsRoute
   '/concierge/$id': typeof AuthenticatedConciergeIdRoute
@@ -1190,6 +1223,9 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
+  '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
+  '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
+  '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
   '/console/$code/': typeof AuthenticatedConsoleCodeIndexRoute
@@ -1233,6 +1269,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/scenarios/new': typeof AuthenticatedAdminCountriesCodeScenariosNewRoute
   '/admin/countries/$code/sector/$planId': typeof AuthenticatedAdminCountriesCodeSectorPlanIdRoute
   '/api/public/v1/countries/$code/$resource': typeof ApiPublicV1CountriesCodeResourceRoute
+  '/api/public/v2/countries/$code/$resource': typeof ApiPublicV2CountriesCodeResourceRoute
   '/admin/countries/$code/cabinet/': typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
   '/admin/countries/$code/narrative/': typeof AuthenticatedAdminCountriesCodeNarrativeIndexRoute
   '/admin/countries/$code/personas/': typeof AuthenticatedAdminCountriesCodePersonasIndexRoute
@@ -1287,6 +1324,7 @@ export interface FileRoutesByTo {
   '/admin/github': typeof AuthenticatedAdminGithubRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/admin/partner-keys': typeof AuthenticatedAdminPartnerKeysRoute
   '/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/admin/scorecards': typeof AuthenticatedAdminScorecardsRoute
   '/concierge/$id': typeof AuthenticatedConciergeIdRoute
@@ -1347,6 +1385,9 @@ export interface FileRoutesByTo {
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
+  '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
+  '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
+  '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/admin/countries': typeof AuthenticatedAdminCountriesIndexRoute
   '/console/$code': typeof AuthenticatedConsoleCodeIndexRoute
@@ -1385,6 +1426,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/scenarios/new': typeof AuthenticatedAdminCountriesCodeScenariosNewRoute
   '/admin/countries/$code/sector/$planId': typeof AuthenticatedAdminCountriesCodeSectorPlanIdRoute
   '/api/public/v1/countries/$code/$resource': typeof ApiPublicV1CountriesCodeResourceRoute
+  '/api/public/v2/countries/$code/$resource': typeof ApiPublicV2CountriesCodeResourceRoute
   '/admin/countries/$code/cabinet': typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
   '/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeIndexRoute
   '/admin/countries/$code/personas': typeof AuthenticatedAdminCountriesCodePersonasIndexRoute
@@ -1445,6 +1487,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/github': typeof AuthenticatedAdminGithubRoute
   '/_authenticated/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/_authenticated/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/_authenticated/admin/partner-keys': typeof AuthenticatedAdminPartnerKeysRoute
   '/_authenticated/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/_authenticated/admin/scorecards': typeof AuthenticatedAdminScorecardsRoute
   '/_authenticated/concierge/$id': typeof AuthenticatedConciergeIdRoute
@@ -1505,6 +1548,9 @@ export interface FileRoutesById {
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
+  '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
+  '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
+  '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/_authenticated/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
   '/_authenticated/console/$code/': typeof AuthenticatedConsoleCodeIndexRoute
@@ -1548,6 +1594,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/scenarios/new': typeof AuthenticatedAdminCountriesCodeScenariosNewRoute
   '/_authenticated/admin/countries/$code/sector_/$planId': typeof AuthenticatedAdminCountriesCodeSectorPlanIdRoute
   '/api/public/v1/countries/$code/$resource': typeof ApiPublicV1CountriesCodeResourceRoute
+  '/api/public/v2/countries/$code/$resource': typeof ApiPublicV2CountriesCodeResourceRoute
   '/_authenticated/admin/countries/$code/cabinet/': typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
   '/_authenticated/admin/countries/$code/narrative/': typeof AuthenticatedAdminCountriesCodeNarrativeIndexRoute
   '/_authenticated/admin/countries/$code/personas/': typeof AuthenticatedAdminCountriesCodePersonasIndexRoute
@@ -1608,6 +1655,7 @@ export interface FileRouteTypes {
     | '/admin/github'
     | '/admin/invitations'
     | '/admin/ledger-qa'
+    | '/admin/partner-keys'
     | '/admin/proforma'
     | '/admin/scorecards'
     | '/concierge/$id'
@@ -1668,6 +1716,9 @@ export interface FileRouteTypes {
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
     | '/api/public/v1/handshake'
+    | '/api/public/v2/compare'
+    | '/api/public/v2/countries'
+    | '/api/public/v2/search'
     | '/kiosk/api/public/presentation-pdf'
     | '/admin/countries/'
     | '/console/$code/'
@@ -1711,6 +1762,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/scenarios/new'
     | '/admin/countries/$code/sector/$planId'
     | '/api/public/v1/countries/$code/$resource'
+    | '/api/public/v2/countries/$code/$resource'
     | '/admin/countries/$code/cabinet/'
     | '/admin/countries/$code/narrative/'
     | '/admin/countries/$code/personas/'
@@ -1765,6 +1817,7 @@ export interface FileRouteTypes {
     | '/admin/github'
     | '/admin/invitations'
     | '/admin/ledger-qa'
+    | '/admin/partner-keys'
     | '/admin/proforma'
     | '/admin/scorecards'
     | '/concierge/$id'
@@ -1825,6 +1878,9 @@ export interface FileRouteTypes {
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
     | '/api/public/v1/handshake'
+    | '/api/public/v2/compare'
+    | '/api/public/v2/countries'
+    | '/api/public/v2/search'
     | '/kiosk/api/public/presentation-pdf'
     | '/admin/countries'
     | '/console/$code'
@@ -1863,6 +1919,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/scenarios/new'
     | '/admin/countries/$code/sector/$planId'
     | '/api/public/v1/countries/$code/$resource'
+    | '/api/public/v2/countries/$code/$resource'
     | '/admin/countries/$code/cabinet'
     | '/admin/countries/$code/narrative'
     | '/admin/countries/$code/personas'
@@ -1922,6 +1979,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/github'
     | '/_authenticated/admin/invitations'
     | '/_authenticated/admin/ledger-qa'
+    | '/_authenticated/admin/partner-keys'
     | '/_authenticated/admin/proforma'
     | '/_authenticated/admin/scorecards'
     | '/_authenticated/concierge/$id'
@@ -1982,6 +2040,9 @@ export interface FileRouteTypes {
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
     | '/api/public/v1/handshake'
+    | '/api/public/v2/compare'
+    | '/api/public/v2/countries'
+    | '/api/public/v2/search'
     | '/kiosk/api/public/presentation-pdf'
     | '/_authenticated/admin/countries/'
     | '/_authenticated/console/$code/'
@@ -2025,6 +2086,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/scenarios/new'
     | '/_authenticated/admin/countries/$code/sector_/$planId'
     | '/api/public/v1/countries/$code/$resource'
+    | '/api/public/v2/countries/$code/$resource'
     | '/_authenticated/admin/countries/$code/cabinet/'
     | '/_authenticated/admin/countries/$code/narrative/'
     | '/_authenticated/admin/countries/$code/personas/'
@@ -2081,6 +2143,9 @@ export interface RootRouteChildren {
   ApiPublicHooksPressTickRoute: typeof ApiPublicHooksPressTickRoute
   ApiPublicHooksSourceHealthRoute: typeof ApiPublicHooksSourceHealthRoute
   ApiPublicV1HandshakeRoute: typeof ApiPublicV1HandshakeRoute
+  ApiPublicV2CompareRoute: typeof ApiPublicV2CompareRoute
+  ApiPublicV2CountriesRoute: typeof ApiPublicV2CountriesRouteWithChildren
+  ApiPublicV2SearchRoute: typeof ApiPublicV2SearchRoute
   ApiPublicV1CountriesCodeResourceRoute: typeof ApiPublicV1CountriesCodeResourceRoute
 }
 
@@ -2329,6 +2394,13 @@ declare module '@tanstack/react-router' {
       path: '/ledger-qa'
       fullPath: '/admin/ledger-qa'
       preLoaderRoute: typeof AuthenticatedAdminLedgerQaRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/partner-keys': {
+      id: '/_authenticated/admin/partner-keys'
+      path: '/partner-keys'
+      fullPath: '/admin/partner-keys'
+      preLoaderRoute: typeof AuthenticatedAdminPartnerKeysRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/proforma': {
@@ -2786,6 +2858,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1HandshakeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v2/compare': {
+      id: '/api/public/v2/compare'
+      path: '/api/public/v2/compare'
+      fullPath: '/api/public/v2/compare'
+      preLoaderRoute: typeof ApiPublicV2CompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v2/countries': {
+      id: '/api/public/v2/countries'
+      path: '/api/public/v2/countries'
+      fullPath: '/api/public/v2/countries'
+      preLoaderRoute: typeof ApiPublicV2CountriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v2/search': {
+      id: '/api/public/v2/search'
+      path: '/api/public/v2/search'
+      fullPath: '/api/public/v2/search'
+      preLoaderRoute: typeof ApiPublicV2SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/kiosk/api/public/presentation-pdf': {
       id: '/kiosk/api/public/presentation-pdf'
       path: '/api/public/presentation-pdf'
@@ -3086,6 +3179,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/v1/countries/$code/$resource'
       preLoaderRoute: typeof ApiPublicV1CountriesCodeResourceRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v2/countries/$code/$resource': {
+      id: '/api/public/v2/countries/$code/$resource'
+      path: '/$code/$resource'
+      fullPath: '/api/public/v2/countries/$code/$resource'
+      preLoaderRoute: typeof ApiPublicV2CountriesCodeResourceRouteImport
+      parentRoute: typeof ApiPublicV2CountriesRoute
     }
     '/_authenticated/admin/countries/$code/cabinet/agenda/$sid': {
       id: '/_authenticated/admin/countries/$code/cabinet/agenda/$sid'
@@ -3406,6 +3506,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminGithubRoute: typeof AuthenticatedAdminGithubRoute
   AuthenticatedAdminInvitationsRoute: typeof AuthenticatedAdminInvitationsRoute
   AuthenticatedAdminLedgerQaRoute: typeof AuthenticatedAdminLedgerQaRoute
+  AuthenticatedAdminPartnerKeysRoute: typeof AuthenticatedAdminPartnerKeysRoute
   AuthenticatedAdminProformaRoute: typeof AuthenticatedAdminProformaRoute
   AuthenticatedAdminScorecardsRoute: typeof AuthenticatedAdminScorecardsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -3451,6 +3552,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminGithubRoute: AuthenticatedAdminGithubRoute,
     AuthenticatedAdminInvitationsRoute: AuthenticatedAdminInvitationsRoute,
     AuthenticatedAdminLedgerQaRoute: AuthenticatedAdminLedgerQaRoute,
+    AuthenticatedAdminPartnerKeysRoute: AuthenticatedAdminPartnerKeysRoute,
     AuthenticatedAdminProformaRoute: AuthenticatedAdminProformaRoute,
     AuthenticatedAdminScorecardsRoute: AuthenticatedAdminScorecardsRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
@@ -3737,6 +3839,17 @@ const KioskRouteChildren: KioskRouteChildren = {
 
 const KioskRouteWithChildren = KioskRoute._addFileChildren(KioskRouteChildren)
 
+interface ApiPublicV2CountriesRouteChildren {
+  ApiPublicV2CountriesCodeResourceRoute: typeof ApiPublicV2CountriesCodeResourceRoute
+}
+
+const ApiPublicV2CountriesRouteChildren: ApiPublicV2CountriesRouteChildren = {
+  ApiPublicV2CountriesCodeResourceRoute: ApiPublicV2CountriesCodeResourceRoute,
+}
+
+const ApiPublicV2CountriesRouteWithChildren =
+  ApiPublicV2CountriesRoute._addFileChildren(ApiPublicV2CountriesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -3768,6 +3881,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksPressTickRoute: ApiPublicHooksPressTickRoute,
   ApiPublicHooksSourceHealthRoute: ApiPublicHooksSourceHealthRoute,
   ApiPublicV1HandshakeRoute: ApiPublicV1HandshakeRoute,
+  ApiPublicV2CompareRoute: ApiPublicV2CompareRoute,
+  ApiPublicV2CountriesRoute: ApiPublicV2CountriesRouteWithChildren,
+  ApiPublicV2SearchRoute: ApiPublicV2SearchRoute,
   ApiPublicV1CountriesCodeResourceRoute: ApiPublicV1CountriesCodeResourceRoute,
 }
 export const routeTree = rootRouteImport

@@ -133,6 +133,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/github` | `src/routes/_authenticated/admin/github.tsx` |
 | `/_authenticated/admin/invitations` | `src/routes/_authenticated/admin/invitations.tsx` |
 | `/_authenticated/admin/ledger-qa` | `src/routes/_authenticated/admin/ledger-qa.tsx` |
+| `/_authenticated/admin/partner-keys` | `src/routes/_authenticated/admin/partner-keys.tsx` |
 | `/_authenticated/admin/proforma` | `src/routes/_authenticated/admin/proforma.tsx` |
 | `/_authenticated/admin/scorecards` | `src/routes/_authenticated/admin/scorecards.tsx` |
 
@@ -206,3 +207,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/api/public/hooks/source-health` | `src/routes/api/public/hooks/source-health.ts` |
 | `/api/public/v1/countries/$code/$resource` | `src/routes/api/public/v1/countries.$code.$resource.ts` |
 | `/api/public/v1/handshake` | `src/routes/api/public/v1/handshake.ts` |
+| `/api/public/v2/compare` | `src/routes/api/public/v2/compare.ts` |
+| `/api/public/v2/countries` | `src/routes/api/public/v2/countries.ts` |
+| `/api/public/v2/countries/$code/$resource` | `src/routes/api/public/v2/countries.$code.$resource.ts` |
+| `/api/public/v2/search` | `src/routes/api/public/v2/search.ts` |

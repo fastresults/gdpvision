@@ -64,7 +64,7 @@ export type ExtractManifestoResult = {
   textSource: "file" | "url" | "pasted";
 };
 
-const MODEL = "google/gemini-3.6-flash";
+const MODEL = "google/gemini-3.8-flash";
 
 export const extractManifesto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

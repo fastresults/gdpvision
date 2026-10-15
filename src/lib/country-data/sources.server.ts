@@ -272,7 +272,7 @@ Write a concise 2-4 sentence plain-English summary describing what this source i
         "Lovable-API-Key": key,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3.1-flash-lite",
         messages: [
           { role: "system", content: "You return strict JSON only. No prose, no markdown fences." },
           { role: "user", content: prompt },

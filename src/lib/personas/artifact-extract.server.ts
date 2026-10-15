@@ -49,7 +49,7 @@ async function transcribe(buf: Buffer, mime: string): Promise<string> {
   };
   const ext = extMap[mime.split(";")[0] ?? ""] ?? "webm";
   const form = new FormData();
-  form.append("model", "openai/gpt-4o-mini-transcribe");
+  form.append("model", "google/gemini-3.5-transcribe");
   form.append("file", new Blob([new Uint8Array(buf)], { type: mime }), `session.${ext}`);
   const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
     method: "POST",
@@ -91,7 +91,7 @@ export async function extractArtifact(
   if (kindHint.startsWith("image/")) {
     const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
     const text = await callGateway({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3.1-flash-lite",
       temperature: 0.1,
       messages: [
         {
@@ -120,7 +120,7 @@ export async function extractArtifact(
   const buf = Buffer.from(await file.arrayBuffer());
   const base64 = buf.toString("base64");
   const text = await callGateway({
-    model: "google/gemini-2.5-pro",
+    model: "google/gemini-3.1-pro-preview",
     temperature: 0.1,
     messages: [
       {

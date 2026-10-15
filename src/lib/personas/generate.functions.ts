@@ -18,8 +18,8 @@ import {
 } from "@/lib/citations/hygiene";
 import type { Json } from "@/integrations/supabase/types";
 
-const GEN_MODEL = "google/gemini-2.5-pro";
-const FAST_MODEL = "google/gemini-2.5-flash";
+const GEN_MODEL = "google/gemini-3.1-pro-preview";
+const FAST_MODEL = "google/gemini-3.8-flash";
 
 type PersonaListRow = {
   id: string;

@@ -460,7 +460,7 @@ export const narrateScenario = createServerFn({ method: "POST" })
         "Lovable-API-Key": apiKey,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3.8-flash",
         messages: [
           { role: "system", content: "You produce grounded executive briefs, McKinsey style." },
           { role: "user", content: prompt },

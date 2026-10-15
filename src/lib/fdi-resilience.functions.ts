@@ -440,7 +440,7 @@ async function buildThreatBrief(
     input.targetSectorCodes.includes(s.sector_code),
   );
   const gateway = createLovableAiGatewayProvider(key);
-  const model = "google/gemini-2.5-flash";
+  const model = "google/gemini-3.8-flash";
   const prompt = [
     `Country: ${input.countryCode}. Threat: ${input.name} (${input.threatType}).`,
     `Severity: ${input.severityPct}%. Horizon: ${input.horizonYears}y. Onset: ${input.onset}.`,
@@ -641,7 +641,7 @@ export const suggestResilientStrategy = createServerFn({ method: "POST" })
     }
     try {
       const gateway = createLovableAiGatewayProvider(key);
-      const model = "google/gemini-2.5-flash";
+      const model = "google/gemini-3.8-flash";
       const prompt = [
         `Country ${threat.country_code}. Threat ${threat.name} (${threat.threat_type}), severity ${threat.severity_pct}%, horizon ${threat.horizon_years}y, onset ${threat.onset}.`,
         `Target sectors: ${(threat.target_sector_codes ?? []).join(", ")}.`,

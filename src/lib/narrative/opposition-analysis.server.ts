@@ -32,7 +32,7 @@ async function callGateway(body: unknown): Promise<string> {
 
 async function extractFromImage(base64: string, mime: string, submitterContext?: string): Promise<string> {
   return callGateway({
-    model: "google/gemini-2.5-flash",
+    model: "google/gemini-3.1-flash-lite",
     temperature: 0.1,
     messages: [
       {
@@ -59,7 +59,7 @@ async function extractFromImage(base64: string, mime: string, submitterContext?:
 
 async function extractFromDocument(base64: string, mime: string, filename: string): Promise<string> {
   return callGateway({
-    model: "google/gemini-2.5-pro",
+    model: "google/gemini-3.1-pro-preview",
     temperature: 0.1,
     messages: [
       {

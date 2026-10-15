@@ -9,7 +9,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "google/gemini-3.8-flash";
 
 const ComposeInput = z.object({
   countryCode: z.string().min(3).max(4),

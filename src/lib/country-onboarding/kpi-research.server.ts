@@ -383,7 +383,7 @@ export async function escalateGemini(args: {
   kpi: KpiRegistryEntry;
 }): Promise<{ value: ResearchedValue | null; attempt: AttemptRecord }> {
   const key = process.env.LOVABLE_API_KEY;
-  const model = "google/gemini-2.5-pro";
+  const model = "google/gemini-3.1-pro-preview";
   if (!key) {
     return {
       value: null,

@@ -15,7 +15,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
 import type { ResearchScope } from "./wizard.functions";
 
-const AI_MODEL_PRIMARY = "google/gemini-3.5-flash";
+const AI_MODEL_PRIMARY = "google/gemini-3.8-flash";
 const AI_MODEL_FALLBACK = "google/gemini-3.1-flash-lite";
 const AI_TIMEOUT_MS = 45_000;
 

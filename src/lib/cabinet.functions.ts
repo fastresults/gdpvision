@@ -394,7 +394,7 @@ Write exactly 120 words in 3 short paragraphs:
 3) The ask — the specific decision cabinet is being asked to take
 Use citation markers like [1] tied to the evidence numbers above. Plain prose. No headings. No bullet lists.`;
     const { text } = await generateText({
-      model: gateway("google/gemini-2.5-flash"),
+      model: gateway("google/gemini-3.8-flash"),
       prompt,
     });
     const brief = text.trim();
@@ -1092,7 +1092,7 @@ export const generateSituationBrief = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const gateway = createLovableAiGatewayProvider(key);
-    const modelId = "google/gemini-2.5-flash";
+    const modelId = "google/gemini-3.8-flash";
     const prompt = `You are a McKinsey Senior Partner briefing a sovereign cabinet for country ${country.data?.name ?? cc}.
 Write a State-of-the-Nation cabinet brief using the Pyramid Principle. Ground every claim in the evidence below via [N] citation markers. Do not invent numbers.
 

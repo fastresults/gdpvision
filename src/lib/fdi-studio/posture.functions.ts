@@ -138,7 +138,7 @@ async function generateValueProp(
   if (!key) return { text: null, model: "" };
   try {
     const gateway = createLovableAiGatewayProvider(key);
-    const model = "google/gemini-2.5-flash";
+    const model = "google/gemini-3.8-flash";
     const topSectors = sectors.slice(0, 4).map((s) => `${s.label} (${s.share_pct.toFixed(1)}%)`).join(", ");
     const peerLine = peers.map((p) => `${p.name} HHI ${p.hhi.toFixed(3)}`).join("; ");
     const gapLine = gapPctGdp ? `capital gap ~${gapPctGdp.toFixed(1)}% of GDP` : "capital gap not yet quantified";

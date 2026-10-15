@@ -161,7 +161,7 @@ export const generatePlaybook = createServerFn({ method: "POST" })
     if (!ctx.country) throw new Error("Country not found");
 
     const gateway = createLovableAiGatewayProvider(key);
-    const model = "google/gemini-2.5-flash";
+    const model = "google/gemini-3.8-flash";
 
     const scopeLine = data.scope === "strategy" && ctx.strategy
       ? `Strategy: ${ctx.strategy.name}. Threat: ${ctx.threat?.name ?? "n/a"} (${ctx.threat?.severity_pct ?? 0}% severity).`

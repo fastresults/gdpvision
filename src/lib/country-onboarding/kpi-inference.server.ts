@@ -36,7 +36,7 @@ export type InferenceAttempt = {
   error: string | null;
 };
 
-const PRIMARY_MODEL = "google/gemini-2.5-pro";
+const PRIMARY_MODEL = "google/gemini-3.1-pro-preview";
 const FALLBACK_MODEL = "openai/gpt-5.5";
 
 // ============================================================

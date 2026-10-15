@@ -9,7 +9,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "google/gemini-3.8-flash";
 const KINDS = ["survey", "focus_group", "creative_test"] as const;
 type Kind = (typeof KINDS)[number];
 

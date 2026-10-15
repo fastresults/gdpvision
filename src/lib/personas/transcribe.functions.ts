@@ -32,7 +32,7 @@ export const transcribeAudio = createServerFn({ method: "POST" })
     const ext = extMap[base] ?? "webm";
 
     const form = new FormData();
-    form.append("model", "openai/gpt-4o-mini-transcribe");
+    form.append("model", "google/gemini-3.5-transcribe");
     form.append("file", new Blob([bytes], { type: base }), `recording.${ext}`);
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {

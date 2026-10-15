@@ -19,7 +19,7 @@ import {
   validCitationsForRefs,
 } from "@/lib/citations/hygiene";
 
-const GEN_MODEL_PRIMARY = "google/gemini-3.5-flash";
+const GEN_MODEL_PRIMARY = "google/gemini-3.8-flash";
 const GEN_MODEL_FALLBACK = "google/gemini-3.1-flash-lite";
 const GATEWAY_TIMEOUT_MS = 45_000;
 

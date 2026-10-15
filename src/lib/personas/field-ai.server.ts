@@ -3,7 +3,7 @@
 // comms drafts, synthesis) goes through here so model choice, timeouts,
 // retries and JSON repair behave identically everywhere.
 
-const MODEL_PRIMARY = "google/gemini-3.5-flash";
+const MODEL_PRIMARY = "google/gemini-3.8-flash";
 const MODEL_FALLBACK = "google/gemini-3.1-flash-lite";
 const TIMEOUT_MS = 90_000;
 

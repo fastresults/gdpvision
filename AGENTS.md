@@ -48,3 +48,4 @@ After adding a server fn, migration or route: `bun run headers && bun run map`. 
 <!-- LOVABLE:BEGIN -->
 - Homepage scrollers share a once-per-visit visible-entry horizontal step; manual input and reduced motion cancel it so discovery never competes with browsing.
 <!-- LOVABLE:END -->
+- **Partner data (GDP Advisor)**: companion sites read through `src/lib/public-data/partner.server.ts` (v2 API under `/api/public/v2`, partner keys `gdpp_…`, admin at `/admin/partner-keys`), which delegates to v1 resource handlers via `readPublicResource` so one set of public/approved filters governs every external read.

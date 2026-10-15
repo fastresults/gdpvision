@@ -62,3 +62,4 @@
 - [x] Realign the Instrument overview title, controls, signature and ledger without overlap
 
 - [x] Refine all ten public Chamber names and copy around clear economic value; verify homepage and shared op-ed presentation.
+- [ ] GDP Advisor partner API v2 + admin keys; MCP pending access choice

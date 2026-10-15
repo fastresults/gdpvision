@@ -26,23 +26,28 @@ function useSignedIn() {
   return signedIn;
 }
 
-const DETAILS_KEY = "gdpv.navDetails";
+const DETAILS_KEY = "gdpv_nav_details";
+
+// Hidden by default; the choice persists in a first-party cookie (1 year).
+function readDetailsCookie(): boolean {
+  return document.cookie.split("; ").some((c) => c === `${DETAILS_KEY}=1`);
+}
 
 function useDetailsUnlocked() {
   const [open, setOpen] = useState(false);
   const [ready, setReady] = useState(false);
   useEffect(() => {
     try {
-      setOpen(window.localStorage.getItem(DETAILS_KEY) === "1");
+      setOpen(readDetailsCookie());
     } catch {
-      /* storage unavailable */
+      /* cookies unavailable */
     }
     setReady(true);
   }, []);
   useEffect(() => {
     if (!ready) return;
     try {
-      window.localStorage.setItem(DETAILS_KEY, open ? "1" : "0");
+      document.cookie = `${DETAILS_KEY}=${open ? "1" : "0"}; path=/; max-age=31536000; SameSite=Lax`;
     } catch {
       /* ignore */
     }

@@ -120,7 +120,10 @@ export function ChamberPanel({
           </p>
         </div>
 
-        <h3 className="mt-4 font-serif text-[23px] leading-tight text-ink-950 sm:text-[27px]">
+        <h3
+          className="mt-4 font-serif text-[23px] leading-tight sm:text-[27px]"
+          style={{ color: `var(${accentVar})` }}
+        >
           {title}
         </h3>
 

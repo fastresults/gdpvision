@@ -27,6 +27,8 @@ export const API_SCOPES = [
   "projects",
   "brain",
   "sources",
+  "media",
+  "media_sources",
 ] as const;
 export type ApiScope = (typeof API_SCOPES)[number];
 

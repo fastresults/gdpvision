@@ -54,8 +54,13 @@ export function SignalRow({ signal, code, active }: { signal: Signal; code: stri
             Kept past 30 days
           </p>
         )}
-        {(signal.is_political || signal.is_economic || signal.link_status === "verified" || signal.link_status === "broken" || signal.priority_score != null) && (
+        {(signal.is_political || signal.is_economic || signal.link_status === "verified" || signal.link_status === "broken" || signal.priority_score != null || signal.priority_override === 1) && (
           <div className="mt-1 flex flex-wrap items-center gap-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ink-600">
+            {signal.priority_override === 1 && (
+              <span className="border border-rose-500 px-1 text-rose-700" title={signal.priority_raised_reason ?? undefined}>
+                P1 · Guaranteed{signal.priority_raised_from ? ` (from P${signal.priority_raised_from})` : ""}
+              </span>
+            )}
             {signal.is_political && <span className="border border-line-200 px-1">Politics</span>}
             {signal.is_economic && <span className="border border-line-200 px-1">GDP</span>}
             {signal.link_status === "verified" && <span className="border border-line-200 px-1">Link ✓</span>}

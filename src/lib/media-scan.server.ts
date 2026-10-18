@@ -68,7 +68,7 @@ export async function coverageReport() {
       .select("id,country_code,active,last_polled_at,consecutive_failures"),
     supabaseAdmin
       .from("intake_items")
-      .select("scope_key,is_political,is_economic,link_status,recommendation,severity,reach")
+      .select("scope_key,is_political,is_economic,link_status,recommendation,severity,reach,priority_override,priority_raised_from")
       .gte("created_at", since7)
       .limit(20000),
   ]);
@@ -85,13 +85,15 @@ export async function coverageReport() {
     broken_links_7d: number;
     strong_sources: number;
     p12_7d: number;
+    p1_gdp: "natural" | "raised" | "gap";
+    p1_political: "natural" | "raised" | "gap";
   };
   const rows = new Map<string, Row>();
   const add = (code: string, name: string, media_only: boolean) =>
     rows.set(code, {
       code, name, media_only,
       active_feeds: 0, failing_feeds: 0, last_polled_at: null,
-      signals_7d: 0, political_7d: 0, economic_7d: 0, broken_links_7d: 0, strong_sources: 0, p12_7d: 0,
+      signals_7d: 0, political_7d: 0, economic_7d: 0, broken_links_7d: 0, strong_sources: 0, p12_7d: 0, p1_gdp: "gap", p1_political: "gap",
     });
   for (const c of cs ?? []) add(c.code as string, (c.name as string) ?? c.code, false);
   for (const c of mcs ?? []) add(c.code as string, c.name as string, true);
@@ -113,7 +115,13 @@ export async function coverageReport() {
     if (s.is_political) r.political_7d++;
     if (s.is_economic) r.economic_7d++;
     if (s.link_status === "broken") r.broken_links_7d++;
-    if (priorityFor(s as never).level <= 2) r.p12_7d++;
+    const lvl = priorityFor(s as never).level;
+    if (lvl <= 2) r.p12_7d++;
+    if (lvl === 1) {
+      const st = s.priority_override === 1 ? "raised" : "natural";
+      if (s.is_economic && r.p1_gdp !== "natural") r.p1_gdp = st;
+      if (s.is_political && r.p1_political !== "natural") r.p1_political = st;
+    }
   }
   return Array.from(rows.values()).sort((a, b) => a.active_feeds - b.active_feeds);
 }

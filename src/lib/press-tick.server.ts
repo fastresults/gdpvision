@@ -470,6 +470,7 @@ export async function runPressTick(opts: {
       };
       let firstSignal: string | null = null;
       let anyDup = false;
+      let promotedHere = 0;
       try {
         for (const tc of targets) {
           countryList.add(tc);
@@ -529,10 +530,11 @@ export async function runPressTick(opts: {
           if (sigErr) throw sigErr;
           firstSignal = sig.id;
           itemsPromoted++;
+          promotedHere++;
         }
         await supabaseAdmin
           .from("narrative_feed_items")
-          .update({ state: anyDup && itemsPromoted === 0 ? "duplicate" : "promoted", signal_id: firstSignal })
+          .update({ state: anyDup && promotedHere === 0 ? "duplicate" : "promoted", signal_id: firstSignal })
           .eq("id", it.id);
         if (it.url) canonSet.add(canonicalUrl(it.url));
       } catch (e) {

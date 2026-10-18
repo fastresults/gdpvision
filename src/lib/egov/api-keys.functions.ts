@@ -45,6 +45,8 @@ export const API_SCOPE_LABEL: Record<ApiScope, string> = {
   projects: "Approved investor teasers",
   brain: "Second brain: verified public facts and risks",
   sources: "Official sources register",
+  media: "Media scan: last 30 days of news signals with topics, priority and source strength",
+  media_sources: "Media outlets scanned, with strength and reach tiers",
 };
 
 export interface ApiKeyRow {

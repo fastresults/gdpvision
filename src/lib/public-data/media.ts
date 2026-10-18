@@ -46,16 +46,16 @@ export function toPublicSignal(row: Row) {
     outlet: typeof meta.outlet === "string" ? meta.outlet : typeof meta.source === "string" ? meta.source : null,
     published_at: typeof meta.published_at === "string" ? meta.published_at : String(row.created_at),
     collected_at: String(row.created_at),
-    coverage: row.scope ?? null,
+    coverage: row.scope ? String(row.scope) : null,
     topics,
-    tags: Array.isArray(row.tags) ? row.tags : [],
-    countries: Array.isArray(row.countries) ? row.countries : [],
+    tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
+    countries: Array.isArray(row.countries) ? row.countries.map(String) : [],
     priority_level: priorityLevel(row.recommendation as string | null, row.severity as number | null, row.reach as number | null),
     importance_score: row.priority_score == null ? null : Math.round(Number(row.priority_score) * 100) / 100,
     source_tier: row.source_tier == null ? null : `S${row.source_tier}`,
     first_to_report: row.first_to_report === true,
-    sentiment: row.sentiment ?? null,
-    story_key: row.story_key ?? null,
+    sentiment: row.sentiment == null ? null : Number(row.sentiment),
+    story_key: row.story_key ? String(row.story_key) : null,
   };
 }
 
@@ -74,9 +74,9 @@ export function toPublicSource(stat: Row, feed: Row) {
   return {
     outlet: String(feed.label ?? ""),
     country: String(stat.country_code ?? feed.country_code ?? ""),
-    coverage: feed.scope ?? null,
+    coverage: feed.scope ? String(feed.scope) : null,
     strength_tier: stat.tier == null ? null : `S${stat.tier}`,
-    reach_tier: stat.reach_tier ?? null,
+    reach_tier: stat.reach_tier == null ? null : Number(stat.reach_tier),
     items_per_day: stat.per_day == null ? null : Number(stat.per_day),
     influence_rate: stat.influence_rate == null ? null : Number(stat.influence_rate),
     first_to_report_rate: stat.first_rate == null ? null : Number(stat.first_rate),

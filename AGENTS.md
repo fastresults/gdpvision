@@ -47,4 +47,4 @@ After adding a server fn, migration or route: `bun run headers && bun run map`. 
 - Homepage scrollers share a once-per-visit visible-entry horizontal step; manual input and reduced motion cancel it so discovery never competes with browsing.
 <!-- LOVABLE:END -->
 
-Subdirectories may have their own `AGENTS.md` (e.g. `src/lib/AGENTS.md`); read it before changing files there.
+Subfolders may have their own `AGENTS.md` (e.g. `src/lib`); read it first.

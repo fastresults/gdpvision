@@ -29,7 +29,7 @@ export async function syncOutlets() {
   for (const o of outlets ?? []) {
     let feed = o.feed_url as string | null;
     if (!feed) {
-      feed = await resolveFeedFor({ scope: o.scope, name: o.name, domain: o.domain, rss: null }).catch(() => null);
+      feed = await resolveFeedFor({ scope: o.scope as "regional" | "international", name: o.name, domain: o.domain, rss: null }).catch(() => null);
     }
     const status = feed ? "linked" : "no feed found";
     await supabaseAdmin

@@ -98,7 +98,7 @@ async function probeRss(url: string): Promise<boolean> {
   }
 }
 
-async function resolveFeedFor(suggestion: Suggestion): Promise<string | null> {
+export async function resolveFeedFor(suggestion: Suggestion): Promise<string | null> {
   if (suggestion.rss) {
     if (await probeRss(suggestion.rss)) return suggestion.rss;
   }
@@ -225,9 +225,12 @@ export async function revivePressFeeds(opts: { countryCode?: string | null } = {
   if (filter) {
     countriesToTopUp = [filter];
   } else {
-    const { data: cs } = await supabaseAdmin
+    const { data: cs0 } = await supabaseAdmin
       .from("countries").select("code").order("code");
-    for (const c of cs ?? []) {
+    const { data: mc } = await supabaseAdmin
+      .from("narrative_media_countries").select("code").eq("active", true).eq("is_regional", false);
+    const cs = [...(cs0 ?? []), ...(mc ?? [])];
+    for (const c of cs) {
       const { count } = await supabaseAdmin
         .from("narrative_feeds")
         .select("*", { count: "exact", head: true })
@@ -239,10 +242,14 @@ export async function revivePressFeeds(opts: { countryCode?: string | null } = {
   }
 
   const topUps: Array<{ code: string; suggested: number; inserted: number }> = [];
-  const { data: names } = await supabaseAdmin
-    .from("countries").select("code,name")
-    .in("code", countriesToTopUp.length ? countriesToTopUp : ["__none__"]);
-  const nameByCode = new Map((names ?? []).map((r) => [r.code as string, (r.name as string) ?? (r.code as string)]));
+  const want = countriesToTopUp.length ? countriesToTopUp : ["__none__"];
+  const [{ data: names }, { data: mnames }] = await Promise.all([
+    supabaseAdmin.from("countries").select("code,name").in("code", want),
+    supabaseAdmin.from("narrative_media_countries").select("code,name").in("code", want),
+  ]);
+  const nameByCode = new Map(
+    [...(names ?? []), ...(mnames ?? [])].map((r) => [r.code as string, (r.name as string) ?? (r.code as string)]),
+  );
   for (const cc of countriesToTopUp) {
     try {
       const r = await discoverForCountry(cc, nameByCode.get(cc) ?? cc);

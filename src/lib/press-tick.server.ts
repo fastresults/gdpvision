@@ -578,6 +578,7 @@ export async function runPressTick(opts: {
   // failure so the UI badge can call it out.
   const missing: string[] = [];
   for (const cc of universe) {
+    if (cc === REGIONAL_CODE) continue;
     if ((coverage[cc]?.total ?? 0) === 0) {
       missing.push(cc);
       errors.push({ scope: `missing:${cc}`, msg: "no items promoted this window" });

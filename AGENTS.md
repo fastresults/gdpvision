@@ -13,7 +13,6 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 
 - **Decision presentation copy**: keep scenario title keys and route edges stable; derive stage inputs from route source nodes rather than parsing display captions, so plain-language copy changes cannot break journey lookup or evidence assembly.
 
-- **Narrative retention**: daily `purge_stale_signals` purges unmarked signals >30d; signal queries share that filter.
 - **Buttons**: `btn-primary`/`btn-secondary`/`btn-ghost`/`btn-accent` from `src/styles.css`; never inline `bg-ink-* text-paper-*`. Only `@theme inline` colour tokens exist.
 - **Measuring-body logos**: use static official assets via `src/assets/measuring-bodies/*.asset.json`, with provenance in `sources.md` and a fixed contain-fit slot in `IndexBand`; this keeps institutional identity accurate without runtime lookup or layout shifts.
 - **JSON in UI**: `<PrettyJson>` from `@/components/data/PrettyJson`; raw `JSON.stringify` in JSX only in a `<textarea>` or collapsed `<details>`.
@@ -48,5 +47,5 @@ After adding a server fn, migration or route: `bun run headers && bun run map`. 
 <!-- LOVABLE:BEGIN -->
 - Homepage scrollers share a once-per-visit visible-entry horizontal step; manual input and reduced motion cancel it so discovery never competes with browsing.
 <!-- LOVABLE:END -->
-- **Partner data (GDP Advisor)**: companion sites read through `src/lib/public-data/partner.server.ts` (v2 API under `/api/public/v2`, partner keys `gdpp_…`, admin at `/admin/partner-keys`), which delegates to v1 resource handlers via `readPublicResource` so one set of public/approved filters governs every external read.
-- **Media scan**: shared regional/international outlets feed under pseudo-country `CAR` and fan out to each country the classifier names (`intake_items.countries`); media-only places live in `narrative_media_countries`, not `countries`, so other chambers never see them. Priority score (`narrative-priority-score.ts`) orders within P-levels only, keeping SQL priority counts in step.
+
+Subdirectories may have their own `AGENTS.md` (e.g. `src/lib/AGENTS.md`); read it before changing files there.

@@ -25,6 +25,7 @@ export function SignalRow({ signal, code, active }: { signal: Signal; code: stri
       <Link
         to="/admin/countries/$code/narrative/signal/$id"
         params={{ code, id: signal.id }}
+        search={true as never}
         className={cn(
           "block min-w-0 overflow-hidden border border-line-200 border-l-4 px-2.5 py-2 text-sm text-ink-700 transition hover:border-ink-950",
           meta.borderClass,
@@ -59,6 +60,9 @@ export function SignalRow({ signal, code, active }: { signal: Signal; code: stri
             {signal.is_economic && <span className="border border-line-200 px-1">GDP</span>}
             {signal.link_status === "verified" && <span className="border border-line-200 px-1">Link ✓</span>}
             {signal.link_status === "broken" && <span className="border border-rose-500 px-1 text-rose-700">Link broken</span>}
+            {signal.source_tier != null && <span className="border border-line-200 px-1">S{signal.source_tier}</span>}
+            {signal.first_to_report && <span className="border border-line-200 px-1">First</span>}
+            {signal.review_verdict === "noise" && <span className="border border-line-200 px-1 text-ink-500">Noise</span>}
             {signal.priority_score != null && <span className="tabular-nums">Score {Math.round(Number(signal.priority_score))}</span>}
           </div>
         )}

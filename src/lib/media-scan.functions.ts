@@ -1,5 +1,5 @@
 // @domain core
-// @tables narrative_outlets,narrative_media_countries,narrative_feeds,narrative_harvest_runs,intake_items
+// @tables narrative_source_stats,narrative_outlets,narrative_media_countries,narrative_feeds,narrative_harvest_runs,intake_items
 // @ui src/routes/_authenticated/admin/media-scan.tsx
 
 // Chamber 05 · Super Admin media scan controls (admin only).
@@ -86,4 +86,39 @@ export const deleteOutlet = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("narrative_outlets").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export const listSources = createServerFn({ method: "GET" })
+  .middleware([requireAdmin])
+  .handler(async () => {
+    const { sourceReport } = await import("@/lib/media-scan.server");
+    return sourceReport();
+  });
+
+export const updateSource = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        reach_tier: z.number().int().min(1).max(5).nullable().optional(),
+        admin_weight: z.number().min(0.5).max(1.5).optional(),
+        active: z.boolean().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { id, ...patch } = data;
+    const { error } = await supabaseAdmin.from("narrative_feeds").update(patch).eq("id", id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const recomputeSources = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .handler(async () => {
+    const { withScanLock } = await import("@/lib/media-scan.server");
+    const { recomputeSourceStats } = await import("@/lib/narrative-source-stats.server");
+    return withScanLock(`manual:${Date.now()}`, 10, recomputeSourceStats, "source-stats");
   });

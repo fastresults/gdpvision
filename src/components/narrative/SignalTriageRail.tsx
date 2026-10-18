@@ -5,6 +5,7 @@ import { Search, ChevronDown, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignalRow } from "./SignalRow";
 import { PriorityChip } from "./PriorityPill";
+import { SignalFilterBar, filtersFromSearch, hasFilters, useSignalSearch } from "./SignalFilterBar";
 import {
   PRIORITY_ORDER,
   PRIORITY_META,
@@ -19,6 +20,7 @@ import {
 import {
   getSignalRetention,
   listSignalsAtPriority,
+  searchSignals,
   type PriorityCounts,
   type SignalRow as Signal,
 } from "@/lib/narrative-chamber.functions";
@@ -62,6 +64,22 @@ export function SignalTriageRail({
   });
   const kept = retention.data?.kept ?? [];
 
+  const { search } = useSignalSearch();
+  const advFilters = useMemo(() => filtersFromSearch(search), [search]);
+  const advOn = hasFilters(advFilters);
+  const fetchSearch = useServerFn(searchSignals);
+  const advQuery = useQuery({
+    queryKey: ["narrative-signal-search", code, advFilters],
+    queryFn: () => fetchSearch({ data: { countryCode: code, filters: advFilters } }),
+    enabled: advOn,
+    staleTime: 30_000,
+  });
+  const countryOptions = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const sg of signals) for (const c of sg.countries ?? []) if (c !== code) m.set(c, (m.get(c) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => ({ code: c, name: c }));
+  }, [signals, code]);
+
   const levelList = useMemo(() => [...activeLevels].sort(), [activeLevels]);
   const fetchAtPriority = useServerFn(listSignalsAtPriority);
   // Urgent levels (P1, P2) are always loaded in full so their groups match the tiles.
@@ -98,7 +116,9 @@ export function SignalTriageRail({
               ? !!s.flagged_at
               : isPastWindow(s.created_at),
         );
-  const source: Signal[] = markSource
+  const source: Signal[] = advOn
+    ? (advQuery.data?.signals ?? [])
+    : markSource
     ? markSource
     : levelList.length > 0
       ? (levelQuery.data ?? signals.filter((s) => activeLevels.has(priorityFor(s).level)))
@@ -225,6 +245,15 @@ export function SignalTriageRail({
           </>
         )}
       </p>
+
+      <SignalFilterBar countryOptions={countryOptions} />
+      {advOn && (
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-700">
+          {advQuery.isFetching && !advQuery.data
+            ? "Filtering every signal…"
+            : `${(advQuery.data?.total ?? 0).toLocaleString()} signals match${(advQuery.data?.total ?? 0) > 200 ? " · newest 200 shown" : ""}`}
+        </p>
+      )}
 
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">Sort</span>

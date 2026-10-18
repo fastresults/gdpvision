@@ -9,6 +9,7 @@ import {
 } from "@/lib/press-monitor.server";
 import { findCluster, storyKeyFromTitle, attachSibling } from "@/lib/story-cluster.server";
 import { computePriorityScore, credibilityFor, PRIORITY_WEIGHTS } from "@/lib/narrative-priority-score";
+import { credibilityFromStrength, SOURCE_PRIOR } from "@/lib/narrative-source-strength";
 
 /** Pseudo-country code for shared regional/international outlets. */
 export const REGIONAL_CODE = "CAR";
@@ -41,7 +42,7 @@ export async function checkLink(url: string): Promise<LinkCheck> {
 }
 
 /** A sibling joined a story: raise the primary's spread factor and score. */
-async function bumpSpread(primaryId: string) {
+async function bumpSpread(primaryId: string, siblingStrength: number) {
   const { data } = await supabaseAdmin
     .from("intake_items")
     .select("priority_factors,priority_score")
@@ -49,7 +50,8 @@ async function bumpSpread(primaryId: string) {
     .maybeSingle();
   const f = (data?.priority_factors ?? null) as Record<string, number> | null;
   if (!f) return;
-  const spread = (f.spread_raw ?? 1) + 1;
+  // Weighted by the joining outlet's strength: an S3 source (~40) adds ~0.8.
+  const spread = (f.spread_raw ?? 1) + Math.max(0.2, Math.min(2, siblingStrength / 50));
   const spreadPts = Math.round((Math.min(spread - 1, 4) / 4) * PRIORITY_WEIGHTS.spread * 10) / 10;
   const score = Math.round(((Number(data?.priority_score) || 0) - (f.spread ?? 0) + spreadPts) * 10) / 10;
   await supabaseAdmin
@@ -332,6 +334,11 @@ export async function runPressTick(opts: {
       const { data: outs } = await supabaseAdmin.from("narrative_outlets").select("domain,credibility");
       for (const o of outs ?? []) outletCred.set((o.domain as string).toLowerCase(), o.credibility as number);
     }
+    const sourceStats = new Map<string, { strength: number; tier: number }>();
+    {
+      const { data: st } = await supabaseAdmin.from("narrative_source_stats").select("feed_id,strength,tier");
+      for (const r of st ?? []) sourceStats.set(r.feed_id as string, { strength: Number(r.strength), tier: r.tier as number });
+    }
     const outletOf = (u: string | null) => {
       if (!u) return null;
       try {
@@ -439,7 +446,9 @@ export async function runPressTick(opts: {
           ...targets.map((t) => (knownCountries[t] ?? t).toLowerCase()),
         ]),
       );
-      const credibility = credOf(it.url, it.tier_hint ?? c.scope);
+      const st = it.feed_id ? sourceStats.get(it.feed_id) : undefined;
+      const credibility = st ? credibilityFromStrength(st.strength) : credOf(it.url, it.tier_hint ?? c.scope);
+      const sourceStrength = st?.strength ?? SOURCE_PRIOR;
       const baseScore = {
         severity: c.severity,
         reach: c.reach,
@@ -467,6 +476,9 @@ export async function runPressTick(opts: {
         link_status: link.status,
         link_final_url: link.final_url,
         link_checked_at: links.has(it.id) ? new Date().toISOString() : null,
+        source_feed_id: it.feed_id,
+        source_strength: sourceStrength,
+        source_tier: st?.tier ?? null,
       };
       let firstSignal: string | null = null;
       let anyDup = false;
@@ -499,7 +511,7 @@ export async function runPressTick(opts: {
               },
             });
             await attachSibling(match.primary_id, { url: it.url, title: topic, outlet: outletOf(it.url) });
-            await bumpSpread(match.primary_id);
+            await bumpSpread(match.primary_id, sourceStrength);
             firstSignal ??= match.primary_id;
             anyDup = true;
             clustersMerged++;
@@ -514,6 +526,7 @@ export async function runPressTick(opts: {
               topic,
               story_key: storyKeyFromTitle(topic),
               story_primary: true,
+              first_to_report: true,
               priority_score: score,
               priority_factors: { ...factors, credibility_raw: credibility, spread_raw: 1 },
               metadata: {

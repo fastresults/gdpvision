@@ -4582,6 +4582,7 @@ export type Database = {
           created_at: string
           duplicate_of: string | null
           final_weight: number | null
+          first_to_report: boolean
           flag_note: string | null
           flagged_at: string | null
           flagged_by: string | null
@@ -4601,6 +4602,8 @@ export type Database = {
           proposed_weight: number
           reach: number | null
           recommendation: string | null
+          review_verdict: string | null
+          review_verdict_at: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           scope: string | null
@@ -4608,7 +4611,10 @@ export type Database = {
           sector_code: string
           sentiment: number | null
           severity: number | null
+          source_feed_id: string | null
           source_id: string | null
+          source_strength: number | null
+          source_tier: number | null
           state: string
           story_key: string | null
           story_primary: boolean
@@ -4622,6 +4628,7 @@ export type Database = {
           created_at?: string
           duplicate_of?: string | null
           final_weight?: number | null
+          first_to_report?: boolean
           flag_note?: string | null
           flagged_at?: string | null
           flagged_by?: string | null
@@ -4641,6 +4648,8 @@ export type Database = {
           proposed_weight?: number
           reach?: number | null
           recommendation?: string | null
+          review_verdict?: string | null
+          review_verdict_at?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           scope?: string | null
@@ -4648,7 +4657,10 @@ export type Database = {
           sector_code: string
           sentiment?: number | null
           severity?: number | null
+          source_feed_id?: string | null
           source_id?: string | null
+          source_strength?: number | null
+          source_tier?: number | null
           state?: string
           story_key?: string | null
           story_primary?: boolean
@@ -4662,6 +4674,7 @@ export type Database = {
           created_at?: string
           duplicate_of?: string | null
           final_weight?: number | null
+          first_to_report?: boolean
           flag_note?: string | null
           flagged_at?: string | null
           flagged_by?: string | null
@@ -4681,6 +4694,8 @@ export type Database = {
           proposed_weight?: number
           reach?: number | null
           recommendation?: string | null
+          review_verdict?: string | null
+          review_verdict_at?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           scope?: string | null
@@ -4688,7 +4703,10 @@ export type Database = {
           sector_code?: string
           sentiment?: number | null
           severity?: number | null
+          source_feed_id?: string | null
           source_id?: string | null
+          source_strength?: number | null
+          source_tier?: number | null
           state?: string
           story_key?: string | null
           story_primary?: boolean
@@ -6584,6 +6602,7 @@ export type Database = {
       narrative_feeds: {
         Row: {
           active: boolean
+          admin_weight: number
           consecutive_failures: number
           country_code: string
           created_at: string
@@ -6604,6 +6623,7 @@ export type Database = {
           ministry_hint: string | null
           owner_country_code: string | null
           query_template: string | null
+          reach_tier: number | null
           scope: string
           sector_hint: string | null
           tier_hint: string | null
@@ -6614,6 +6634,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          admin_weight?: number
           consecutive_failures?: number
           country_code: string
           created_at?: string
@@ -6634,6 +6655,7 @@ export type Database = {
           ministry_hint?: string | null
           owner_country_code?: string | null
           query_template?: string | null
+          reach_tier?: number | null
           scope: string
           sector_hint?: string | null
           tier_hint?: string | null
@@ -6644,6 +6666,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          admin_weight?: number
           consecutive_failures?: number
           country_code?: string
           created_at?: string
@@ -6664,6 +6687,7 @@ export type Database = {
           ministry_hint?: string | null
           owner_country_code?: string | null
           query_template?: string | null
+          reach_tier?: number | null
           scope?: string
           sector_hint?: string | null
           tier_hint?: string | null
@@ -6873,6 +6897,68 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      narrative_source_stats: {
+        Row: {
+          accuracy: number
+          computed_at: string
+          country_code: string
+          feed_id: string
+          first_rate: number
+          health: string
+          hit_rate: number
+          influence_rate: number
+          items_30d: number
+          last_item_at: string | null
+          per_day: number
+          reach_tier: number
+          relevance_rate: number
+          strength: number
+          tier: number
+        }
+        Insert: {
+          accuracy?: number
+          computed_at?: string
+          country_code: string
+          feed_id: string
+          first_rate?: number
+          health?: string
+          hit_rate?: number
+          influence_rate?: number
+          items_30d?: number
+          last_item_at?: string | null
+          per_day?: number
+          reach_tier?: number
+          relevance_rate?: number
+          strength?: number
+          tier?: number
+        }
+        Update: {
+          accuracy?: number
+          computed_at?: string
+          country_code?: string
+          feed_id?: string
+          first_rate?: number
+          health?: string
+          hit_rate?: number
+          influence_rate?: number
+          items_30d?: number
+          last_item_at?: string | null
+          per_day?: number
+          reach_tier?: number
+          relevance_rate?: number
+          strength?: number
+          tier?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narrative_source_stats_feed_id_fkey"
+            columns: ["feed_id"]
+            isOneToOne: true
+            referencedRelation: "narrative_feeds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       onboarding_citations: {
         Row: {
@@ -11527,6 +11613,27 @@ export type Database = {
         Args: { _country_code: string; _levels: number[]; _limit?: number }
         Returns: {
           id: string
+        }[]
+      }
+      narrative_source_raw_stats: {
+        Args: never
+        Returns: {
+          active: boolean
+          admin_weight: number
+          broken: number
+          confirmed: number
+          consecutive_failures: number
+          country_code: string
+          dismissed: number
+          feed_id: string
+          followed: number
+          hits: number
+          items: number
+          last_item_at: string
+          primaries: number
+          reach_tier: number
+          relevant: number
+          scope: string
         }[]
       }
       portfolio_profile_history: {

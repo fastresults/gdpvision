@@ -44,7 +44,75 @@ export interface SignalRow {
   is_economic?: boolean | null;
   link_status?: string | null;
   priority_score?: number | null;
+  source_tier?: number | null;
+  source_feed_id?: string | null;
+  first_to_report?: boolean | null;
+  review_verdict?: "confirmed" | "noise" | null;
 }
+
+export const SignalFilterSchema = z.object({
+  topic: z.enum(["politics", "gdp", "both"]).optional(),
+  countries: z.array(z.string().max(8)).max(20).optional(),
+  tiers: z.array(z.number().int().min(1).max(5)).max(5).optional(),
+  scopes: z.array(z.enum(["local", "regional", "international"])).max(3).optional(),
+  links: z.array(z.enum(["verified", "redirected", "broken", "unchecked"])).max(4).optional(),
+  minScore: z.number().min(0).max(100).optional(),
+  firstOnly: z.boolean().optional(),
+  multiCountry: z.boolean().optional(),
+  sourceFeedId: z.string().uuid().optional(),
+});
+export type SignalFilters = z.infer<typeof SignalFilterSchema>;
+
+/** Newest 200 signals matching the advanced filters, plus the exact total. */
+export const searchSignals = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ countryCode: z.string().min(2).max(16), filters: SignalFilterSchema }).parse(d),
+  )
+  .handler(async ({ data, context }): Promise<{ signals: SignalRow[]; total: number }> => {
+    const f = data.filters;
+    const build = (cols: string, head: boolean) => {
+      let q = context.supabase
+        .from("intake_items")
+        .select(cols, head ? { count: "exact", head: true } : undefined)
+        .eq("scope_key", data.countryCode)
+        .or("story_primary.is.true,story_primary.is.null")
+        .neq("state", "duplicate")
+        .or(LIVE_OR_KEPT());
+      if (f.topic === "politics" || f.topic === "both") q = q.eq("is_political", true);
+      if (f.topic === "gdp" || f.topic === "both") q = q.eq("is_economic", true);
+      if (f.countries?.length) q = q.overlaps("countries", f.countries);
+      if (f.multiCountry) q = q.not("countries", "cd", `{${data.countryCode}}`);
+      if (f.tiers?.length) q = q.in("source_tier", f.tiers);
+      if (f.scopes?.length) q = q.in("scope", f.scopes);
+      if (f.links?.length) q = q.in("link_status", f.links);
+      if (f.minScore) q = q.gte("priority_score", f.minScore);
+      if (f.firstOnly) q = q.eq("first_to_report", true);
+      if (f.sourceFeedId) q = q.eq("source_feed_id", f.sourceFeedId);
+      return q;
+    };
+    const [rows, cnt] = await Promise.all([
+      build(SIGNAL_COLUMNS, false).order("created_at", { ascending: false }).limit(200),
+      build("id", true),
+    ]);
+    if (rows.error) throw new Error(rows.error.message);
+    return { signals: (rows.data ?? []) as unknown as SignalRow[], total: cnt.count ?? 0 };
+  });
+
+/** Admin verdict on a signal; feeds the source's accuracy score. */
+export const setSignalVerdict = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), verdict: z.enum(["confirmed", "noise"]).nullable() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("intake_items")
+      .update({ review_verdict: data.verdict, review_verdict_at: data.verdict ? new Date().toISOString() : null })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
 
 export const SIGNAL_WINDOW_DAYS = 30;
 const LIVE_OR_KEPT = () =>
@@ -60,7 +128,7 @@ export interface SignalListResult {
 }
 
 const SIGNAL_COLUMNS =
-  "id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,scope,severity,reach,sentiment,recommendation,metadata,created_at,pinned_at,flagged_at,flag_note,tags,countries,is_political,is_economic,link_status,priority_score";
+  "id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,scope,severity,reach,sentiment,recommendation,metadata,created_at,pinned_at,flagged_at,flag_note,tags,countries,is_political,is_economic,link_status,priority_score,source_tier,source_feed_id,first_to_report,review_verdict";
 
 export const listSignals = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

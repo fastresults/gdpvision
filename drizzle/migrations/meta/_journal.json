@@ -253,6 +253,13 @@
       "when": 1792103882749,
       "tag": "0035_partner_api_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792360556171,
+      "tag": "0036_narrative_media_scan",
+      "breakpoints": true
     }
   ]
 }

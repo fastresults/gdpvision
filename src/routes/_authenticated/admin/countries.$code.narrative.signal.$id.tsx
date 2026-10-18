@@ -10,6 +10,7 @@ import { DraftStudio } from "@/components/narrative/DraftStudio";
 import { LineageChevron } from "@/components/narrative/LineageChevron";
 import { PriorityPill } from "@/components/narrative/PriorityPill";
 import { SignalMarks } from "@/components/narrative/SignalMarks";
+import { SignalVerdict } from "@/components/narrative/SignalVerdict";
 
 function signalQuery(id: string) {
   return queryOptions({
@@ -56,6 +57,11 @@ function SignalWorkspace() {
         <div className="flex items-center gap-3">
           <PriorityPill signal={signal} size="md" />
           <SignalMarks key={signal.id} signal={signal} size={16} />
+          <SignalVerdict
+            key={`v-${signal.id}`}
+            id={signal.id}
+            initial={((signal as { review_verdict?: "confirmed" | "noise" | null }).review_verdict) ?? null}
+          />
           <LineageChevron
             hasSignal
             hasDossier={!!signal.recommendation}

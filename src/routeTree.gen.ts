@@ -113,6 +113,7 @@ import { Route as ApiPublicHooksPeerAnalysisRouteImport } from './routes/api/pub
 import { Route as ApiPublicHooksPressDiscoverRouteImport } from './routes/api/public/hooks/press-discover'
 import { Route as ApiPublicHooksPressTickRouteImport } from './routes/api/public/hooks/press-tick'
 import { Route as ApiPublicHooksSourceHealthRouteImport } from './routes/api/public/hooks/source-health'
+import { Route as ApiPublicHooksSourceStatsRouteImport } from './routes/api/public/hooks/source-stats'
 import { Route as ApiPublicV1HandshakeRouteImport } from './routes/api/public/v1/handshake'
 import { Route as ApiPublicV2CompareRouteImport } from './routes/api/public/v2/compare'
 import { Route as ApiPublicV2CountriesRouteImport } from './routes/api/public/v2/countries'
@@ -765,6 +766,12 @@ const ApiPublicHooksSourceHealthRoute =
     path: '/api/public/hooks/source-health',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksSourceStatsRoute =
+  ApiPublicHooksSourceStatsRouteImport.update({
+    id: '/api/public/hooks/source-stats',
+    path: '/api/public/hooks/source-stats',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicV1HandshakeRoute = ApiPublicV1HandshakeRouteImport.update({
   id: '/api/public/v1/handshake',
   path: '/api/public/v1/handshake',
@@ -1252,6 +1259,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
+  '/api/public/hooks/source-stats': typeof ApiPublicHooksSourceStatsRoute
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
@@ -1418,6 +1426,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
+  '/api/public/hooks/source-stats': typeof ApiPublicHooksSourceStatsRoute
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
@@ -1585,6 +1594,7 @@ export interface FileRoutesById {
   '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
+  '/api/public/hooks/source-stats': typeof ApiPublicHooksSourceStatsRoute
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
@@ -1757,6 +1767,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
+    | '/api/public/hooks/source-stats'
     | '/api/public/v1/handshake'
     | '/api/public/v2/compare'
     | '/api/public/v2/countries'
@@ -1923,6 +1934,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
+    | '/api/public/hooks/source-stats'
     | '/api/public/v1/handshake'
     | '/api/public/v2/compare'
     | '/api/public/v2/countries'
@@ -2089,6 +2101,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
+    | '/api/public/hooks/source-stats'
     | '/api/public/v1/handshake'
     | '/api/public/v2/compare'
     | '/api/public/v2/countries'
@@ -2195,6 +2208,7 @@ export interface RootRouteChildren {
   ApiPublicHooksPressDiscoverRoute: typeof ApiPublicHooksPressDiscoverRoute
   ApiPublicHooksPressTickRoute: typeof ApiPublicHooksPressTickRoute
   ApiPublicHooksSourceHealthRoute: typeof ApiPublicHooksSourceHealthRoute
+  ApiPublicHooksSourceStatsRoute: typeof ApiPublicHooksSourceStatsRoute
   ApiPublicV1HandshakeRoute: typeof ApiPublicV1HandshakeRoute
   ApiPublicV2CompareRoute: typeof ApiPublicV2CompareRoute
   ApiPublicV2CountriesRoute: typeof ApiPublicV2CountriesRouteWithChildren
@@ -2930,6 +2944,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/source-health'
       fullPath: '/api/public/hooks/source-health'
       preLoaderRoute: typeof ApiPublicHooksSourceHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/source-stats': {
+      id: '/api/public/hooks/source-stats'
+      path: '/api/public/hooks/source-stats'
+      fullPath: '/api/public/hooks/source-stats'
+      preLoaderRoute: typeof ApiPublicHooksSourceStatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/v1/handshake': {
@@ -3967,6 +3988,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksPressDiscoverRoute: ApiPublicHooksPressDiscoverRoute,
   ApiPublicHooksPressTickRoute: ApiPublicHooksPressTickRoute,
   ApiPublicHooksSourceHealthRoute: ApiPublicHooksSourceHealthRoute,
+  ApiPublicHooksSourceStatsRoute: ApiPublicHooksSourceStatsRoute,
   ApiPublicV1HandshakeRoute: ApiPublicV1HandshakeRoute,
   ApiPublicV2CompareRoute: ApiPublicV2CompareRoute,
   ApiPublicV2CountriesRoute: ApiPublicV2CountriesRouteWithChildren,

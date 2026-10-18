@@ -4,11 +4,12 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const LOCK = "media-full-scan";
 
-export async function withScanLock<T>(holder: string, minutes: number, fn: () => Promise<T>) {
+export async function withScanLock<T>(holder: string, minutes: number, fn: () => Promise<T>, lockName = LOCK) {
+  const LOCK_NAME = lockName;
   const now = new Date().toISOString();
-  await supabaseAdmin.from("narrative_scan_locks").delete().eq("name", LOCK).lt("expires_at", now);
+  await supabaseAdmin.from("narrative_scan_locks").delete().eq("name", LOCK_NAME).lt("expires_at", now);
   const { error } = await supabaseAdmin.from("narrative_scan_locks").insert({
-    name: LOCK,
+    name: LOCK_NAME,
     holder,
     expires_at: new Date(Date.now() + minutes * 60_000).toISOString(),
   });
@@ -16,7 +17,7 @@ export async function withScanLock<T>(holder: string, minutes: number, fn: () =>
   try {
     return await fn();
   } finally {
-    await supabaseAdmin.from("narrative_scan_locks").delete().eq("name", LOCK).eq("holder", holder);
+    await supabaseAdmin.from("narrative_scan_locks").delete().eq("name", LOCK_NAME).eq("holder", holder);
   }
 }
 

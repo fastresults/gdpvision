@@ -666,6 +666,48 @@ const RESOURCES: Record<ApiScope, Handler> = {
     const { data } = await q;
     return data ?? [];
   },
+
+  media: async (sb, id, req) => {
+    const m = await import("@/lib/public-data/media");
+    const params = new URL(req.url).searchParams;
+    const floor = new Date(Date.now() - m.MEDIA_WINDOW_DAYS * 86400000).toISOString();
+    const s = since(req);
+    const { data } = await db(sb)
+      .from("intake_items")
+      .select(m.MEDIA_SELECT)
+      .eq("scope_key", id.country)
+      .in("scope", ["local", "regional", "international"])
+      .or("story_primary.is.true,story_primary.is.null")
+      .gt("created_at", s && s > floor ? s : floor)
+      .order("created_at", { ascending: false })
+      .limit(LIMIT);
+    const minP = Number(params.get("min_priority"));
+    const out = m.shapeMedia((data ?? []) as Record<string, unknown>[], {
+      topic: params.get("topic"),
+      minPriority: minP >= 1 && minP <= 5 ? minP : null,
+    });
+    return { data: out, extra: { window_days: m.MEDIA_WINDOW_DAYS, topics: m.MEDIA_TOPICS } };
+  },
+
+  media_sources: async (sb, id) => {
+    const m = await import("@/lib/public-data/media");
+    const { data: feeds } = await db(sb)
+      .from("narrative_feeds")
+      .select("id,label,scope,country_code")
+      .eq("country_code", id.country)
+      .eq("active", true)
+      .limit(LIMIT);
+    const ids = (feeds ?? []).map((f: { id: string }) => f.id);
+    if (!ids.length) return [];
+    const { data: stats } = await db(sb)
+      .from("narrative_source_stats")
+      .select("feed_id,country_code,tier,reach_tier,per_day,influence_rate,first_rate")
+      .in("feed_id", ids);
+    const byId = new Map((feeds ?? []).map((f: Record<string, unknown>) => [f.id, f]));
+    return ((stats ?? []) as Record<string, unknown>[])
+      .map((st) => m.toPublicSource(st, (byId.get(st.feed_id) ?? {}) as Record<string, unknown>))
+      .sort((a, b) => (a.strength_tier ?? "S9").localeCompare(b.strength_tier ?? "S9"));
+  },
 };
 
 export function isResource(x: string): x is ApiScope {

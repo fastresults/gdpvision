@@ -8,6 +8,55 @@ import {
   firecrawlUpgrade,
 } from "@/lib/press-monitor.server";
 import { findCluster, storyKeyFromTitle, attachSibling } from "@/lib/story-cluster.server";
+import { computePriorityScore, credibilityFor, PRIORITY_WEIGHTS } from "@/lib/narrative-priority-score";
+
+/** Pseudo-country code for shared regional/international outlets. */
+export const REGIONAL_CODE = "CAR";
+const LINK_CHECK_CAP = 80;
+
+type LinkCheck = { status: "verified" | "redirected" | "broken" | "unchecked" | "missing"; final_url: string | null };
+
+/** Confirm an article link opens. Redirects to another site are flagged. */
+export async function checkLink(url: string): Promise<LinkCheck> {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), 7_000);
+  try {
+    const r = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      signal: ac.signal,
+      headers: { "User-Agent": "GDPVision-LinkCheck/1.0", Range: "bytes=0-2048" },
+    });
+    await r.body?.cancel().catch(() => {});
+    if (!r.ok && r.status !== 206 && r.status !== 403) return { status: "broken", final_url: r.url || url };
+    const host = (u: string) => {
+      try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; }
+    };
+    return { status: host(r.url || url) === host(url) ? "verified" : "redirected", final_url: r.url || url };
+  } catch {
+    return { status: "broken", final_url: null };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/** A sibling joined a story: raise the primary's spread factor and score. */
+async function bumpSpread(primaryId: string) {
+  const { data } = await supabaseAdmin
+    .from("intake_items")
+    .select("priority_factors,priority_score")
+    .eq("id", primaryId)
+    .maybeSingle();
+  const f = (data?.priority_factors ?? null) as Record<string, number> | null;
+  if (!f) return;
+  const spread = (f.spread_raw ?? 1) + 1;
+  const spreadPts = Math.round((Math.min(spread - 1, 4) / 4) * PRIORITY_WEIGHTS.spread * 10) / 10;
+  const score = Math.round(((Number(data?.priority_score) || 0) - (f.spread ?? 0) + spreadPts) * 10) / 10;
+  await supabaseAdmin
+    .from("intake_items")
+    .update({ priority_score: score, priority_factors: { ...f, spread: spreadPts, spread_raw: spread } })
+    .eq("id", primaryId);
+}
 
 export type PressTickResult = {
   ok: true;
@@ -267,30 +316,78 @@ export async function runPressTick(opts: {
       return m;
     }
 
+    // Every country the scan covers (onboarded + media-only), and the shared
+    // regional/international outlets with their credibility.
+    const knownCountries: Record<string, string> = {};
+    {
+      const [{ data: cs }, { data: mcs }] = await Promise.all([
+        supabaseAdmin.from("countries").select("code,name"),
+        supabaseAdmin.from("narrative_media_countries").select("code,name,is_regional").eq("active", true),
+      ]);
+      for (const c of cs ?? []) knownCountries[c.code as string] = (c.name as string) ?? c.code;
+      for (const c of mcs ?? []) if (!c.is_regional) knownCountries[c.code as string] = c.name as string;
+    }
+    const outletCred = new Map<string, number>();
+    {
+      const { data: outs } = await supabaseAdmin.from("narrative_outlets").select("domain,credibility");
+      for (const o of outs ?? []) outletCred.set((o.domain as string).toLowerCase(), o.credibility as number);
+    }
+    const outletOf = (u: string | null) => {
+      if (!u) return null;
+      try {
+        return new URL(u).hostname.replace(/^www\./, "");
+      } catch {
+        return null;
+      }
+    };
+    const credOf = (url: string | null, feedScope: string | null) => {
+      const d = outletOf(url);
+      let oc: number | null = null;
+      if (d) for (const [dom, c] of outletCred) if (d === dom || d.endsWith("." + dom)) oc = c;
+      return credibilityFor({ domain: d, outletCredibility: oc, feedScope });
+    };
+
     // Phase 1 — classify all in parallel, collect results (no inserts yet).
     type ClassifyResult = {
       it: (typeof toClassify)[number];
       c: Awaited<ReturnType<typeof classifySignal>>;
       pScore: number;
+      targets: string[];
     };
     const classified: ClassifyResult[] = [];
     await pMap(
       toClassify,
       async (it) => {
         try {
-          const sectorMenu = await menu(it.country_code);
+          const regional = it.country_code === REGIONAL_CODE;
+          const sectorMenu = regional ? [] : await menu(it.country_code);
           const upgradedMd = upgraded.get(it.id);
           const rawForClassify = upgradedMd
             ? [it.title, upgradedMd].filter(Boolean).join("\n\n")
             : [it.title, it.raw_excerpt].filter(Boolean).join("\n\n");
           const c = await classifySignal({
-            countryCode: it.country_code,
+            countryCode: regional ? "Caribbean-wide (identify each country)" : it.country_code,
             url: it.url,
             raw: rawForClassify,
             sectorMenu,
+            knownCountries,
           });
-          // Derive same P1..P5 score used by the triage rail so the highest-urgency
-          // items are inserted (and cluster-headed) first.
+          const targets = Array.from(
+            new Set([...(regional ? [] : [it.country_code]), ...c.countries_mentioned]),
+          );
+          // Relevance gate: keep articles about a covered country AND
+          // politics/economy; local feeds also keep anything not marked "ignore".
+          const relevant = c.is_political || c.is_economic;
+          const keep = regional
+            ? targets.length > 0 && relevant
+            : relevant || c.recommendation !== "ignore";
+          if (!keep) {
+            await supabaseAdmin
+              .from("narrative_feed_items")
+              .update({ state: "discarded" })
+              .eq("id", it.id);
+            return;
+          }
           const sev = Math.max(1, Math.min(5, c.severity));
           const reach = Math.max(1, Math.min(5, c.reach));
           const leadish = c.recommendation === "lead" || c.recommendation === "counter";
@@ -305,7 +402,7 @@ export async function runPressTick(opts: {
                   : sev >= 3 || reach >= 3
                     ? 4
                     : 5;
-          classified.push({ it, c, pScore });
+          classified.push({ it, c, pScore, targets });
         } catch (e) {
           errors.push({ scope: `classify:${it.id}`, msg: (e as Error).message });
           await supabaseAdmin
@@ -317,102 +414,128 @@ export async function runPressTick(opts: {
       4,
     );
 
+    // Phase 1b — verify every article link opens (capped, time-limited).
+    const links = new Map<string, LinkCheck>();
+    await pMap(
+      classified.filter((r) => r.it.url).slice(0, LINK_CHECK_CAP),
+      async ({ it }) => {
+        links.set(it.id, upgraded.has(it.id) ? { status: "verified", final_url: it.url } : await checkLink(it.url!));
+      },
+      6,
+    );
+
     // Phase 2 — priority-ordered sequential insert with story clustering.
-    // Sequential (per country) so newly-inserted primaries are visible to the
-    // next findCluster() call in the same tick.
     classified.sort(
       (a, b) => a.pScore - b.pScore || b.c.severity + b.c.reach - (a.c.severity + a.c.reach),
     );
 
-    const outletOf = (u: string | null) => {
-      if (!u) return null;
+    for (const { it, c, targets } of classified) {
+      const link = links.get(it.id) ?? { status: it.url ? "unchecked" : "missing", final_url: null };
+      const tags = Array.from(
+        new Set([
+          ...c.tags,
+          ...(c.is_political ? ["politics"] : []),
+          ...(c.is_economic ? ["gdp"] : []),
+          ...targets.map((t) => (knownCountries[t] ?? t).toLowerCase()),
+        ]),
+      );
+      const credibility = credOf(it.url, it.tier_hint ?? c.scope);
+      const baseScore = {
+        severity: c.severity,
+        reach: c.reach,
+        is_political: c.is_political,
+        is_economic: c.is_economic,
+        credibility,
+        mentions_government: c.mentions_government,
+        age_hours: 0,
+      };
+      const common = {
+        sector_code: c.sector_code || "cross",
+        summary: c.summary,
+        url: it.url,
+        proposed_weight: Math.max(1, Math.min(5, Math.round((c.severity + c.reach) / 2))),
+        scope: c.scope,
+        severity: Math.max(1, Math.min(5, c.severity)),
+        reach: Math.max(1, Math.min(5, c.reach)),
+        sentiment: Math.max(-2, Math.min(2, c.sentiment)),
+        recommendation: c.recommendation,
+        tags,
+        countries: targets,
+        is_political: c.is_political,
+        is_economic: c.is_economic,
+        mentions_government: c.mentions_government,
+        link_status: link.status,
+        link_final_url: link.final_url,
+        link_checked_at: links.has(it.id) ? new Date().toISOString() : null,
+      };
+      let firstSignal: string | null = null;
+      let anyDup = false;
+      let promotedHere = 0;
       try {
-        return new URL(u).hostname.replace(/^www\./, "");
-      } catch {
-        return null;
-      }
-    };
-
-    for (const { it, c } of classified) {
-      try {
-        const topic = (c.topic || it.title || "").slice(0, 240);
-        const match = await findCluster(it.country_code, topic);
-        if (match) {
-          // Sibling — attach to the existing primary, don't create a new card.
-          await supabaseAdmin.from("intake_items").insert({
-            scope_key: it.country_code,
-            sector_code: c.sector_code || "cross",
-            topic,
-            summary: c.summary,
-            url: it.url,
-            proposed_weight: Math.max(1, Math.min(5, Math.round((c.severity + c.reach) / 2))),
-            scope: c.scope,
-            severity: Math.max(1, Math.min(5, c.severity)),
-            reach: Math.max(1, Math.min(5, c.reach)),
-            sentiment: Math.max(-2, Math.min(2, c.sentiment)),
-            recommendation: c.recommendation,
-            story_key: match.story_key,
-            story_primary: false,
-            duplicate_of: match.primary_id,
-            state: "duplicate",
-            metadata: {
-              dossier_bullets: c.dossier_bullets,
-              rationale: c.rationale,
-              citations: c.citations ?? [],
-              source: "press-tick",
-              ingested_at: new Date().toISOString(),
-              clustered_into: match.primary_id,
-              cluster_similarity: match.similarity,
-            },
-          });
-          await attachSibling(match.primary_id, {
-            url: it.url,
-            title: topic,
-            outlet: outletOf(it.url),
-          });
-          await supabaseAdmin
-            .from("narrative_feed_items")
-            .update({ state: "duplicate", signal_id: match.primary_id })
-            .eq("id", it.id);
-          clustersMerged++;
-          if (it.url) canonSet.add(canonicalUrl(it.url));
-          continue;
+        for (const tc of targets) {
+          countryList.add(tc);
+          const topic = (c.topic || it.title || "").slice(0, 240);
+          const match = await findCluster(tc, topic);
+          if (match) {
+            const { score, factors } = computePriorityScore({ ...baseScore, spread: 1 });
+            await supabaseAdmin.from("intake_items").insert({
+              ...common,
+              scope_key: tc,
+              topic,
+              story_key: match.story_key,
+              story_primary: false,
+              duplicate_of: match.primary_id,
+              state: "duplicate",
+              priority_score: score,
+              priority_factors: { ...factors, credibility_raw: credibility, spread_raw: 1 },
+              metadata: {
+                dossier_bullets: c.dossier_bullets,
+                rationale: c.rationale,
+                citations: c.citations ?? [],
+                source: "press-tick",
+                ingested_at: new Date().toISOString(),
+                clustered_into: match.primary_id,
+                cluster_similarity: match.similarity,
+              },
+            });
+            await attachSibling(match.primary_id, { url: it.url, title: topic, outlet: outletOf(it.url) });
+            await bumpSpread(match.primary_id);
+            firstSignal ??= match.primary_id;
+            anyDup = true;
+            clustersMerged++;
+            continue;
+          }
+          const { score, factors } = computePriorityScore({ ...baseScore, spread: 1 });
+          const { data: sig, error: sigErr } = await supabaseAdmin
+            .from("intake_items")
+            .insert({
+              ...common,
+              scope_key: tc,
+              topic,
+              story_key: storyKeyFromTitle(topic),
+              story_primary: true,
+              priority_score: score,
+              priority_factors: { ...factors, credibility_raw: credibility, spread_raw: 1 },
+              metadata: {
+                dossier_bullets: c.dossier_bullets,
+                rationale: c.rationale,
+                citations: c.citations ?? [],
+                source: "press-tick",
+                ingested_at: new Date().toISOString(),
+                outlet: outletOf(it.url),
+              },
+            })
+            .select("id")
+            .single();
+          if (sigErr) throw sigErr;
+          firstSignal = sig.id;
+          itemsPromoted++;
+          promotedHere++;
         }
-        // New primary.
-        const storyKey = storyKeyFromTitle(topic);
-        const { data: sig, error: sigErr } = await supabaseAdmin
-          .from("intake_items")
-          .insert({
-            scope_key: it.country_code,
-            sector_code: c.sector_code || "cross",
-            topic,
-            summary: c.summary,
-            url: it.url,
-            proposed_weight: Math.max(1, Math.min(5, Math.round((c.severity + c.reach) / 2))),
-            scope: c.scope,
-            severity: Math.max(1, Math.min(5, c.severity)),
-            reach: Math.max(1, Math.min(5, c.reach)),
-            sentiment: Math.max(-2, Math.min(2, c.sentiment)),
-            recommendation: c.recommendation,
-            story_key: storyKey,
-            story_primary: true,
-            metadata: {
-              dossier_bullets: c.dossier_bullets,
-              rationale: c.rationale,
-              citations: c.citations ?? [],
-              source: "press-tick",
-              ingested_at: new Date().toISOString(),
-              outlet: outletOf(it.url),
-            },
-          })
-          .select("id")
-          .single();
-        if (sigErr) throw sigErr;
         await supabaseAdmin
           .from("narrative_feed_items")
-          .update({ state: "promoted", signal_id: sig.id })
+          .update({ state: anyDup && promotedHere === 0 ? "duplicate" : "promoted", signal_id: firstSignal })
           .eq("id", it.id);
-        itemsPromoted++;
         if (it.url) canonSet.add(canonicalUrl(it.url));
       } catch (e) {
         errors.push({ scope: `insert:${it.id}`, msg: (e as Error).message });
@@ -455,6 +578,7 @@ export async function runPressTick(opts: {
   // failure so the UI badge can call it out.
   const missing: string[] = [];
   for (const cc of universe) {
+    if (cc === REGIONAL_CODE) continue;
     if ((coverage[cc]?.total ?? 0) === 0) {
       missing.push(cc);
       errors.push({ scope: `missing:${cc}`, msg: "no items promoted this window" });

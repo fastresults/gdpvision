@@ -216,16 +216,37 @@ export interface Classification {
   recommendation: "lead" | "amplify" | "counter" | "monitor" | "ignore";
   rationale: string;
   citations?: string[];
+  /** ISO3 codes of every country the article is materially about. */
+  countries_mentioned: string[];
+  is_political: boolean;
+  is_economic: boolean;
+  mentions_government: boolean;
+  tags: string[];
 }
+
+export interface ClassifyInput {
+  countryCode: string;
+  url?: string | null;
+  raw?: string | null;
+  sectorMenu: string[];
+  hintSectorCode?: string | null;
+  /** code → name for every country the scan covers. */
+  knownCountries?: Record<string, string>;
+}
+
+function countryMenuLine(input: ClassifyInput): string {
+  const k = input.knownCountries;
+  if (!k) return "";
+  return `Known countries (ISO3: name): ${Object.entries(k)
+    .map(([c, n]) => `${c}: ${n}`)
+    .join("; ")}. List in countries_mentioned only codes from this list that are a main subject of the article (usually 1–3); do not list countries merely named in passing or as examples.`;
+}
+
+const asBool = (v: unknown) => v === true || v === "true" || v === 1;
 
 function normalizeClassification(
   value: Classification,
-  input: {
-    countryCode: string;
-    url?: string | null;
-    sectorMenu: string[];
-    hintSectorCode?: string | null;
-  },
+  input: ClassifyInput,
 ): Classification {
   const scopes: Scope[] = ["local", "regional", "international"];
   const recommendations: Classification["recommendation"][] = [
@@ -258,16 +279,27 @@ function normalizeClassification(
     citations: Array.from(new Set([...(value.citations ?? []), ...(input.url ? [input.url] : [])]))
       .filter((url) => /^https:\/\//i.test(url))
       .slice(0, 8),
+    countries_mentioned: Array.from(
+      new Set(
+        (Array.isArray(value.countries_mentioned) ? value.countries_mentioned : [])
+          .map((c) => String(c).trim().toUpperCase())
+          .filter((c) => !input.knownCountries || c in input.knownCountries),
+      ),
+    ).slice(0, 4),
+    is_political: asBool(value.is_political),
+    is_economic: asBool(value.is_economic),
+    mentions_government: asBool(value.mentions_government),
+    tags: Array.from(
+      new Set(
+        (Array.isArray(value.tags) ? value.tags : [])
+          .map((t) => String(t).trim().toLowerCase().slice(0, 40))
+          .filter(Boolean),
+      ),
+    ).slice(0, 10),
   };
 }
 
-async function classifyWithGateway(input: {
-  countryCode: string;
-  url?: string | null;
-  raw?: string | null;
-  sectorMenu: string[];
-  hintSectorCode?: string | null;
-}): Promise<Classification> {
+async function classifyWithGateway(input: ClassifyInput): Promise<Classification> {
   const { callGeminiJson } = await import("@/lib/country-onboarding/gemini.server");
   const { parsed } = await callGeminiJson<Classification>({
     system:
@@ -278,25 +310,21 @@ async function classifyWithGateway(input: {
       input.raw ? `Press mention:\n${input.raw.slice(0, 12000)}` : "",
       `Allowed sector codes: ${input.sectorMenu.join(", ") || "cross"}`,
       input.hintSectorCode ? `Suggested sector: ${input.hintSectorCode}` : "",
+      countryMenuLine(input),
+      "Also flag is_political (elections, parties, government, ministers, policy, diplomacy), is_economic (GDP, growth, budget, debt, investment, trade, tourism receipts, jobs, prices), mentions_government (names the government, a ministry or a minister), and up to 6 short lowercase tags.",
       "Classify scope, sector, urgency, reach, sentiment and the recommended government response. Return json.",
     ]
       .filter(Boolean)
       .join("\n\n"),
     schemaHint:
-      '{"scope":"local|regional|international","sector_code":"allowed code or cross","severity":1,"reach":1,"sentiment":0,"topic":"short headline","summary":"two factual sentences","dossier_bullets":["fact"],"recommendation":"lead|amplify|counter|monitor|ignore","rationale":"one sentence","citations":["https://source"]}',
+      '{"scope":"local|regional|international","sector_code":"allowed code or cross","severity":1,"reach":1,"sentiment":0,"topic":"short headline","summary":"two factual sentences","dossier_bullets":["fact"],"recommendation":"lead|amplify|counter|monitor|ignore","rationale":"one sentence","citations":["https://source"],"countries_mentioned":["ATG"],"is_political":true,"is_economic":false,"mentions_government":true,"tags":["election"]}',
     citationText: input.raw ?? "",
   });
   if (!parsed) throw new Error("Press classification returned no usable result.");
   return normalizeClassification(parsed, input);
 }
 
-export async function classifySignal(input: {
-  countryCode: string;
-  url?: string | null;
-  raw?: string | null;
-  sectorMenu: string[];
-  hintSectorCode?: string | null;
-}): Promise<Classification> {
+export async function classifySignal(input: ClassifyInput): Promise<Classification> {
   const key = process.env.PERPLEXITY_API_KEY;
   if (!key) return classifyWithGateway(input);
   const userPrompt = [
@@ -308,7 +336,9 @@ export async function classifySignal(input: {
     "",
     "Return strict JSON: scope (local|regional|international), sector_code, severity 1-5, reach 1-5,",
     "sentiment -2..+2, topic (≤90 chars), summary (2 sentences), dossier_bullets (4 crisp bullets),",
-    "recommendation (lead|amplify|counter|monitor|ignore), rationale (1 sentence).",
+    "recommendation (lead|amplify|counter|monitor|ignore), rationale (1 sentence),",
+    "countries_mentioned (ISO3 codes), is_political, is_economic, mentions_government (booleans), tags (≤6 lowercase).",
+    countryMenuLine(input),
   ]
     .filter(Boolean)
     .join("\n");
@@ -325,6 +355,11 @@ export async function classifySignal(input: {
       dossier_bullets: { type: "array", items: { type: "string" } },
       recommendation: { type: "string" },
       rationale: { type: "string" },
+      countries_mentioned: { type: "array", items: { type: "string" } },
+      is_political: { type: "boolean" },
+      is_economic: { type: "boolean" },
+      mentions_government: { type: "boolean" },
+      tags: { type: "array", items: { type: "string" } },
     },
     required: [
       "scope",
@@ -337,6 +372,11 @@ export async function classifySignal(input: {
       "dossier_bullets",
       "recommendation",
       "rationale",
+      "countries_mentioned",
+      "is_political",
+      "is_economic",
+      "mentions_government",
+      "tags",
     ],
   };
   const res = await perplexityFetch({

@@ -132,6 +132,8 @@ export function sortSignals(rows: SignalRow[], key: SortKey): SignalRow[] {
         if (la.level !== lb.level) return la.level - lb.level;
         const t = markTier(a) - markTier(b);
         if (t !== 0) return t;
+        const pa = a.priority_score, pb = b.priority_score;
+        if (pa != null && pb != null && pa !== pb) return Number(pb) - Number(pa);
         return la.score - lb.score;
       });
   }

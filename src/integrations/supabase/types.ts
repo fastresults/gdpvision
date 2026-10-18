@@ -4578,6 +4578,7 @@ export type Database = {
       }
       intake_items: {
         Row: {
+          countries: string[]
           created_at: string
           duplicate_of: string | null
           final_weight: number | null
@@ -4586,9 +4587,17 @@ export type Database = {
           flagged_by: string | null
           harvest_run_id: string | null
           id: string
+          is_economic: boolean | null
+          is_political: boolean | null
+          link_checked_at: string | null
+          link_final_url: string | null
+          link_status: string | null
+          mentions_government: boolean | null
           metadata: Json
           pinned_at: string | null
           pinned_by: string | null
+          priority_factors: Json | null
+          priority_score: number | null
           proposed_weight: number
           reach: number | null
           recommendation: string | null
@@ -4604,10 +4613,12 @@ export type Database = {
           story_key: string | null
           story_primary: boolean
           summary: string | null
+          tags: string[]
           topic: string
           url: string | null
         }
         Insert: {
+          countries?: string[]
           created_at?: string
           duplicate_of?: string | null
           final_weight?: number | null
@@ -4616,9 +4627,17 @@ export type Database = {
           flagged_by?: string | null
           harvest_run_id?: string | null
           id?: string
+          is_economic?: boolean | null
+          is_political?: boolean | null
+          link_checked_at?: string | null
+          link_final_url?: string | null
+          link_status?: string | null
+          mentions_government?: boolean | null
           metadata?: Json
           pinned_at?: string | null
           pinned_by?: string | null
+          priority_factors?: Json | null
+          priority_score?: number | null
           proposed_weight?: number
           reach?: number | null
           recommendation?: string | null
@@ -4634,10 +4653,12 @@ export type Database = {
           story_key?: string | null
           story_primary?: boolean
           summary?: string | null
+          tags?: string[]
           topic: string
           url?: string | null
         }
         Update: {
+          countries?: string[]
           created_at?: string
           duplicate_of?: string | null
           final_weight?: number | null
@@ -4646,9 +4667,17 @@ export type Database = {
           flagged_by?: string | null
           harvest_run_id?: string | null
           id?: string
+          is_economic?: boolean | null
+          is_political?: boolean | null
+          link_checked_at?: string | null
+          link_final_url?: string | null
+          link_status?: string | null
+          mentions_government?: boolean | null
           metadata?: Json
           pinned_at?: string | null
           pinned_by?: string | null
+          priority_factors?: Json | null
+          priority_score?: number | null
           proposed_weight?: number
           reach?: number | null
           recommendation?: string | null
@@ -4664,6 +4693,7 @@ export type Database = {
           story_key?: string | null
           story_primary?: boolean
           summary?: string | null
+          tags?: string[]
           topic?: string
           url?: string | null
         }
@@ -6730,6 +6760,81 @@ export type Database = {
           },
         ]
       }
+      narrative_media_countries: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          is_regional: boolean
+          name: string
+          region: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          is_regional?: boolean
+          name: string
+          region?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          is_regional?: boolean
+          name?: string
+          region?: string
+        }
+        Relationships: []
+      }
+      narrative_outlets: {
+        Row: {
+          active: boolean
+          created_at: string
+          credibility: number
+          domain: string
+          feed_status: string | null
+          feed_url: string | null
+          focus: string[]
+          id: string
+          last_synced_at: string | null
+          name: string
+          notes: string | null
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          credibility?: number
+          domain: string
+          feed_status?: string | null
+          feed_url?: string | null
+          focus?: string[]
+          id?: string
+          last_synced_at?: string | null
+          name: string
+          notes?: string | null
+          scope?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          credibility?: number
+          domain?: string
+          feed_status?: string | null
+          feed_url?: string | null
+          focus?: string[]
+          id?: string
+          last_synced_at?: string | null
+          name?: string
+          notes?: string | null
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       narrative_retention_runs: {
         Row: {
           id: string
@@ -6748,6 +6853,24 @@ export type Database = {
           ran_at?: string
           removed?: number
           scope_key?: string
+        }
+        Relationships: []
+      }
+      narrative_scan_locks: {
+        Row: {
+          expires_at: string
+          holder: string
+          name: string
+        }
+        Insert: {
+          expires_at: string
+          holder: string
+          name: string
+        }
+        Update: {
+          expires_at?: string
+          holder?: string
+          name?: string
         }
         Relationships: []
       }

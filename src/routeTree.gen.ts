@@ -47,6 +47,7 @@ import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminGithubRouteImport } from './routes/_authenticated/admin/github'
 import { Route as AuthenticatedAdminInvitationsRouteImport } from './routes/_authenticated/admin/invitations'
 import { Route as AuthenticatedAdminLedgerQaRouteImport } from './routes/_authenticated/admin/ledger-qa'
+import { Route as AuthenticatedAdminMediaScanRouteImport } from './routes/_authenticated/admin/media-scan'
 import { Route as AuthenticatedAdminPartnerKeysRouteImport } from './routes/_authenticated/admin/partner-keys'
 import { Route as AuthenticatedAdminProformaRouteImport } from './routes/_authenticated/admin/proforma'
 import { Route as AuthenticatedAdminScorecardsRouteImport } from './routes/_authenticated/admin/scorecards'
@@ -374,6 +375,12 @@ const AuthenticatedAdminLedgerQaRoute =
   AuthenticatedAdminLedgerQaRouteImport.update({
     id: '/ledger-qa',
     path: '/ledger-qa',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminMediaScanRoute =
+  AuthenticatedAdminMediaScanRouteImport.update({
+    id: '/media-scan',
+    path: '/media-scan',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminPartnerKeysRoute =
@@ -1184,6 +1191,7 @@ export interface FileRoutesByFullPath {
   '/admin/github': typeof AuthenticatedAdminGithubRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/admin/media-scan': typeof AuthenticatedAdminMediaScanRoute
   '/admin/partner-keys': typeof AuthenticatedAdminPartnerKeysRoute
   '/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/admin/scorecards': typeof AuthenticatedAdminScorecardsRoute
@@ -1349,6 +1357,7 @@ export interface FileRoutesByTo {
   '/admin/github': typeof AuthenticatedAdminGithubRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/admin/media-scan': typeof AuthenticatedAdminMediaScanRoute
   '/admin/partner-keys': typeof AuthenticatedAdminPartnerKeysRoute
   '/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/admin/scorecards': typeof AuthenticatedAdminScorecardsRoute
@@ -1515,6 +1524,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/github': typeof AuthenticatedAdminGithubRoute
   '/_authenticated/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/_authenticated/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/_authenticated/admin/media-scan': typeof AuthenticatedAdminMediaScanRoute
   '/_authenticated/admin/partner-keys': typeof AuthenticatedAdminPartnerKeysRoute
   '/_authenticated/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/_authenticated/admin/scorecards': typeof AuthenticatedAdminScorecardsRoute
@@ -1686,6 +1696,7 @@ export interface FileRouteTypes {
     | '/admin/github'
     | '/admin/invitations'
     | '/admin/ledger-qa'
+    | '/admin/media-scan'
     | '/admin/partner-keys'
     | '/admin/proforma'
     | '/admin/scorecards'
@@ -1851,6 +1862,7 @@ export interface FileRouteTypes {
     | '/admin/github'
     | '/admin/invitations'
     | '/admin/ledger-qa'
+    | '/admin/media-scan'
     | '/admin/partner-keys'
     | '/admin/proforma'
     | '/admin/scorecards'
@@ -2016,6 +2028,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/github'
     | '/_authenticated/admin/invitations'
     | '/_authenticated/admin/ledger-qa'
+    | '/_authenticated/admin/media-scan'
     | '/_authenticated/admin/partner-keys'
     | '/_authenticated/admin/proforma'
     | '/_authenticated/admin/scorecards'
@@ -2455,6 +2468,13 @@ declare module '@tanstack/react-router' {
       path: '/ledger-qa'
       fullPath: '/admin/ledger-qa'
       preLoaderRoute: typeof AuthenticatedAdminLedgerQaRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/media-scan': {
+      id: '/_authenticated/admin/media-scan'
+      path: '/media-scan'
+      fullPath: '/admin/media-scan'
+      preLoaderRoute: typeof AuthenticatedAdminMediaScanRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/partner-keys': {
@@ -3567,6 +3587,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminGithubRoute: typeof AuthenticatedAdminGithubRoute
   AuthenticatedAdminInvitationsRoute: typeof AuthenticatedAdminInvitationsRoute
   AuthenticatedAdminLedgerQaRoute: typeof AuthenticatedAdminLedgerQaRoute
+  AuthenticatedAdminMediaScanRoute: typeof AuthenticatedAdminMediaScanRoute
   AuthenticatedAdminPartnerKeysRoute: typeof AuthenticatedAdminPartnerKeysRoute
   AuthenticatedAdminProformaRoute: typeof AuthenticatedAdminProformaRoute
   AuthenticatedAdminScorecardsRoute: typeof AuthenticatedAdminScorecardsRoute
@@ -3613,6 +3634,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminGithubRoute: AuthenticatedAdminGithubRoute,
     AuthenticatedAdminInvitationsRoute: AuthenticatedAdminInvitationsRoute,
     AuthenticatedAdminLedgerQaRoute: AuthenticatedAdminLedgerQaRoute,
+    AuthenticatedAdminMediaScanRoute: AuthenticatedAdminMediaScanRoute,
     AuthenticatedAdminPartnerKeysRoute: AuthenticatedAdminPartnerKeysRoute,
     AuthenticatedAdminProformaRoute: AuthenticatedAdminProformaRoute,
     AuthenticatedAdminScorecardsRoute: AuthenticatedAdminScorecardsRoute,

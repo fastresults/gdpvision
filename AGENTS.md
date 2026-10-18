@@ -7,13 +7,11 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 ## Cardinal rules
 
 - **Vault presentation**: separate the opening circuit from contained `Illustration` artwork and asset pointers; preserve data controls.
-- **Business case**: keep claims and source links in `src/lib/business-case.ts`; separate capabilities, pilot tests and contract terms to avoid implying proven results.
 
 - **Decision playback**: national and Chamber examples share `PlaybackStrip`; manual navigation pauses, replay restarts the example, and Chamber selection follows an explicitly sorted index so controls and story state stay aligned.
 
 - **Decision presentation copy**: keep scenario title keys and route edges stable; derive stage inputs from route source nodes rather than parsing display captions, so plain-language copy changes cannot break journey lookup or evidence assembly.
 
-- **Narrative retention**: daily `purge_stale_signals` purges unmarked signals >30d; signal queries share that filter.
 - **Buttons**: `btn-primary`/`btn-secondary`/`btn-ghost`/`btn-accent` from `src/styles.css`; never inline `bg-ink-* text-paper-*`. Only `@theme inline` colour tokens exist.
 - **Measuring-body logos**: use static official assets via `src/assets/measuring-bodies/*.asset.json`, with provenance in `sources.md` and a fixed contain-fit slot in `IndexBand`; this keeps institutional identity accurate without runtime lookup or layout shifts.
 - **JSON in UI**: `<PrettyJson>` from `@/components/data/PrettyJson`; raw `JSON.stringify` in JSX only in a `<textarea>` or collapsed `<details>`.
@@ -48,4 +46,5 @@ After adding a server fn, migration or route: `bun run headers && bun run map`. 
 <!-- LOVABLE:BEGIN -->
 - Homepage scrollers share a once-per-visit visible-entry horizontal step; manual input and reduced motion cancel it so discovery never competes with browsing.
 <!-- LOVABLE:END -->
-- **Partner data (GDP Advisor)**: companion sites read through `src/lib/public-data/partner.server.ts` (v2 API under `/api/public/v2`, partner keys `gdpp_…`, admin at `/admin/partner-keys`), which delegates to v1 resource handlers via `readPublicResource` so one set of public/approved filters governs every external read.
+
+Subfolders may have their own `AGENTS.md` (e.g. `src/lib`); read it first.

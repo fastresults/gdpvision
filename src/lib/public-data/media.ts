@@ -20,7 +20,7 @@ export function priorityLevel(rec: string | null, sev: number | null, reach: num
 }
 
 export const MEDIA_SELECT =
-  "id,topic,summary,url,link_final_url,link_status,scope,severity,reach,sentiment,recommendation,state,review_verdict,tags,countries,is_political,is_economic,mentions_government,priority_score,source_tier,first_to_report,story_key,created_at,metadata";
+  "id,topic,summary,url,link_final_url,link_status,scope,severity,reach,sentiment,recommendation,state,review_verdict,tags,countries,is_political,is_economic,mentions_government,priority_score,priority_override,priority_raised_from,source_tier,first_to_report,story_key,created_at,metadata";
 
 type Row = Record<string, unknown>;
 
@@ -50,7 +50,8 @@ export function toPublicSignal(row: Row) {
     topics,
     tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
     countries: Array.isArray(row.countries) ? row.countries.map(String) : [],
-    priority_level: priorityLevel(row.recommendation as string | null, row.severity as number | null, row.reach as number | null),
+    priority_level: row.priority_override === 1 ? 1 : priorityLevel(row.recommendation as string | null, row.severity as number | null, row.reach as number | null),
+    priority_raised_from: row.priority_raised_from == null ? null : Number(row.priority_raised_from),
     importance_score: row.priority_score == null ? null : Math.round(Number(row.priority_score) * 100) / 100,
     source_tier: row.source_tier == null ? null : `S${row.source_tier}`,
     first_to_report: row.first_to_report === true,

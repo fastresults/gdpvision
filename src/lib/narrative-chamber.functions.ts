@@ -44,6 +44,9 @@ export interface SignalRow {
   is_economic?: boolean | null;
   link_status?: string | null;
   priority_score?: number | null;
+  priority_override?: number | null;
+  priority_raised_from?: number | null;
+  priority_raised_reason?: string | null;
   source_tier?: number | null;
   source_feed_id?: string | null;
   first_to_report?: boolean | null;

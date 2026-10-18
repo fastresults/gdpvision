@@ -38,6 +38,15 @@ const entries: Array<Rationale<Record<string, never>>> = [
     caveat: "Up to 80 links are checked per scan; the rest show as unchecked.",
     derive: () => [],
   },
+  {
+    key: "narrative.p1-guarantee",
+    title: "Guaranteed P1 GDP and political story",
+    short: "Every country keeps at least one P1 GDP story and one P1 political story after each scan.",
+    formula:
+      "If no story reaches P1 on its own, the most important matching story from the last 30 days is raised. The search goes P2 first, then P3, then P4, picking the highest importance score, then the newest.",
+    caveat: "P5 and stories marked Noise, Duplicate or Dismissed are never raised. If nothing matches, the country shows a gap. A raise is removed once a natural P1 appears.",
+    derive: () => [],
+  },
 ];
 
 registerRationales(entries as Array<Rationale<never>>);

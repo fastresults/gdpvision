@@ -84,10 +84,11 @@ export function priorityFor(signal: {
   severity: number | null;
   reach: number | null;
   created_at?: string;
+  priority_override?: number | null;
 }): PriorityMeta & { score: number } {
   const sev = signal.severity ?? 0;
   const reach = signal.reach ?? 0;
-  const lvl = level(signal.recommendation, sev, reach);
+  const lvl: PriorityLevel = signal.priority_override === 1 ? 1 : level(signal.recommendation, sev, reach);
   const meta = PRIORITY_META[lvl];
   // Lower score = higher priority for ascending sort.
   const ageHrs = signal.created_at

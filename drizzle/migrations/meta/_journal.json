@@ -274,6 +274,13 @@
       "when": 1792362370768,
       "tag": "0038_narrative_source_raw_stats_fast",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1792365694699,
+      "tag": "0039_p1_guarantee",
+      "breakpoints": true
     }
   ]
 }

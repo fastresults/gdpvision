@@ -4598,6 +4598,9 @@ export type Database = {
           pinned_at: string | null
           pinned_by: string | null
           priority_factors: Json | null
+          priority_override: number | null
+          priority_raised_from: number | null
+          priority_raised_reason: string | null
           priority_score: number | null
           proposed_weight: number
           reach: number | null
@@ -4644,6 +4647,9 @@ export type Database = {
           pinned_at?: string | null
           pinned_by?: string | null
           priority_factors?: Json | null
+          priority_override?: number | null
+          priority_raised_from?: number | null
+          priority_raised_reason?: string | null
           priority_score?: number | null
           proposed_weight?: number
           reach?: number | null
@@ -4690,6 +4696,9 @@ export type Database = {
           pinned_at?: string | null
           pinned_by?: string | null
           priority_factors?: Json | null
+          priority_override?: number | null
+          priority_raised_from?: number | null
+          priority_raised_reason?: string | null
           priority_score?: number | null
           proposed_weight?: number
           reach?: number | null
@@ -6709,6 +6718,7 @@ export type Database = {
           items_fetched: number
           items_new: number
           items_promoted: number
+          p1_guarantee: Json | null
           started_at: string
           triggered_by: string
           window_key: string | null
@@ -6723,6 +6733,7 @@ export type Database = {
           items_fetched?: number
           items_new?: number
           items_promoted?: number
+          p1_guarantee?: Json | null
           started_at?: string
           triggered_by?: string
           window_key?: string | null
@@ -6737,6 +6748,7 @@ export type Database = {
           items_fetched?: number
           items_new?: number
           items_promoted?: number
+          p1_guarantee?: Json | null
           started_at?: string
           triggered_by?: string
           window_key?: string | null

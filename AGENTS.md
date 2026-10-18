@@ -7,7 +7,6 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 ## Cardinal rules
 
 - **Vault presentation**: separate the opening circuit from contained `Illustration` artwork and asset pointers; preserve data controls.
-- **Business case**: keep claims and source links in `src/lib/business-case.ts`; separate capabilities, pilot tests and contract terms to avoid implying proven results.
 
 - **Decision playback**: national and Chamber examples share `PlaybackStrip`; manual navigation pauses, replay restarts the example, and Chamber selection follows an explicitly sorted index so controls and story state stay aligned.
 

@@ -239,7 +239,7 @@ function countryMenuLine(input: ClassifyInput): string {
   if (!k) return "";
   return `Known countries (ISO3: name): ${Object.entries(k)
     .map(([c, n]) => `${c}: ${n}`)
-    .join("; ")}. List in countries_mentioned only codes from this list that the article is materially about.`;
+    .join("; ")}. List in countries_mentioned only codes from this list that are a main subject of the article (usually 1–3); do not list countries merely named in passing or as examples.`;
 }
 
 const asBool = (v: unknown) => v === true || v === "true" || v === 1;
@@ -285,7 +285,7 @@ function normalizeClassification(
           .map((c) => String(c).trim().toUpperCase())
           .filter((c) => !input.knownCountries || c in input.knownCountries),
       ),
-    ).slice(0, 12),
+    ).slice(0, 4),
     is_political: asBool(value.is_political),
     is_economic: asBool(value.is_economic),
     mentions_government: asBool(value.mentions_government),

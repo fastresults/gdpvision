@@ -620,6 +620,15 @@ export async function runPressTick(opts: {
     if (gapFillErrors.length) errors.push(...gapFillErrors);
   }
 
+  let p1Guarantee: Record<string, unknown> | null = null;
+  try {
+    const { enforceP1Guarantee } = await import("@/lib/narrative-p1-guarantee.server");
+    const targets = filterCountry ? [filterCountry] : Array.from(universe).filter((c) => c !== REGIONAL_CODE);
+    p1Guarantee = await enforceP1Guarantee(targets);
+  } catch (e) {
+    errors.push({ scope: "p1-guarantee", msg: (e as Error).message });
+  }
+
   await supabaseAdmin
     .from("narrative_harvest_runs")
     .update({
@@ -630,6 +639,7 @@ export async function runPressTick(opts: {
       items_new: itemsNew,
       items_promoted: itemsPromoted,
       errors: errors.slice(0, 80),
+      p1_guarantee: p1Guarantee as never,
       coverage: {
         ...coverage,
         _clusters_merged: clustersMerged,

@@ -123,7 +123,7 @@ function MediaScanPage() {
             <thead className="text-left font-mono text-[11px] uppercase tracking-wider text-ink-500">
               <tr>
                 <th className="py-2">Country</th><th>Feeds</th><th>Failing</th><th>Signals</th><th>Politics</th><th>GDP</th>
-                <th><Explain id="narrative.link-status">Broken links</Explain></th><th>S1–S2 sources</th><th>P1–P2 this week</th><th>Last read</th><th />
+                <th><Explain id="narrative.link-status">Broken links</Explain></th><th>S1–S2 sources</th><th>P1–P2 this week</th><th><Explain id="narrative.p1-guarantee">P1 GDP / P1 Politics</Explain></th><th>Last read</th><th />
               </tr>
             </thead>
             <tbody>
@@ -140,6 +140,13 @@ function MediaScanPage() {
                   <td className="tabular-nums">{c.broken_links_7d}</td>
                   <td className="tabular-nums">{c.strong_sources}</td>
                   <td className="tabular-nums">{c.p12_7d}</td>
+                  <td className="font-mono text-[11px]">
+                    {[c.p1_gdp, c.p1_political].map((v, i) => (
+                      <span key={i} className={v === "gap" ? "mr-2 text-rose-700" : "mr-2"}>
+                        {i === 0 ? "GDP " : "Pol "}{v === "natural" ? "✓" : v === "raised" ? "raised" : "gap"}
+                      </span>
+                    ))}
+                  </td>
                   <td className="text-ink-600">{fmt(c.last_polled_at)}</td>
                   <td className="text-right">
                     {c.code !== "CAR" && (

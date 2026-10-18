@@ -38,6 +38,12 @@ export interface SignalRow {
   pinned_at?: string | null;
   flagged_at?: string | null;
   flag_note?: string | null;
+  tags?: string[] | null;
+  countries?: string[] | null;
+  is_political?: boolean | null;
+  is_economic?: boolean | null;
+  link_status?: string | null;
+  priority_score?: number | null;
 }
 
 export const SIGNAL_WINDOW_DAYS = 30;
@@ -54,7 +60,7 @@ export interface SignalListResult {
 }
 
 const SIGNAL_COLUMNS =
-  "id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,scope,severity,reach,sentiment,recommendation,metadata,created_at,pinned_at,flagged_at,flag_note";
+  "id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,scope,severity,reach,sentiment,recommendation,metadata,created_at,pinned_at,flagged_at,flag_note,tags,countries,is_political,is_economic,link_status,priority_score";
 
 export const listSignals = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

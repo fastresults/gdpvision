@@ -260,6 +260,13 @@
       "when": 1792360556171,
       "tag": "0036_narrative_media_scan",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1792361842057,
+      "tag": "0037_narrative_source_stats",
+      "breakpoints": true
     }
   ]
 }

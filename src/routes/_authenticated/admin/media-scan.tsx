@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
+import { MediaSourcesPanel } from "@/components/narrative/MediaSourcesPanel";
 import { Explain } from "@/components/explain/Explain";
 import "@/lib/explain/narrative-entries";
 import {
@@ -43,6 +44,7 @@ function MediaScanPage() {
   const q = useQuery({ queryKey: ["admin", "media-scan"], queryFn: () => overview(), refetchInterval: 15_000 });
   const refresh = () => void qc.invalidateQueries({ queryKey: ["admin", "media-scan"] });
   const [msg, setMsg] = useState<string | null>(null);
+  const [tab, setTab] = useState<"overview" | "sources">("overview");
   const [country, setCountry] = useState<string>("");
   const [form, setForm] = useState({ name: "", domain: "", feed_url: "", scope: "regional" as "regional" | "international", credibility: 3 });
 
@@ -81,6 +83,18 @@ function MediaScanPage() {
         <Explain id="narrative.priority-score">importance</Explain>.
       </p>
 
+      <div className="mt-6 flex gap-1" role="tablist">
+        {(["overview", "sources"] as const).map((t) => (
+          <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "btn-primary" : "btn-ghost"} onClick={() => setTab(t)}>
+            {t === "overview" ? "Scan & coverage" : "Sources"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "sources" ? (
+        <div className="mt-6 mb-16"><MediaSourcesPanel /></div>
+      ) : (
+      <>
       <section className="mt-6 flex flex-wrap items-end gap-3 border border-line-200 bg-paper-0 p-4">
         <label className="text-sm text-ink-700">
           Scope
@@ -109,7 +123,7 @@ function MediaScanPage() {
             <thead className="text-left font-mono text-[11px] uppercase tracking-wider text-ink-500">
               <tr>
                 <th className="py-2">Country</th><th>Feeds</th><th>Failing</th><th>Signals</th><th>Politics</th><th>GDP</th>
-                <th><Explain id="narrative.link-status">Broken links</Explain></th><th>Last read</th><th />
+                <th><Explain id="narrative.link-status">Broken links</Explain></th><th>S1–S2 sources</th><th>P1–P2 this week</th><th>Last read</th><th />
               </tr>
             </thead>
             <tbody>
@@ -124,6 +138,8 @@ function MediaScanPage() {
                   <td className="tabular-nums">{c.political_7d}</td>
                   <td className="tabular-nums">{c.economic_7d}</td>
                   <td className="tabular-nums">{c.broken_links_7d}</td>
+                  <td className="tabular-nums">{c.strong_sources}</td>
+                  <td className="tabular-nums">{c.p12_7d}</td>
                   <td className="text-ink-600">{fmt(c.last_polled_at)}</td>
                   <td className="text-right">
                     {c.code !== "CAR" && (
@@ -188,6 +204,8 @@ function MediaScanPage() {
           </tbody>
         </table>
       </section>
+      </>
+      )}
     </SuperAdminShell>
   );
 }

@@ -171,6 +171,44 @@
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
+      },
+      {
+        "name": "list_media_signals",
+        "title": "List media signals",
+        "description": "Recent news signals (last 30 days) from the media scan for a country, with topic tags, priority level P1–P5 and source strength tier.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "string",
+              "pattern": "^[A-Za-z]{2,4}$"
+            },
+            "topic": {
+              "type": "string",
+              "enum": [
+                "politics",
+                "gdp",
+                "government"
+              ]
+            },
+            "min_priority": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            }
+          },
+          "required": [
+            "country"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
       }
     ]
   }

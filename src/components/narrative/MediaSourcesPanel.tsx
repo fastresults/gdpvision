@@ -22,7 +22,7 @@ export function MediaSourcesPanel() {
   const [tier, setTier] = useState("");
   const [sort, setSort] = useState<SortKey>("strength");
   const [msg, setMsg] = useState<string | null>(null);
-  const save = useMutation({ mutationFn: (p: Parameters<typeof upd>[0]["data"]) => upd({ data: p }), onSuccess: refresh });
+  const save = useMutation({ mutationFn: (p: { id: string; reach_tier?: number | null; admin_weight?: number; active?: boolean }) => upd({ data: p }), onSuccess: refresh });
   const rerun = useMutation({
     mutationFn: () => recompute(),
     onSuccess: (r) => { setMsg(`Refreshed ${r.sources} source profiles.`); refresh(); },

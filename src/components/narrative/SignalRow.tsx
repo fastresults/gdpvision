@@ -53,6 +53,15 @@ export function SignalRow({ signal, code, active }: { signal: Signal; code: stri
             Kept past 30 days
           </p>
         )}
+        {(signal.is_political || signal.is_economic || signal.link_status === "verified" || signal.link_status === "broken" || signal.priority_score != null) && (
+          <div className="mt-1 flex flex-wrap items-center gap-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ink-600">
+            {signal.is_political && <span className="border border-line-200 px-1">Politics</span>}
+            {signal.is_economic && <span className="border border-line-200 px-1">GDP</span>}
+            {signal.link_status === "verified" && <span className="border border-line-200 px-1">Link ✓</span>}
+            {signal.link_status === "broken" && <span className="border border-rose-500 px-1 text-rose-700">Link broken</span>}
+            {signal.priority_score != null && <span className="tabular-nums">Score {Math.round(Number(signal.priority_score))}</span>}
+          </div>
+        )}
         {signal.flag_note && (
           <p className="mt-1 text-[11px] italic text-rose-700">{signal.flag_note}</p>
         )}

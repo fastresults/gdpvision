@@ -11,7 +11,8 @@ export const Route = createFileRoute("/api/public/v2/indices")({
       },
       GET: async ({ request }) => {
         const m = await import("@/lib/public-data/partner.server");
-        return m.withPartner(request, (id) => m.readIndexCatalogue(id));
+        const test = new URL(request.url).searchParams.get("edition") === "test";
+        return m.withPartner(request, (id) => m.readIndexCatalogue(id, { test }));
       },
     },
   },

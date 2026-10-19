@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { runIndicesNow } from "@/lib/indices/indices.functions";
+import { clearTestReleases, runIndicesNow } from "@/lib/indices/indices.functions";
 import type { IndicesOverview } from "@/lib/indices/review.functions";
 import {
   Eyebrow,
@@ -34,8 +34,8 @@ interface Action {
 
 export function nextActions(o: IndicesOverview, goto: Goto): Action[] {
   const out: Action[] = [];
-  const latest = o.runs[0];
-  const lastComplete = o.runs.find((r) => r.status === "complete");
+  const latest = o.runs.find((r) => r.mode !== "test");
+  const lastComplete = o.runs.find((r) => r.status === "complete" && r.mode !== "test");
   const lastWatch = o.runs.find((r) => r.status === "complete" && r.mode === "watch");
 
   if (latest?.status === "failed")
@@ -117,7 +117,7 @@ export function nextActions(o: IndicesOverview, goto: Goto): Action[] {
 
 export function OverviewTab({ o, goto }: { o: IndicesOverview; goto: Goto }) {
   const actions = nextActions(o, goto);
-  const lastComplete = o.runs.find((r) => r.status === "complete");
+  const lastComplete = o.runs.find((r) => r.status === "complete" && r.mode !== "test");
 
   return (
     <>
@@ -227,6 +227,11 @@ const MODES = [
     "Draft an edition",
     "Drafts an official edition for review, sign-off and publication.",
   ],
+  [
+    "test",
+    "Test run",
+    "TEST DATA: fills every gap with labelled test values so all four indexes can be reviewed on GDP Advisor's preview. Never published; deleted after 14 days.",
+  ],
 ] as const;
 
 function RunControls({ o }: { o: IndicesOverview }) {
@@ -268,7 +273,7 @@ function RunControls({ o }: { o: IndicesOverview }) {
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-3">
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       {MODES.map(([mode, label, help]) => (
         <div key={mode} className="border border-line-200 p-4">
           <button
@@ -282,11 +287,44 @@ function RunControls({ o }: { o: IndicesOverview }) {
           <p className="mt-2 text-xs text-ink-500">{help}</p>
         </div>
       ))}
+      {o.runs.some((r) => r.release?.kind === "test") && <ClearTest />}
       {running && (
-        <p className="text-xs text-ink-500 md:col-span-3">
+        <p className="text-xs text-ink-500 md:col-span-2 xl:col-span-4">
           A run is in progress. Wait for it to finish before starting another.
         </p>
       )}
+    </div>
+  );
+}
+
+function ClearTest() {
+  const qc = useQueryClient();
+  const clear = useServerFn(clearTestReleases);
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="flex flex-wrap items-center gap-3 border-l-2 border-line-200 pl-3 md:col-span-2 xl:col-span-4">
+      <span className="text-xs text-ink-700">
+        Test releases are private, never published and delete themselves after 14 days.
+      </span>
+      <button
+        type="button"
+        className="btn-ghost"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            const r = await clear();
+            toast.success(`Cleared ${r.cleared} test release${r.cleared === 1 ? "" : "s"}`);
+            await qc.invalidateQueries({ queryKey: ["indices-overview"] });
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Could not clear test releases");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Clear test releases now
+      </button>
     </div>
   );
 }

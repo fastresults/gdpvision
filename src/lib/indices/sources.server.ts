@@ -8,6 +8,7 @@
 // DataMapper); documentary and external-assessment values come only from
 // verified rows in index_evidence. Nothing here is AI-assembled.
 
+import { fetchJsonWithRetry } from "./retry";
 import type { Grade, Observation } from "./scoring";
 import { db, type AnyClient } from "@/lib/syndication/db";
 
@@ -24,25 +25,28 @@ export interface SourceResult {
       grade: Grade | null;
       source_url: string | null;
       source_org: string | null;
+      /** snapshot fallbacks only: when this country's copy was captured */
+      retrieved_at?: string;
     }
   >;
   ok: boolean;
   error: string | null;
+  /** set when the live source failed and the last captured snapshot stood in */
+  snapshot_at?: string | null;
 }
 
 const FIRST_YEAR = 2010;
 const TIMEOUT_MS = 20_000;
 
+/** Retry counts per URL for the current run (only requests that needed more than one try). */
+let attemptsLog: Map<string, number> | null = null;
+export function trackAttempts(log: Map<string, number> | null) {
+  attemptsLog = log;
+}
 async function getJson(url: string): Promise<unknown> {
-  const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), TIMEOUT_MS);
-  try {
-    const res = await fetch(url, { signal: ctl.signal, headers: { Accept: "application/json" } });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } finally {
-    clearTimeout(t);
-  }
+  const { json, attempts } = await fetchJsonWithRetry(url, { timeoutMs: TIMEOUT_MS });
+  if (attemptsLog && attempts > 1) attemptsLog.set(url, attempts);
+  return json;
 }
 
 let economies: { at: number; set: Promise<Set<string> | null> } | null = null;

@@ -68,7 +68,7 @@ const METHOD = {
 };
 
 /** Method, pillars, indicators, sources and licences — plus the list of published editions. */
-export async function getIndexCatalogue() {
+export async function getIndexCatalogue(opts: { test?: boolean } = {}) {
   const c = db(await admin());
   const [s, p, i, r] = await Promise.all([
     c
@@ -109,10 +109,13 @@ export async function getIndexCatalogue() {
           .map(({ index_code: _a, pillar_code: _b, ...k }: Record<string, unknown>) => k),
       })),
   }));
+  const test = opts.test ? await latestTestRelease(c) : null;
   return {
     method: METHOD,
     sextant: SEXTANT,
     indexes,
+    // only when a key with "indices_test" asks for it (?edition=test); never an official edition
+    ...(opts.test ? { test_edition: test ? editionOut(test) : null } : {}),
     editions: (r.data ?? []).map((e: Record<string, unknown>) => ({
       id: e.id,
       label: e.label,
@@ -123,7 +126,57 @@ export async function getIndexCatalogue() {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function resolveEdition(c: ReturnType<typeof db>, edition?: string | null) {
+type Rel = {
+  id: string;
+  run_id: string;
+  label: string;
+  published_at: string | null;
+  kind: "edition" | "test";
+};
+
+/** The newest TEST release whose run completed (private; see migration 0047). */
+async function latestTestRelease(c: ReturnType<typeof db>): Promise<Rel | null> {
+  const { data, error } = await c
+    .from("index_releases")
+    .select("id,run_id,label,created_at,index_runs!inner(status)")
+    .eq("kind", "test")
+    .eq("status", "draft")
+    .eq("index_runs.status", "complete")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) throw new Error(error.message);
+  const r = (data?.[0] ?? null) as { id: string; run_id: string; label: string } | null;
+  return r
+    ? { id: r.id, run_id: r.run_id, label: r.label, published_at: null, kind: "test" }
+    : null;
+}
+
+const editionOut = (r: Rel) => ({
+  id: r.id,
+  label: r.label,
+  published_at: r.published_at,
+  kind: r.kind,
+  ...(r.kind === "test"
+    ? { test: true, notice: "TEST DATA — not GDPVision figures. Never publish or quote." }
+    : {}),
+});
+
+/**
+ * "latest" (default) or an edition id → a published official edition.
+ * "test" → the latest private test release, only when allowTest (partner scope indices_test).
+ */
+async function resolveEdition(
+  c: ReturnType<typeof db>,
+  edition?: string | null,
+  allowTest = false,
+): Promise<Rel | null> {
+  if (edition === "test") {
+    if (!allowTest)
+      throw Object.assign(new Error('edition "test" needs the indices_test scope.'), {
+        status: 403,
+      });
+    return latestTestRelease(c);
+  }
   if (edition && edition !== "latest" && !UUID.test(edition))
     throw Object.assign(new Error('edition must be "latest" or an edition id.'), { status: 400 });
   let q = c
@@ -137,12 +190,8 @@ async function resolveEdition(c: ReturnType<typeof db>, edition?: string | null)
       : q.order("published_at", { ascending: false }).limit(1);
   const { data, error } = await q;
   if (error) throw new Error(error.message);
-  return (data?.[0] ?? null) as {
-    id: string;
-    run_id: string;
-    label: string;
-    published_at: string;
-  } | null;
+  const r = (data?.[0] ?? null) as Omit<Rel, "kind"> | null;
+  return r ? { ...r, kind: "edition" } : null;
 }
 
 const SCORE_COLS =
@@ -153,10 +202,11 @@ export async function getIndexEdition(
   index: string,
   edition?: string | null,
   countries?: string[] | null,
+  allowTest = false,
 ) {
   const code = index.toUpperCase();
   const c = db(await admin());
-  const rel = await resolveEdition(c, edition);
+  const rel = await resolveEdition(c, edition, allowTest);
   if (!rel) return { index: code, edition: null, count: 0, data: [] as unknown[] };
   let q = c
     .from("index_scores")
@@ -178,42 +228,43 @@ export async function getIndexEdition(
   }));
   return {
     index: code,
-    edition: { id: rel.id, label: rel.label, published_at: rel.published_at },
+    edition: editionOut(rel),
     count: rows.length,
     data: rows,
   };
 }
 
 /** All four indexes for one country, with every input ("why this score"), from a published edition. */
-export async function getCountryIndices(country: string, edition?: string | null) {
+export async function getCountryIndices(
+  country: string,
+  edition?: string | null,
+  allowTest = false,
+) {
   const cc = country.toUpperCase();
   const c = db(await admin());
-  const rel = await resolveEdition(c, edition);
+  const rel = await resolveEdition(c, edition, allowTest);
   if (!rel)
     return {
       data: [] as unknown[],
       extra: { edition: null, note: "No official edition has been published yet." },
     };
+  // every input says where it came from: live, a snapshot (with its date) or a test value
+  const inputCols =
+    "index_code,indicator_code,raw_value,value_used,period,score,source_org,source_url,licence,grade,method,age_years,excluded_reason,origin,snapshot_at";
   const [s, i] = await Promise.all([
     c.from("index_scores").select(SCORE_COLS).eq("run_id", rel.run_id).eq("country_code", cc),
-    c
-      .from("index_inputs")
-      .select(
-        "index_code,indicator_code,raw_value,value_used,period,score,source_org,source_url,licence,grade,method,age_years,excluded_reason",
-      )
-      .eq("run_id", rel.run_id)
-      .eq("country_code", cc),
+    c.from("index_inputs").select(inputCols).eq("run_id", rel.run_id).eq("country_code", cc),
   ]);
   const err = s.error ?? i.error;
   if (err) throw new Error(err.message);
   const data = (s.data ?? []).map((row: Record<string, unknown>) => ({
     ...row,
-    inputs: (i.data ?? [])
+    inputs: ((i.data ?? []) as unknown as Record<string, unknown>[])
       .filter((x: Record<string, unknown>) => x.index_code === row.index_code)
       .map(({ index_code: _x, ...x }: Record<string, unknown>) => x),
   }));
   return {
     data,
-    extra: { edition: { id: rel.id, label: rel.label, published_at: rel.published_at } },
+    extra: { edition: editionOut(rel) },
   };
 }

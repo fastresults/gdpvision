@@ -10,6 +10,14 @@
 //   watch    weekly: refresh inputs and Sextant; no release
 //   tracker  monthly: same, plus a draft PROVISIONAL tracker release
 //   edition  manual only: a draft official edition, published after sign-off
+//   test     manual only: a private TEST release so every index can be reviewed on
+//            GDP Advisor's preview. Parked sources are fetched too, and any input still
+//            missing gets a labelled fixture (testdata.ts, origin 'test_fixture', grade D).
+//            A test release can never be published (database CHECK) and expires in 14 days.
+//
+// Every API request waits and retries (retry.ts). Every successful API series is kept
+// as a snapshot; when a live source still fails, a snapshot captured within 30 days
+// stands in (origin 'snapshot', source_ok false so the Sextant's source health drops).
 
 import {
   rankScores,
@@ -18,8 +26,17 @@ import {
   type IndicatorSpec,
   type RawInput,
 } from "./scoring";
+import { scoreForTest } from "./testdata";
+import {
+  loadSnapshot,
+  saveSnapshot,
+  snapshotable,
+  SNAPSHOT_MAX_AGE_DAYS,
+} from "./snapshots.server";
+import { setRetryDeadline } from "./retry";
 import {
   fetchAllEvidence,
+  trackAttempts,
   fetchImfWeo,
   fetchKpi,
   fetchWdi,
@@ -28,7 +45,12 @@ import {
 } from "./sources.server";
 import { db, type AnyClient } from "@/lib/syndication/db";
 
-export type RunMode = "watch" | "tracker" | "edition";
+export type RunMode = "watch" | "tracker" | "edition" | "test";
+
+/** Test releases (and their runs) are deleted after this many days. */
+export const TEST_RELEASE_TTL_DAYS = 14;
+/** No retry starts after this much of a run has passed. */
+const RUN_RETRY_BUDGET_MS = 8 * 60_000;
 
 interface IndicatorRow extends IndicatorSpec {
   index_code: string;
@@ -103,8 +125,12 @@ async function fetchSource(
   ind: IndicatorRow,
   countries: Country[],
   cutoffYear: number,
+  includeParked = false,
 ): Promise<SourceResult> {
-  if (ind.status !== "active") return { byCountry: new Map(), ok: true, error: null };
+  // a test run also fetches parked API series (e.g. IMF pending permission) for internal review
+  const live =
+    ind.status === "active" || (includeParked && snapshotable(ind.source_kind, ind.source_code));
+  if (!live) return { byCountry: new Map(), ok: true, error: null };
   switch (ind.source_kind) {
     case "wdi":
       return ind.source_code
@@ -150,6 +176,19 @@ export async function runIndices(opts: {
   const data_cutoff = opts.cutoff ?? new Date().toISOString().slice(0, 10);
   const cutoffYear = Number(data_cutoff.slice(0, 4));
 
+  await purgeExpiredTestReleases(sb);
+  // one run at a time: overlapping runs would share the retry budget and attempt log
+  {
+    const { data: busy } = await c
+      .from("index_runs")
+      .select("id")
+      .eq("status", "running")
+      .gte("started_at", new Date(Date.now() - 30 * 60_000).toISOString())
+      .limit(1);
+    if ((busy ?? []).length)
+      throw new Error("Another indices run is in progress; try again when it finishes.");
+  }
+  const isTest = opts.mode === "test";
   const { specs, indicators } = await loadSpecs(sb);
   const { data: crows, error: cerr } = await c
     .from("countries")
@@ -192,7 +231,32 @@ export async function runIndices(opts: {
     let ok = 0;
     const evidence = await fetchAllEvidence(sb, countries);
     const seriesCache = new Map<string, Promise<SourceResult>>();
-    const active = indicators.filter((i) => i.status === "active");
+    const attempts = new Map<string, number>();
+    const snapshotsUsed: Array<{ series: string; captured_at: string | null }> = [];
+    const snapshotErrors: string[] = [];
+    trackAttempts(attempts);
+    setRetryDeadline(Date.now() + RUN_RETRY_BUDGET_MS);
+    const active = indicators.filter(
+      (i) => i.status === "active" || (isTest && snapshotable(i.source_kind, i.source_code)),
+    );
+    /** Live fetch with retries; on failure the last snapshot (≤ 30 days) stands in. */
+    const fetchWithFallback = async (ind: IndicatorRow): Promise<SourceResult> => {
+      const res = await fetchSource(sb, ind, countries, cutoffYear, isTest);
+      if (!snapshotable(ind.source_kind, ind.source_code)) return res;
+      if (res.ok) {
+        const err = await saveSnapshot(sb, ind.source_kind, ind.source_code, res, runId);
+        if (err) snapshotErrors.push(`${ind.source_kind}:${ind.source_code}: ${err}`);
+        return res;
+      }
+      const snap = await loadSnapshot(sb, ind.source_kind, ind.source_code, SNAPSHOT_MAX_AGE_DAYS);
+      if (!snap?.byCountry.size) return res;
+      snapshotsUsed.push({
+        series: `${ind.source_kind}:${ind.source_code}`,
+        captured_at: snap.oldest,
+      });
+      // source_ok stays false: the score uses the snapshot, the Sextant records the failure
+      return { byCountry: snap.byCountry, ok: false, error: res.error, snapshot_at: snap.oldest };
+    };
     const load = (ind: IndicatorRow): Promise<SourceResult> => {
       if (ind.source_kind === "evidence") {
         return Promise.resolve(
@@ -206,11 +270,12 @@ export async function runIndices(opts: {
         );
       }
       const key = `${ind.source_kind}:${ind.source_code}`;
-      if (!seriesCache.has(key)) seriesCache.set(key, fetchSource(sb, ind, countries, cutoffYear));
+      if (!seriesCache.has(key)) seriesCache.set(key, fetchWithFallback(ind));
       return seriesCache.get(key)!;
     };
-    for (let i = 0; i < active.length; i += 4) {
-      const batch = active.slice(i, i + 4);
+    // two series at a time, with a short pause between batches, to stay polite to the APIs
+    for (let i = 0; i < active.length; i += 2) {
+      const batch = active.slice(i, i + 2);
       const res = await Promise.all(batch.map(load));
       batch.forEach((ind, j) => {
         fetched.set(`${ind.index_code}.${ind.code}`, res[j]);
@@ -218,10 +283,14 @@ export async function runIndices(opts: {
         else
           failed.push({
             indicator: `${ind.index_code}.${ind.code}`,
-            error: res[j].error ?? "unknown",
+            error: `${res[j].error ?? "unknown"}${res[j].snapshot_at ? ` (snapshot of ${res[j].snapshot_at!.slice(0, 10)} used)` : ""}`,
           });
       });
+      if (i + 2 < active.length) await new Promise((r) => setTimeout(r, 300));
     }
+    trackAttempts(null);
+    setRetryDeadline(null);
+    const fixtureCount: Record<string, number> = {};
 
     // 2 · score, freeze inputs
     const inputRows: Record<string, unknown>[] = [];
@@ -239,20 +308,34 @@ export async function runIndices(opts: {
             source_ok: src?.ok ?? false,
           };
         });
-        return { country, result: scoreCountry(spec, raws, cutoffYear) };
+        if (!isTest)
+          return {
+            country,
+            result: scoreCountry(spec, raws, cutoffYear),
+            raws,
+            fixtures: new Set<string>(),
+          };
+        const t = scoreForTest(spec, raws, country.code, cutoffYear);
+        fixtureCount[spec.code] = (fixtureCount[spec.code] ?? 0) + t.fixtures.size;
+        return { country, result: t.result, raws: t.raws, fixtures: t.fixtures };
       });
       const ranks = rankScores(
         results.map((r) => ({ country_code: r.country.code, score: r.result.score })),
       );
 
-      for (const { country, result } of results) {
+      for (const { country, result, raws, fixtures } of results) {
         for (const inp of result.inputs) {
           const ind = (spec.indicators as IndicatorRow[]).find(
             (i) => i.code === inp.indicator_code,
           )!;
           const src = fetched.get(`${ind.index_code}.${ind.code}`);
-          const hit = src?.byCountry.get(country.code);
-          const latestRaw = hit?.observations.find((o) => o.period === inp.period)?.value ?? null;
+          const fixture = fixtures.has(inp.indicator_code);
+          const hit = fixture ? undefined : src?.byCountry.get(country.code);
+          const obs = fixture
+            ? raws.find((r) => r.indicator_code === inp.indicator_code)?.observations
+            : hit?.observations;
+          const latestRaw = obs?.find((o) => o.period === inp.period)?.value ?? null;
+          const origin = fixture ? "test_fixture" : src?.snapshot_at && hit ? "snapshot" : "live";
           inputRows.push({
             run_id: runId,
             index_code: spec.code,
@@ -263,9 +346,14 @@ export async function runIndices(opts: {
             period: inp.period,
             score: inp.score,
             source_kind: ind.source_kind,
-            source_org: hit?.source_org ?? ind.source_org,
-            source_url: hit?.source_url ?? ind.source_url,
-            licence: ind.licence,
+            source_org: fixture
+              ? "TEST DATA (generated fixture)"
+              : (hit?.source_org ?? ind.source_org),
+            source_url: fixture ? null : (hit?.source_url ?? ind.source_url),
+            licence: fixture ? "Test data, not for publication" : ind.licence,
+            origin,
+            snapshot_at:
+              origin === "snapshot" ? (hit?.retrieved_at ?? src!.snapshot_at ?? null) : null,
             grade: inp.grade,
             method: inp.method,
             age_years: inp.age_years,
@@ -304,12 +392,15 @@ export async function runIndices(opts: {
     if (opts.mode !== "watch") {
       const d = new Date(`${data_cutoff}T00:00:00Z`);
       const label =
-        opts.mode === "tracker"
-          ? `${data_cutoff.slice(0, 7)} tracker (provisional)`
-          : `${d.toLocaleString("en-GB", { month: "long", timeZone: "UTC" })} ${d.getUTCFullYear()} edition`;
+        opts.mode === "test"
+          ? `TEST DATA · ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC`
+          : opts.mode === "tracker"
+            ? `${data_cutoff.slice(0, 7)} tracker (provisional)`
+            : `${d.toLocaleString("en-GB", { month: "long", timeZone: "UTC" })} ${d.getUTCFullYear()} edition`;
+      const kind = opts.mode === "test" ? "test" : opts.mode === "tracker" ? "tracker" : "edition";
       const { data: rel, error } = await c
         .from("index_releases")
-        .insert({ run_id: runId, kind: opts.mode === "tracker" ? "tracker" : "edition", label })
+        .insert({ run_id: runId, kind, label })
         .select("id")
         .single();
       if (error) throw new Error(error.message);
@@ -321,6 +412,10 @@ export async function runIndices(opts: {
       sources: { ok, failed },
       countries: countries.length,
       inputs: inputRows.length,
+      retries: Object.fromEntries(attempts),
+      snapshots_used: snapshotsUsed,
+      ...(snapshotErrors.length ? { snapshot_errors: snapshotErrors } : {}),
+      ...(isTest ? { test_fixtures: fixtureCount } : {}),
     };
     await c
       .from("index_runs")
@@ -335,6 +430,8 @@ export async function runIndices(opts: {
       sources: { ok, failed },
     };
   } catch (e) {
+    trackAttempts(null);
+    setRetryDeadline(null);
     await c
       .from("index_runs")
       .update({
@@ -345,4 +442,51 @@ export async function runIndices(opts: {
       .eq("id", runId);
     throw e;
   }
+}
+
+/**
+ * Delete test releases (and their runs, inputs and scores) older than TEST_RELEASE_TTL_DAYS,
+ * plus test runs that never produced a release (failed or cut off). `all` clears every test row.
+ * Returns how many test runs were removed; throws if a delete fails.
+ */
+export async function purgeExpiredTestReleases(sb: AnyClient, all = false): Promise<number> {
+  const c = db(sb);
+  const cutoff = new Date(Date.now() - TEST_RELEASE_TTL_DAYS * 86_400_000).toISOString();
+  let rq = c.from("index_releases").select("id,run_id").eq("kind", "test");
+  if (!all) rq = rq.lt("created_at", cutoff);
+  const { data: rels, error: rerr } = await rq;
+  if (rerr) throw new Error(rerr.message);
+  const releases = (rels ?? []) as Array<{ id: string; run_id: string }>;
+  if (releases.length) {
+    // releases first: index_releases.run_id is ON DELETE RESTRICT
+    const { error } = await c
+      .from("index_releases")
+      .delete()
+      .in(
+        "id",
+        releases.map((r) => r.id),
+      )
+      .eq("kind", "test");
+    if (error) throw new Error(`clear test releases: ${error.message}`);
+  }
+  // every old (or, with `all`, every) test run with no release left: inputs and scores cascade
+  let q = c.from("index_runs").select("id").eq("mode", "test").neq("status", "running");
+  if (!all) q = q.lt("started_at", cutoff);
+  const { data: runs, error: qerr } = await q;
+  if (qerr) throw new Error(qerr.message);
+  const ids = ((runs ?? []) as Array<{ id: string }>).map((r) => r.id);
+  const withRelease = new Set(
+    ids.length
+      ? (
+          ((await c.from("index_releases").select("run_id").in("run_id", ids)).data ??
+            []) as Array<{ run_id: string }>
+        ).map((r) => r.run_id)
+      : [],
+  );
+  const doomed = ids.filter((id) => !withRelease.has(id));
+  if (doomed.length) {
+    const { error } = await c.from("index_runs").delete().in("id", doomed).eq("mode", "test");
+    if (error) throw new Error(`clear test runs: ${error.message}`);
+  }
+  return doomed.length;
 }

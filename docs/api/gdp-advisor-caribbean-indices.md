@@ -8,6 +8,15 @@ active partner key, so no new key is needed. Method: `docs/prd/PRD-caribbean-ind
 edition is published, the score endpoints return `edition: null` and empty `data`, and every page
 shows its method content with a "First edition pending" state. Never fill the gap with sample numbers.
 
+## Test releases (preview only)
+
+Keys with the partner-only scope `indices_test` can request the latest private **test** release. It is granted to a key only as a separate, owner-approved step. A test release is built by a test run and mixes real inputs, 30-day snapshots and generated fixtures.
+
+- **Requests:** add `?edition=test` to `/indices/{code}` and `/countries/{code}/indices`. On `/indices` it adds `test_edition`.
+- **Response:** the edition object carries `kind: "test"`, `test: true` and a `notice`. Country inputs also carry `origin` (`live`, `snapshot` or `test_fixture`) and `snapshot_at`.
+- **Banner:** GDP Advisor must show a TEST DATA banner whenever `kind` is `"test"`.
+- **Preview only:** GDP Advisor requests test editions only from its Lovable preview hosts, never from gdpadvisor.com.
+
 ## Endpoints
 
 All responses use the v2 envelope `{ version: "v2", generated_at, …body }`.

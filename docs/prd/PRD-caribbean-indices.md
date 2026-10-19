@@ -57,6 +57,17 @@ official edition**. A database CHECK makes it impossible to publish a tracker or
 Triggers: pg_cron → `POST /api/public/hooks/indices` (`x-hook-secret`) — weekly `watch` (Mondays
 05:10 UTC), monthly `tracker` (2nd, 05:20 UTC). Admins: `runIndicesNow({ mode })`.
 
+### Retrieval, snapshots and test runs (migration 0047)
+
+- **Waits between retrievals:** every API request is tried up to 4 times, waiting about 2 s, 8 s and then 30 s, with jitter. A `Retry-After` header is honoured. Timeouts, 408/425/429 and 5xx are retried; other 4xx errors fail at once. No retry starts after 12 minutes of a run. Requests go two series at a time, with a 300 ms pause between batches.
+- **Snapshots:** every successful WDI or IMF fetch updates `index_source_snapshots`. If a live source still fails, the last snapshot captured within 30 days stands in, in every run mode. That input is stored with `origin = 'snapshot'` and `snapshot_at`, and `source_ok = false`, which lowers the Sextant's source-health part. The method's age tolerance still applies to the year the value refers to.
+- **Test runs** (`mode = 'test'`, admins only, never scheduled):
+  - Parked API series are fetched for internal review.
+  - Every input still missing gets a deterministic fixture from `testdata.ts`, built from the goalposts, with `origin = 'test_fixture'` and grade D.
+  - The run drafts a release of kind `test`. Two database CHECKs stop it ever being published or moved to review.
+  - Test releases are private and deleted after 14 days. Admins can also clear them from the Overview tab.
+  - The only reader outside the back office is a partner key with the `indices_test` scope that asks for `?edition=test`. That is GDP Advisor's preview, under a TEST DATA banner.
+
 ## 3. Method
 
 Built on the OECD/JRC *Handbook on Constructing Composite Indicators* (2008), ten steps.

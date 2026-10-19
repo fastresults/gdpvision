@@ -82,17 +82,19 @@ export async function previousCompleteRun(
   const c = db(sb);
   const { data: cur } = await c
     .from("index_runs")
-    .select("started_at")
+    .select("started_at,mode")
     .eq("id", runId)
     .maybeSingle();
   if (!cur) return null;
-  const { data } = await c
+  const cr = cur as { started_at: string; mode: string };
+  let q = c
     .from("index_runs")
     .select("id,mode,data_cutoff,started_at")
     .eq("status", "complete")
-    .lt("started_at", (cur as { started_at: string }).started_at)
-    .order("started_at", { ascending: false })
-    .limit(1);
+    .lt("started_at", cr.started_at);
+  // a real run is never compared with a test run (test values would show as "changes")
+  if (cr.mode !== "test") q = q.neq("mode", "test");
+  const { data } = await q.order("started_at", { ascending: false }).limit(1);
   return (
     ((data ?? [])[0] as { id: string; mode: string; data_cutoff: string; started_at: string }) ??
     null

@@ -284,7 +284,9 @@ export function readinessChecks(f: ReadinessFacts): { ready: boolean; checks: Re
     detail:
       f.release.kind === "edition"
         ? null
-        : "Trackers stay private to governments and are never published.",
+        : f.release.kind === "test"
+          ? "Test releases hold generated test values and can never be published."
+          : "Trackers stay private to governments and are never published.",
   });
   checks.push({
     code: "status",

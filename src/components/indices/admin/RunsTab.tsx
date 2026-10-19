@@ -518,6 +518,12 @@ function CountryInputs({
                       ) : (
                         <Tag tone="good">used</Tag>
                       )}
+                      {i.origin === "test_fixture" && <Tag tone="bad">test value</Tag>}
+                      {i.origin === "snapshot" && (
+                        <Tag tone="warn">
+                          snapshot {i.snapshot_at ? i.snapshot_at.slice(0, 10) : ""}
+                        </Tag>
+                      )}
                     </td>
                   </tr>
                 );
@@ -570,15 +576,28 @@ function ReleasePanel({
     <div className="border border-line-200 p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <Eyebrow>{isEdition ? "Official edition" : "Tracker (private)"}</Eyebrow>
+          <Eyebrow>
+            {isEdition
+              ? "Official edition"
+              : release.kind === "test"
+                ? "TEST DATA (private)"
+                : "Tracker (private)"}
+          </Eyebrow>
           <h3 className="font-serif text-lg">{release.label}</h3>
         </div>
         <Tag tone={releaseTone(release.status)}>{release.status}</Tag>
       </div>
-      {!isEdition && (
+      {!isEdition && release.kind !== "test" && (
         <p className="mt-2 text-sm text-ink-500">
           Trackers are provisional and stay private to governments. They are never published to GDP
           Advisor.
+        </p>
+      )}
+      {release.kind === "test" && (
+        <p className="mt-2 text-sm text-amber-800">
+          Test release: real inputs where they exist, last captured snapshots where a source failed,
+          and generated test values (grade D) everywhere else. Only GDP Advisor&apos;s preview can
+          read it, under a TEST DATA banner. It can never be published and is deleted after 14 days.
         </p>
       )}
       {isEdition && (

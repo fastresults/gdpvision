@@ -18,6 +18,8 @@ export interface PartnerIdentity {
   countries: string[]; // ["*"] = all
   scopes: ApiScope[];
   allowedOrigins: string[];
+  /** partner-only scope "indices_test": may request the latest private TEST release (?edition=test) */
+  testIndices?: boolean;
 }
 
 async function admin() {
@@ -48,6 +50,7 @@ export async function authenticatePartnerKey(raw: string): Promise<PartnerIdenti
     countries: (row.countries ?? []).map((c) => c.toUpperCase()),
     scopes: (row.scopes ?? []).filter((s): s is ApiScope => (API_SCOPES as readonly string[]).includes(s)),
     allowedOrigins: row.allowed_origins ?? [],
+    testIndices: (row.scopes ?? []).includes("indices_test"),
   };
 }
 
@@ -129,9 +132,29 @@ export async function listPublicCountries(id: PartnerIdentity) {
   }));
 }
 
-export async function readCountryResource(id: PartnerIdentity, code: string, resource: string, since?: string | null) {
+export async function readCountryResource(
+  id: PartnerIdentity,
+  code: string,
+  resource: string,
+  since?: string | null,
+  edition?: string | null,
+) {
   const c = code.toUpperCase();
   if (!canReadCountry(id, c)) throw httpError(403, `This key cannot read ${c}.`);
+  if (resource === "indices" && edition) {
+    // a chosen edition (id, "latest", or "test" with the indices_test scope)
+    requireIndices(id);
+    const m = await import("@/lib/public-data/indices.server");
+    const { data, extra } = await m.getCountryIndices(c, edition, Boolean(id.testIndices));
+    return {
+      country: c,
+      resource,
+      count: data.length,
+      next_since: new Date().toISOString(),
+      ...extra,
+      data,
+    };
+  }
   if (!(API_SCOPES as readonly string[]).includes(resource))
     throw httpError(404, `Unknown resource. Resources: ${API_SCOPES.join(", ")}.`);
   if (!id.scopes.includes(resource as ApiScope)) throw httpError(403, `This key does not include "${resource}".`);
@@ -212,10 +235,11 @@ function requireIndices(id: PartnerIdentity) {
 }
 
 /** Method, pillars, indicators, sources, licences and published editions. */
-export async function readIndexCatalogue(id: PartnerIdentity) {
+export async function readIndexCatalogue(id: PartnerIdentity, opts: { test?: boolean } = {}) {
   requireIndices(id);
+  if (opts.test && !id.testIndices) throw httpError(403, 'This key does not include "indices_test".');
   const m = await import("@/lib/public-data/indices.server");
-  return m.getIndexCatalogue();
+  return m.getIndexCatalogue({ test: Boolean(opts.test) });
 }
 
 /** League table for one index from a published edition (?edition=<id>|latest, ?countries=ATG,KNA). */
@@ -224,5 +248,5 @@ export async function readIndexEdition(id: PartnerIdentity, index: string, editi
   const m = await import("@/lib/public-data/indices.server");
   if (!m.isIndexCode(index)) throw httpError(404, `Unknown index. Indexes: ${m.INDEX_CODES.join(", ")}.`);
   const codes = allowedCodes(id, countries);
-  return m.getIndexEdition(index, edition, codes);
+  return m.getIndexEdition(index, edition, codes, Boolean(id.testIndices));
 }

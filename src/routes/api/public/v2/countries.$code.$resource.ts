@@ -10,9 +10,15 @@ export const Route = createFileRoute("/api/public/v2/countries/$code/$resource")
       },
       GET: async ({ request, params }) => {
         const m = await import("@/lib/public-data/partner.server");
-        const since = new URL(request.url).searchParams.get("since");
+        const sp = new URL(request.url).searchParams;
         return m.withPartner(request, (id) =>
-          m.readCountryResource(id, String(params.code ?? ""), String(params.resource ?? ""), since),
+          m.readCountryResource(
+            id,
+            String(params.code ?? ""),
+            String(params.resource ?? ""),
+            sp.get("since"),
+            sp.get("edition"),
+          ),
         );
       },
     },

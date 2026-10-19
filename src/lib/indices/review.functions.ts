@@ -67,7 +67,7 @@ export interface IndicesOverview {
   runs: Array<{
     id: string;
     trigger: string;
-    mode: "watch" | "tracker" | "edition";
+    mode: "watch" | "tracker" | "edition" | "test";
     data_cutoff: string;
     status: "running" | "complete" | "failed";
     stats: {

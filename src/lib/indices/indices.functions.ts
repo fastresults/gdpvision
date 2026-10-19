@@ -49,6 +49,8 @@ export interface IndexInputRow {
   age_years: Num;
   source_ok: boolean;
   excluded_reason: string | null;
+  origin?: "live" | "snapshot" | "test_fixture";
+  snapshot_at?: string | null;
 }
 
 type Ctx = IndicesCtx;
@@ -63,12 +65,34 @@ async function admin() {
 export const runIndicesNow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ mode: z.enum(["watch", "tracker", "edition"]).default("watch") }).parse(d),
+    z.object({ mode: z.enum(["watch", "tracker", "edition", "test"]).default("watch") }).parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertRole(context as Ctx);
     const { runIndices } = await import("./run.server");
     return runIndices({ mode: data.mode, trigger: "manual", startedBy: (context as Ctx).userId });
+  });
+
+/** Delete every TEST release now (they also expire on their own after 14 days). */
+export const clearTestReleases = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertRole(context as Ctx);
+    const { purgeExpiredTestReleases } = await import("./run.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const n = await purgeExpiredTestReleases(
+      supabaseAdmin as Parameters<typeof purgeExpiredTestReleases>[0],
+      true,
+    );
+    await db(supabaseAdmin)
+      .from("audit_log")
+      .insert({
+        action: "index_release.test_cleared",
+        actor_id: (context as Ctx).userId,
+        target_type: "index_release",
+        metadata: { cleared: n },
+      });
+    return { cleared: n };
   });
 
 export const listIndexRuns = createServerFn({ method: "POST" })
@@ -129,7 +153,7 @@ export const getIndexRun = createServerFn({ method: "POST" })
       const r = await c
         .from("index_inputs")
         .select(
-          "index_code,indicator_code,raw_value,value_used,period,score,source_kind,source_org,source_url,licence,grade,method,age_years,source_ok,excluded_reason",
+          "index_code,indicator_code,raw_value,value_used,period,score,source_kind,source_org,source_url,licence,grade,method,age_years,source_ok,excluded_reason,origin,snapshot_at",
         )
         .eq("run_id", data.runId)
         .eq("country_code", data.country.toUpperCase());

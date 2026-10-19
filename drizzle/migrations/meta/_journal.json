@@ -330,6 +330,13 @@
       "when": 1792442330681,
       "tag": "0046_indices_first_edition",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792444587857,
+      "tag": "0047_indices_snapshots_and_test_mode",
+      "breakpoints": true
     }
   ]
 }

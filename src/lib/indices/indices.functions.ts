@@ -1,6 +1,6 @@
 // @domain indices
 // @tables index_runs,index_scores,index_inputs,index_releases,index_evidence,index_indicators
-// @ui none
+// @ui src/routes/_authenticated/admin/indices.tsx
 //
 // Admin and steward controls for the Caribbean Indices: run on demand, review a
 // run, sign off and publish an official edition, and enter documentary evidence.
@@ -10,6 +10,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertIndicesRole, type IndicesCtx } from "./access";
 import { db } from "@/lib/syndication/db";
 
 type Num = number | null;
@@ -50,20 +51,8 @@ export interface IndexInputRow {
   excluded_reason: string | null;
 }
 
-type Ctx = { supabase: Parameters<typeof db>[0]; userId: string };
-
-async function assertRole(ctx: Ctx, role: "admin" | "data_steward" = "admin") {
-  const { data } = await db(ctx.supabase).rpc("has_role", { _user_id: ctx.userId, _role: role });
-  if (data) return;
-  if (role === "data_steward") {
-    const { data: isAdmin } = await db(ctx.supabase).rpc("has_role", {
-      _user_id: ctx.userId,
-      _role: "admin",
-    });
-    if (isAdmin) return;
-  }
-  throw new Error("Forbidden");
-}
+type Ctx = IndicesCtx;
+const assertRole = assertIndicesRole;
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -159,34 +148,22 @@ export const publishIndexRelease = createServerFn({ method: "POST" })
     const ctx = context as Ctx;
     await assertRole(ctx);
     const c = await admin();
-    const { data: rel, error } = await c
-      .from("index_releases")
-      .select("id,kind,status,signed_off_by,run_id")
-      .eq("id", data.releaseId)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!rel) throw new Error("Release not found.");
-    const r = rel as { kind: string; status: string; signed_off_by: string[]; run_id: string };
-    if (r.kind !== "edition")
-      throw new Error("Only an official edition can be published; trackers stay private.");
+    // One checklist for the page and the server (review.ts): edition only, run
+    // complete, method frozen, every input used under a confirmed licence, at
+    // least one state scored. Warnings (stale cut-off, source failures) do not block.
+    const { loadReadiness } = await import("./review.server");
+    const {
+      release: r,
+      ready,
+      checks,
+    } = await loadReadiness(c as unknown as Parameters<typeof loadReadiness>[0], data.releaseId);
     if (r.status === "published") return { ok: true, already: true };
-    if (r.status === "withdrawn")
-      throw new Error("A withdrawn edition cannot be republished; run a new edition.");
-    const { data: run } = await c
-      .from("index_runs")
-      .select("status")
-      .eq("id", r.run_id)
-      .maybeSingle();
-    if ((run as { status?: string } | null)?.status !== "complete")
-      throw new Error("The edition's run did not complete.");
-    const { data: drafts } = await c
-      .from("index_specs")
-      .select("code")
-      .neq("method_status", "frozen");
-    if ((drafts ?? []).length)
+    if (!ready) {
+      const failed = checks.filter((k) => k.blocking && !k.ok);
       throw new Error(
-        `The method is still a draft for ${(drafts as Array<{ code: string }>).map((d) => d.code).join(", ")}. Freeze it (a migration, after the methodology panel ratifies it) before publishing an edition.`,
+        `Not ready to publish: ${failed.map((k) => k.label + (k.detail ? ` (${k.detail})` : "")).join("; ")}`,
       );
+    }
     const signed = Array.from(new Set([...(r.signed_off_by ?? []), ctx.userId]));
     const { data: updated, error: uerr } = await c
       .from("index_releases")

@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
+import { getIndicesAccess } from "@/lib/indices/review.functions";
 
 // Gate for every route under /admin/*.
 //
@@ -48,6 +49,17 @@ export const Route = createFileRoute("/_authenticated/admin")({
     });
 
     if (status.isGlobalAdmin) return { adminAudience: "agency" as const, countryScope: null };
+
+    // Caribbean Indices back office: global data stewards too (they enter and
+    // verify evidence; the two-person rule needs more than one global admin).
+    if (location.pathname === "/admin/indices" || location.pathname.startsWith("/admin/indices/")) {
+      const access = await context.queryClient.ensureQueryData({
+        queryKey: ["indices-access"],
+        queryFn: () => getIndicesAccess(),
+      });
+      if (access.admin || access.steward)
+        return { adminAudience: "agency" as const, countryScope: null };
+    }
 
     const target = parseCountrySurface(location.pathname);
     const bound =

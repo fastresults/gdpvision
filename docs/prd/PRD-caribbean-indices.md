@@ -1,7 +1,7 @@
 # PRD · Caribbean Indices
 
 **Product:** GDPVision (gdpvision.com), consumed by GDP Advisor (gdpadvisor.com)
-**Status:** method version 0 (draft) — tables, runner, scoring and partner API shipped; first official edition pending sign-off
+**Status:** method version 0 (draft) — tables, runner, scoring, partner API and back-office page shipped; first official edition pending sign-off
 **Date:** 19 October 2026
 **Code:** `drizzle/migrations/0040_caribbean_indices.sql` · `src/lib/indices/*` · `src/lib/public-data/indices.server.ts`
 **API contract for GDP Advisor:** `docs/api/gdp-advisor-caribbean-indices.md`
@@ -38,7 +38,7 @@ and Barbuda or Belize; B-READY schedules no edition through 2027 for Dominica or
 Evidence follows a two-person rule enforced by a database trigger (`index_evidence_guard`): new rows are unverified, the verifier cannot be the person who entered it, and any edit clears verification.
 
 RLS: the method layer is readable by anyone. Runs, inputs, scores and releases are readable by
-admins and data stewards, and by any signed-in user only once their release is a **published
+**global** admins and data stewards (`is_indices_steward()`, migration 0043: a role scoped to one country does not count, because one run covers every state), and by any signed-in user only once their release is a **published
 official edition**. A database CHECK makes it impossible to publish a tracker or an unsigned edition.
 
 ## 2. Data flow
@@ -96,7 +96,22 @@ Consequences, by design: CHX scores wherever its four pillars have coverage; CGX
 diversification pillar `not_scored` until sector and export data have real sources; CGV and CCX
 score once stewards enter verified evidence.
 
-## 5. Governance
+## 5. Back office (`/admin/indices`)
+
+| Tab | For | What it does |
+| --- | --- | --- |
+| Overview | Everyone with the admin or data steward role | Lists the next actions: a failed run, an edition waiting, evidence to verify, sources that did not answer, licences to confirm, a draft method. Also shows the four index cards and the run controls (admins only) |
+| Runs & editions | Admins, stewards | League table per index, with the change since the previous complete run. The "what changed" list covers score and rank moves, states newly scored or no longer scored, and revised, newer or dropped inputs. Select a state to see every frozen input. For an edition, the publish checklist, release notes and an attested sign-off |
+| Evidence | Data stewards | Coverage table: verified states per documentary indicator. Entry form with goalpost and unit hints. The to-verify queue, where Verify is disabled for whoever entered the value. Correcting a verified value sends it back for verification |
+| Method & licences | Everyone | Licence board by publisher, and the indicator tree with sources, goalposts, windows, age tolerances, types and status. Read-only: the method changes only by migration |
+
+One checklist (`readinessChecks`) drives both the page and `publishIndexRelease`, so the page and the server cannot disagree.
+
+**Blocking:** official edition · not withdrawn · run complete · method frozen · every used input licensed · at least one state scored.
+
+**Warnings:** source failures · cut-off older than 45 days · unverified evidence.
+
+## 6. Governance
 
 - Method version frozen and published ≥ 30 days before an edition's data cut-off.
 - Factual-correction window of 10 working days: governments see their own inputs, never draft scores.
@@ -106,12 +121,12 @@ score once stewards enter verified evidence.
   or academic panel) requested before first public release.
 - Published editions are never overwritten; corrections are numbered revisions with a changelog.
 
-## 6. Not yet built (next phases)
+## 7. Not yet built (next phases)
 
 - [ ] Freeze method v1 by migration after the methodology panel ratifies goalposts — `publishIndexRelease` refuses while any index is `draft`
 - [ ] Uncertainty: 1,000-run sensitivity on weights, scoring and aggregation → published rank range
 - [ ] External validation report (Spearman vs WGI, HDI, CPI, B-READY)
-- [ ] Admin page for runs, evidence entry and sign-off (server functions exist)
+- [x] Admin page `/admin/indices` — overview with next actions, runs and editions (league tables, what changed since the last run, every frozen input), evidence entry and second-person verification with a coverage table, method and licence board (`src/components/indices/admin/*`, `src/lib/indices/review*.ts`)
 - [ ] API clients for WHO GHO, UNCTADstat, UN Tourism / CTO, ECCB
 - [ ] Replace AI-sourced sector shares and capital-flow ledger before they can feed CGX / CCX
-- [ ] Licence confirmation for every `to_confirm` source; a release is blocked while any input lacks one
+- [ ] Licence confirmation for every `to_confirm` source (by migration). Enforced: `publishIndexRelease` refuses while any input the edition uses has a licence still to confirm (`readinessChecks` in `review.ts`, shown as the publish checklist)

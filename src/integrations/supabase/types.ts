@@ -12072,6 +12072,7 @@ export type Database = {
         Returns: number
       }
       is_admin_or_steward: { Args: { _user_id: string }; Returns: boolean }
+      is_indices_steward: { Args: never; Returns: boolean }
       log_governance: {
         Args: {
           _action: string

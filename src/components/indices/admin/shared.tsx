@@ -117,3 +117,13 @@ export function Section({
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="text-sm text-ink-500">{children}</p>;
 }
+
+/**
+ * Tab / filter toggle. The active one gets an ink outline and underline, never a solid
+ * fill behind its text; solid `btn-primary` stays for real primary actions.
+ */
+export function toggleCls(active: boolean): string {
+  return active
+    ? "btn-secondary !border-ink-950 text-ink-950 shadow-[inset_0_-2px_0_var(--ink-950)]"
+    : "btn-secondary text-ink-500";
+}

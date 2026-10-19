@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 
 import type { IndicesOverview } from "@/lib/indices/review.functions";
-import { Eyebrow, INDEX_CODES, Section, Tag, type IndexCode } from "./shared";
+import { Eyebrow, INDEX_CODES, Section, Tag, type IndexCode, toggleCls } from "./shared";
 
 export function MethodTab({
   o,
@@ -118,7 +118,8 @@ export function MethodTab({
             <button
               key={c}
               type="button"
-              className={index === c ? "btn-primary" : "btn-secondary"}
+              className={toggleCls(index === c)}
+              aria-pressed={index === c}
               onClick={() => setIndex(c)}
             >
               {c}
@@ -230,7 +231,9 @@ export function MethodTab({
             <code className="font-mono text-xs">method_version</code> with any change. The
             methodology panel ratifies the goalposts, then a migration sets{" "}
             <code className="font-mono text-xs">method_status = 'frozen'</code> at least 30 days
-            before an edition’s data cut-off.
+            before an edition’s data cut-off (the PRD rule). The publish checklist confirms the
+            edition was scored with the frozen version; the 30-day lead is checked by the
+            methodology owner, as the database does not yet record when a method was frozen.
           </p>
         </div>
       </Section>

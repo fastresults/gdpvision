@@ -10,7 +10,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { assertIndicesRole, hasIndicesRole, type IndicesCtx } from "./access";
+import { assertIndicesRole, globalIndicesRoles, type IndicesCtx } from "./access";
 import type { ReadinessCheck, RunDiff } from "./review";
 import { db, type AnyClient } from "@/lib/syndication/db";
 
@@ -91,6 +91,14 @@ export interface IndicesOverview {
     } | null;
   }>;
   evidence: { unverified: number; verified: number };
+  /** per evidence indicator: states with a verified value still within its age tolerance, and the rest */
+  coverage: Array<{
+    index_code: string;
+    indicator_code: string;
+    verified_current: number;
+    verified_stale: number;
+    unverified: number;
+  }>;
 }
 
 /** Everything the page needs on first paint, in one round trip. */
@@ -100,8 +108,9 @@ export const getIndicesOverview = createServerFn({ method: "GET" })
     const ctx = context as IndicesCtx;
     await assertIndicesRole(ctx, "data_steward");
     const c = db(await adminClient());
-    const [isAdmin, specs, pillars, inds, countries, runs, unv, ver] = await Promise.all([
-      hasIndicesRole(ctx, "admin"),
+    const { fetchAllRows } = await import("./review.server");
+    const [roles, specs, pillars, inds, countries, runs, unv, ver, ev] = await Promise.all([
+      globalIndicesRoles(ctx),
       c
         .from("index_specs")
         .select("code,name,pillar_label,question,benchmark,method_version,method_status,position")
@@ -127,7 +136,21 @@ export const getIndicesOverview = createServerFn({ method: "GET" })
         .limit(30),
       c.from("index_evidence").select("id", { count: "exact", head: true }).eq("verified", false),
       c.from("index_evidence").select("id", { count: "exact", head: true }).eq("verified", true),
+      fetchAllRows<{
+        index_code: string;
+        indicator_code: string;
+        country_code: string;
+        period: string;
+        verified: boolean;
+      }>((a, b) =>
+        c
+          .from("index_evidence")
+          .select("index_code,indicator_code,country_code,period,verified")
+          .order("id")
+          .range(a, b),
+      ),
     ]);
+    const isAdmin = roles.has("admin");
     for (const r of [specs, pillars, inds, countries, runs])
       if (r.error) throw new Error(r.error.message);
 
@@ -152,6 +175,38 @@ export const getIndicesOverview = createServerFn({ method: "GET" })
       ]),
     );
 
+    // coverage the way a run sees it: one state counts once, and a verified value older
+    // than the indicator's age tolerance would be excluded as stale
+    const tol = new Map(
+      ((inds.data ?? []) as IndicatorMeta[]).map((i) => [
+        `${i.index_code}.${i.code}`,
+        i.age_tolerance_years,
+      ]),
+    );
+    const year = new Date().getUTCFullYear();
+    const cov = new Map<
+      string,
+      { current: Set<string>; stale: Set<string>; unverified: Set<string> }
+    >();
+    for (const e of ev) {
+      const k = `${e.index_code}.${e.indicator_code}`;
+      const m = cov.get(k) ?? { current: new Set(), stale: new Set(), unverified: new Set() };
+      if (!e.verified) m.unverified.add(e.country_code);
+      else if (year - Number(e.period) <= (tol.get(k) ?? 3)) m.current.add(e.country_code);
+      else m.stale.add(e.country_code);
+      cov.set(k, m);
+    }
+    const coverage = [...cov.entries()].map(([k, m]) => {
+      const [index_code, indicator_code] = k.split(".");
+      return {
+        index_code,
+        indicator_code,
+        verified_current: m.current.size,
+        verified_stale: [...m.stale].filter((c) => !m.current.has(c)).length,
+        unverified: [...m.unverified].filter((c) => !m.current.has(c)).length,
+      };
+    });
+
     return {
       me: { userId: ctx.userId, isAdmin },
       specs: (specs.data ?? []) as IndicesOverview["specs"],
@@ -165,6 +220,7 @@ export const getIndicesOverview = createServerFn({ method: "GET" })
       countries: (countries.data ?? []) as IndicesOverview["countries"],
       runs: runRows.map((r) => ({ ...r, release: byRun.get(r.id) ?? null })),
       evidence: { unverified: unv.count ?? 0, verified: ver.count ?? 0 },
+      coverage,
     };
   });
 
@@ -247,14 +303,25 @@ export const compareIndexRuns = createServerFn({ method: "POST" })
       const sb = await adminClient();
       const { loadRunLite, previousCompleteRun } = await import("./review.server");
       const { diffRuns } = await import("./review");
+      const { data: runRow } = await db(sb)
+        .from("index_runs")
+        .select("status")
+        .eq("id", data.runId)
+        .maybeSingle();
+      if (!runRow) throw new Error("Run not found.");
+      if ((runRow as { status: string }).status !== "complete")
+        throw new Error("Only a complete run can be compared.");
       let base: { id: string; mode: string; data_cutoff: string; started_at: string } | null = null;
       if (data.baseRunId) {
         const { data: b } = await db(sb)
           .from("index_runs")
-          .select("id,mode,data_cutoff,started_at")
+          .select("id,mode,data_cutoff,started_at,status")
           .eq("id", data.baseRunId)
           .maybeSingle();
-        base = (b as typeof base) ?? null;
+        if (!b || (b as { status: string }).status !== "complete")
+          throw new Error("The comparison run must exist and be complete.");
+        const bb = b as { id: string; mode: string; data_cutoff: string; started_at: string };
+        base = { id: bb.id, mode: bb.mode, data_cutoff: bb.data_cutoff, started_at: bb.started_at };
       } else {
         base = await previousCompleteRun(sb, data.runId);
       }
@@ -304,3 +371,15 @@ export const getReleaseReadiness = createServerFn({ method: "POST" })
       };
     },
   );
+
+/** Whether the caller may open the indices back office (route gate). Never throws. */
+export const getIndicesAccess = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ admin: boolean; steward: boolean }> => {
+    try {
+      const roles = await globalIndicesRoles(context as IndicesCtx);
+      return { admin: roles.has("admin"), steward: roles.has("data_steward") };
+    } catch {
+      return { admin: false, steward: false };
+    }
+  });

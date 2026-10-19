@@ -11,7 +11,11 @@ import { db, type AnyClient } from "@/lib/syndication/db";
 
 const PAGE = 1000;
 
-/** Fetch every row of a query, 1,000 at a time. `build` must return a fresh, ordered query. */
+/**
+ * Fetch every row of a query, 1,000 at a time. `build` must return a fresh query with a
+ * stable, unique ordering. Stops only on an empty page, so a server row cap below 1,000
+ * cannot silently truncate, and throws rather than return a partial set past `max`.
+ */
 export async function fetchAllRows<T>(
   build: (
     from: number,
@@ -20,14 +24,17 @@ export async function fetchAllRows<T>(
   max = 50_000,
 ): Promise<T[]> {
   const out: T[] = [];
-  for (let from = 0; from < max; from += PAGE) {
+  let from = 0;
+  for (;;) {
     const { data, error } = await build(from, from + PAGE - 1);
     if (error) throw new Error(error.message);
     const rows = (data ?? []) as T[];
+    if (!rows.length) return out;
     out.push(...rows);
-    if (rows.length < PAGE) break;
+    from += rows.length;
+    if (out.length > max)
+      throw new Error(`More than ${max} rows; refusing to return a partial set.`);
   }
-  return out;
 }
 
 export async function loadRunLite(
@@ -113,7 +120,11 @@ export async function loadReadiness(sb: AnyClient, releaseId: string) {
   };
 
   const [runR, specsR, indsR, used, scores, evR] = await Promise.all([
-    c.from("index_runs").select("status,data_cutoff,stats").eq("id", release.run_id).maybeSingle(),
+    c
+      .from("index_runs")
+      .select("status,data_cutoff,stats,method_versions")
+      .eq("id", release.run_id)
+      .maybeSingle(),
     c.from("index_specs").select("code,method_status,method_version").order("position"),
     c.from("index_indicators").select("index_code,code,licence,licence_status,source_org"),
     fetchAllRows<{ index_code: string; indicator_code: string; source_org: string | null }>(
@@ -122,8 +133,9 @@ export async function loadReadiness(sb: AnyClient, releaseId: string) {
           .from("index_inputs")
           .select("index_code,indicator_code,source_org")
           .eq("run_id", release.run_id)
-          .not("value_used", "is", null)
-          .is("excluded_reason", null)
+          // every row carrying a source value: published editions redistribute
+          // excluded inputs too (partner API, MCP), so they need a licence as well
+          .or("value_used.not.is.null,raw_value.not.is.null")
           .order("index_code")
           .order("indicator_code")
           .order("country_code")

@@ -32,6 +32,7 @@ import {
   sextantTone,
   signed,
   type IndexCode,
+  toggleCls,
 } from "./shared";
 
 export function RunsTab({
@@ -51,6 +52,29 @@ export function RunsTab({
       </Section>
       {run && run.status === "complete" && (
         <RunDetail key={run.id} o={o} run={run} onClose={() => setRunId(null)} />
+      )}
+      {run && run.status !== "complete" && (
+        <Section
+          title={`Run of ${run.data_cutoff} · ${run.mode}`}
+          aside={
+            <button type="button" className="btn-ghost" onClick={() => setRunId(null)}>
+              Close ✕
+            </button>
+          }
+        >
+          <p className="flex items-baseline gap-2 text-sm">
+            <Tag tone={run.status === "failed" ? "bad" : "warn"}>{run.status}</Tag>
+            {run.status === "failed"
+              ? (run.error ?? "The run failed without recording an error.")
+              : "Still running. Scores appear here when it completes."}
+          </p>
+          {run.status === "failed" && (
+            <p className="mt-2 text-xs text-ink-500">
+              A failed run writes no release and changes nothing public. Fix the cause, then start a
+              new run from the overview.
+            </p>
+          )}
+        </Section>
       )}
       {runId && !run && (
         <Section title="Run">
@@ -109,7 +133,8 @@ function RunDetail({ o, run, onClose }: { o: IndicesOverview; run: Run; onClose:
               <button
                 key={c}
                 type="button"
-                className={index === c ? "btn-primary" : "btn-secondary"}
+                className={toggleCls(index === c)}
+                aria-pressed={index === c}
                 onClick={() => setIndex(c)}
               >
                 {c} {st ? `· ${st.scored} scored` : ""}
@@ -274,6 +299,7 @@ const INPUT_KIND: Record<InputChange["kind"], string> = {
   period_changed: "newer year",
   now_included: "now counts",
   now_excluded: "dropped out",
+  exclusion_changed: "still out, new reason",
   added: "new input",
   removed: "removed",
 };
@@ -520,6 +546,7 @@ function ReleasePanel({
   const q = useQuery({
     queryKey: ["index-release-readiness", release.id],
     queryFn: () => readiness({ data: { releaseId: release.id } }),
+    enabled: release.kind === "edition", // trackers are never published
   });
 
   const isEdition = release.kind === "edition";

@@ -75,6 +75,8 @@ describe("diffRuns", () => {
           i("BRB", "poverty", null, null, "stale"),
           i("BRB", "internet", 80),
           i("BRB", "tertiary", 61),
+          i("BRB", "price_level", null, null, "unscorable_value"),
+          i("BRB", "youth_unemployment", 30, "2014", "stale"),
         ],
       },
       {
@@ -86,6 +88,8 @@ describe("diffRuns", () => {
           i("BRB", "poverty", 17.2, "2016"),
           i("BRB", "internet", 80.0000000000001),
           i("BRB", "homicide", 10),
+          i("BRB", "price_level", null, null, "stale"),
+          i("BRB", "youth_unemployment", 31, "2014", "stale"),
         ],
       },
     );
@@ -97,6 +101,8 @@ describe("diffRuns", () => {
       poverty: "now_excluded",
       tertiary: "added",
       homicide: "removed",
+      price_level: "exclusion_changed",
+      youth_unemployment: "value_changed",
     });
   });
 
@@ -109,7 +115,12 @@ describe("diffRuns", () => {
 
 const facts = (over: Partial<ReadinessFacts> = {}): ReadinessFacts => ({
   release: { kind: "edition", status: "draft" },
-  run: { status: "complete", data_cutoff: "2027-03-31", stats: { sources: { failed: [] } } },
+  run: {
+    status: "complete",
+    data_cutoff: "2027-03-31",
+    stats: { sources: { failed: [] } },
+    method_versions: { CHX: 1, CGX: 1 },
+  },
   methods: [
     { code: "CHX", method_status: "frozen", method_version: 1 },
     { code: "CGX", method_status: "frozen", method_version: 1 },
@@ -159,6 +170,23 @@ describe("readinessChecks", () => {
     expect(lic.items?.[0]).toContain("18 values");
   });
 
+  test("an edition scored under an older method stays blocked after a later freeze", () => {
+    const r = readinessChecks(
+      facts({
+        run: {
+          status: "complete",
+          data_cutoff: "2027-03-31",
+          stats: null,
+          method_versions: { CHX: 0, CGX: 1 },
+        },
+      }),
+    );
+    expect(r.ready).toBe(false);
+    expect(r.checks.find((c) => c.code === "method")!.items?.[0]).toContain(
+      "CHX · the run used method v0",
+    );
+  });
+
   test("draft method, trackers and failed runs block", () => {
     expect(
       readinessChecks(
@@ -184,6 +212,7 @@ describe("readinessChecks", () => {
           status: "complete",
           data_cutoff: "2027-01-01",
           stats: { sources: { failed: [{ indicator: "CHX.x", error: "timeout" }] } },
+          method_versions: { CHX: 1, CGX: 1 },
         },
         unverifiedEvidence: 3,
       }),

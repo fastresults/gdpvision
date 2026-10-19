@@ -13,7 +13,16 @@ import {
   type EvidenceRow,
   type IndicesOverview,
 } from "@/lib/indices/review.functions";
-import { Empty, Eyebrow, INDEX_CODES, Section, Tag, fieldCls, type IndexCode } from "./shared";
+import {
+  Empty,
+  Eyebrow,
+  INDEX_CODES,
+  Section,
+  Tag,
+  fieldCls,
+  type IndexCode,
+  toggleCls,
+} from "./shared";
 
 type State = "unverified" | "verified" | "all";
 
@@ -22,7 +31,13 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
   const [state, setState] = useState<State>("unverified");
   const [index, setIndex] = useState<IndexCode | "">("");
   const [country, setCountry] = useState("");
-  const [editing, setEditing] = useState<Partial<FormState> | null>(null);
+  // `n` remounts the form on every open, so a second "Correct" or "Add" never shows the
+  // previous row's values; `locked` marks a correction (its identifying fields are fixed)
+  const [editing, setEditingRaw] = useState<
+    (Partial<FormState> & { n: number; locked?: boolean }) | null
+  >(null);
+  const setEditing = (v: (Partial<FormState> & { locked?: boolean }) | null) =>
+    setEditingRaw(v ? { ...v, n: (editing?.n ?? 0) + 1 } : null);
 
   const q = useQuery({
     queryKey: ["index-evidence", state, index, country],
@@ -30,10 +45,6 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
       list({
         data: { state, indexCode: index || undefined, country: country || undefined, limit: 500 },
       }),
-  });
-  const allQ = useQuery({
-    queryKey: ["index-evidence", "all", "", ""],
-    queryFn: () => list({ data: { state: "all", limit: 500 } }),
   });
 
   const evidenceInds = o.indicators.filter((i) => i.source_kind === "evidence");
@@ -49,11 +60,10 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
         <p className="mb-3 max-w-3xl text-sm text-ink-500">
           Governance (CGV) and Capital (CCX) score only once their documentary indicators have
           verified evidence. Each row shows how many of the {o.countries.length} states have a
-          verified value.
+          verified value recent enough to count (older ones are excluded as stale by a run).
         </p>
         <Coverage
           o={o}
-          rows={allQ.data ?? []}
           onAdd={(index_code, indicator_code) => setEditing({ index_code, indicator_code })}
         />
       </Section>
@@ -66,7 +76,15 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
           </button>
         }
       >
-        {editing && <EvidenceForm o={o} initial={editing} onDone={() => setEditing(null)} />}
+        {editing && (
+          <EvidenceForm
+            key={editing.n}
+            o={o}
+            initial={editing}
+            locked={Boolean(editing.locked)}
+            onDone={() => setEditing(null)}
+          />
+        )}
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {(
@@ -79,7 +97,8 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
             <button
               key={k}
               type="button"
-              className={state === k ? "btn-primary" : "btn-secondary"}
+              className={toggleCls(state === k)}
+              aria-pressed={state === k}
               onClick={() => setState(k)}
             >
               {label}
@@ -129,6 +148,7 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
               meta={indMeta.get(`${r.index_code}.${r.indicator_code}`)}
               onEdit={() =>
                 setEditing({
+                  locked: true,
                   index_code: r.index_code as IndexCode,
                   indicator_code: r.indicator_code,
                   country: r.country_code,
@@ -152,24 +172,14 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
 
 function Coverage({
   o,
-  rows,
   onAdd,
 }: {
   o: IndicesOverview;
-  rows: EvidenceRow[];
   onAdd: (index: IndexCode, indicator: string) => void;
 }) {
   const inds = o.indicators.filter((i) => i.source_kind === "evidence" && i.status === "active");
   if (!inds.length) return <Empty>No active evidence indicators.</Empty>;
-  const count = (i: (typeof inds)[number], verified: boolean) =>
-    new Set(
-      rows
-        .filter(
-          (r) =>
-            r.index_code === i.index_code && r.indicator_code === i.code && r.verified === verified,
-        )
-        .map((r) => r.country_code),
-    ).size;
+  const cov = new Map(o.coverage.map((c) => [`${c.index_code}.${c.indicator_code}`, c]));
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm" data-numeric>
@@ -185,8 +195,10 @@ function Coverage({
         </thead>
         <tbody>
           {inds.map((i) => {
-            const v = count(i, true);
-            const u = count(i, false);
+            const c = cov.get(`${i.index_code}.${i.code}`);
+            const v = c?.verified_current ?? 0;
+            const u = c?.unverified ?? 0;
+            const stale = c?.verified_stale ?? 0;
             return (
               <tr key={`${i.index_code}.${i.code}`} className="border-b border-line-200/60">
                 <td className="py-1.5 font-mono text-xs">{i.index_code}</td>
@@ -204,6 +216,9 @@ function Coverage({
                 </td>
                 <td className="py-1.5 text-right font-mono tabular-nums">
                   {v}/{o.countries.length}
+                  {stale > 0 && (
+                    <span className="block text-[10px] text-amber-800">{stale} stale</span>
+                  )}
                 </td>
                 <td className="py-1.5 text-right font-mono tabular-nums">{u || "—"}</td>
                 <td className="py-1.5 text-right">
@@ -246,6 +261,7 @@ function EvidenceCard({
       toast.success("Verified — it will feed the next run");
       await qc.invalidateQueries({ queryKey: ["index-evidence"] });
       await qc.invalidateQueries({ queryKey: ["indices-overview"] });
+      await qc.invalidateQueries({ queryKey: ["index-release-readiness"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Verify failed");
     } finally {
@@ -331,10 +347,13 @@ const GRADE_HELP: Record<FormState["grade"], string> = {
 function EvidenceForm({
   o,
   initial,
+  locked,
   onDone,
 }: {
   o: IndicesOverview;
   initial: Partial<FormState>;
+  /** correcting an existing row: index, indicator, state and year identify it and stay fixed */
+  locked: boolean;
   onDone: () => void;
 }) {
   const qc = useQueryClient();
@@ -392,6 +411,7 @@ function EvidenceForm({
       toast.success("Saved. A second person now verifies it against the document.");
       await qc.invalidateQueries({ queryKey: ["index-evidence"] });
       await qc.invalidateQueries({ queryKey: ["indices-overview"] });
+      await qc.invalidateQueries({ queryKey: ["index-release-readiness"] });
       onDone();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Save failed");
@@ -403,16 +423,23 @@ function EvidenceForm({
   return (
     <form onSubmit={submit} className="mt-4 border border-ink-950 p-4">
       <div className="flex items-baseline justify-between">
-        <Eyebrow>{initial.country ? "Correct evidence" : "New evidence"}</Eyebrow>
+        <Eyebrow>{locked ? "Correct evidence" : "New evidence"}</Eyebrow>
         <button type="button" className="btn-ghost" onClick={onDone}>
           Cancel ✕
         </button>
       </div>
+      {locked && (
+        <p className="mt-1 text-xs text-ink-500">
+          Index, indicator, state and year identify this entry and stay fixed. For a different year
+          or state, add new evidence instead.
+        </p>
+      )}
       <div className="mt-3 grid gap-3 md:grid-cols-3">
         <L label="Index">
           <select
             className={fieldCls}
             value={f.index_code}
+            disabled={locked}
             onChange={(e) =>
               setF((p) => ({ ...p, index_code: e.target.value as IndexCode, indicator_code: "" }))
             }
@@ -428,6 +455,7 @@ function EvidenceForm({
           <select
             className={fieldCls}
             value={f.indicator_code}
+            disabled={locked}
             onChange={(e) => {
               const next = inds.find((i) => i.code === e.target.value);
               setF((p) => ({
@@ -449,6 +477,7 @@ function EvidenceForm({
           <select
             className={fieldCls}
             value={f.country}
+            disabled={locked}
             onChange={(e) => set("country", e.target.value)}
           >
             <option value="">Choose…</option>
@@ -490,6 +519,7 @@ function EvidenceForm({
           <input
             className={fieldCls}
             value={f.period}
+            disabled={locked}
             pattern="\d{4}"
             onChange={(e) => set("period", e.target.value)}
           />

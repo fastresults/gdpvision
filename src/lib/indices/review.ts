@@ -50,7 +50,14 @@ export interface InputChange {
   index_code: string;
   indicator_code: string;
   country_code: string;
-  kind: "value_changed" | "period_changed" | "now_included" | "now_excluded" | "added" | "removed";
+  kind:
+    | "value_changed"
+    | "period_changed"
+    | "now_included"
+    | "now_excluded"
+    | "exclusion_changed"
+    | "added"
+    | "removed";
   before: { value: Num; period: string | null; excluded_reason: string | null } | null;
   after: { value: Num; period: string | null; excluded_reason: string | null } | null;
   source_org: string | null;
@@ -162,9 +169,9 @@ export function diffRuns(
     let kind: InputChange["kind"] | null = null;
     if (!wasIn && isIn) kind = "now_included";
     else if (wasIn && !isIn) kind = "now_excluded";
-    else if (isIn && !sameValue(a.value_used, b.value_used)) kind = "value_changed";
-    else if (isIn && a.period !== b.period) kind = "period_changed";
-    else if (!isIn && a.excluded_reason !== b.excluded_reason) kind = "now_excluded";
+    else if (!isIn && a.excluded_reason !== b.excluded_reason) kind = "exclusion_changed";
+    else if (!sameValue(a.value_used, b.value_used)) kind = "value_changed";
+    else if (a.period !== b.period) kind = "period_changed";
     if (kind) inputs.push({ ...base_, kind, before: snap(b), after: snap(a) });
   }
   for (const [k, b] of ib) {
@@ -227,10 +234,16 @@ export interface ReadinessFacts {
     status: string;
     data_cutoff: string;
     stats: { sources?: { failed?: Array<{ indicator: string; error: string }> } } | null;
+    /** index code → method version the run scored with (index_runs.method_versions) */
+    method_versions?: Record<string, number> | null;
   };
   /** index code → method status */
   methods: Array<{ code: string; method_status: string; method_version: number }>;
-  /** inputs the run actually used (value_used set, not excluded), joined to the indicator's current licence */
+  /**
+   * Every input that carries a source value (raw_value or value_used set), excluded or not,
+   * joined to the indicator's current licence. Published editions redistribute every input row
+   * (partner API, MCP), so an excluded value under an unconfirmed licence still counts.
+   */
   usedLicences: Array<{
     index_code: string;
     indicator_code: string;
@@ -288,16 +301,29 @@ export function readinessChecks(f: ReadinessFacts): { ready: boolean; checks: Re
     detail: f.run.status === "complete" ? null : `Run status is ${f.run.status}.`,
   });
 
-  const drafts = f.methods.filter((m) => m.method_status !== "frozen");
+  // frozen now AND the run scored with that same frozen version: an edition run under
+  // draft v0 must not become publishable because v1 was frozen afterwards.
+  const ranWith = f.run.method_versions ?? {};
+  const methodProblems = f.methods.flatMap((m) => {
+    if (m.method_status !== "frozen")
+      return [`${m.code} · method v${m.method_version} is ${m.method_status}`];
+    const used = ranWith[m.code];
+    if (used == null) return [`${m.code} · the run did not record its method version`];
+    if (Number(used) !== m.method_version)
+      return [
+        `${m.code} · the run used method v${used}; the frozen method is v${m.method_version} — run a new edition`,
+      ];
+    return [];
+  });
   checks.push({
     code: "method",
-    label: "Method frozen for every index",
-    ok: drafts.length === 0,
+    label: "Run scored with the frozen method",
+    ok: methodProblems.length === 0,
     blocking: true,
-    detail: drafts.length
-      ? "Freeze the method by migration after the methodology panel ratifies the goalposts."
+    detail: methodProblems.length
+      ? "Freeze the method by migration after the methodology panel ratifies the goalposts, then draft the edition under that frozen version."
       : null,
-    items: drafts.map((d) => `${d.code} · method v${d.method_version} is ${d.method_status}`),
+    items: methodProblems,
   });
 
   const unlicensed = f.usedLicences.filter((l) => l.licence_status !== "confirmed");

@@ -8,6 +8,7 @@ import { MethodTab } from "@/components/indices/admin/MethodTab";
 import { OverviewTab, nextActions, type Goto } from "@/components/indices/admin/OverviewTab";
 import { RunsTab } from "@/components/indices/admin/RunsTab";
 import { getIndicesOverview } from "@/lib/indices/review.functions";
+import { toggleCls } from "@/components/indices/admin/shared";
 import { useUrlState } from "@/lib/nav/url-state";
 
 // Caribbean Indices back office: one place to keep the four indexes current
@@ -67,6 +68,7 @@ function IndicesAdminPage() {
           next === "method" && opts.licence ? "1" : next === "method" ? prev.licence : undefined;
         return out;
       }) as never,
+      resetScroll: false,
     });
 
   const todo = q.data ? nextActions(q.data, goto).filter((a) => a.tone !== "quiet").length : 0;
@@ -89,7 +91,8 @@ function IndicesAdminPage() {
             <button
               key={t}
               type="button"
-              className={tab === t ? "btn-primary" : "btn-secondary"}
+              className={toggleCls(tab === t)}
+              aria-pressed={tab === t}
               onClick={() => goto(t)}
             >
               {LABEL[t]}

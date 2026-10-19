@@ -45,6 +45,7 @@ import { Route as AuthenticatedAdminBrainRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminCorpusAuditRouteImport } from './routes/_authenticated/admin/corpus-audit'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
 import { Route as AuthenticatedAdminGithubRouteImport } from './routes/_authenticated/admin/github'
+import { Route as AuthenticatedAdminIndicesRouteImport } from './routes/_authenticated/admin/indices'
 import { Route as AuthenticatedAdminInvitationsRouteImport } from './routes/_authenticated/admin/invitations'
 import { Route as AuthenticatedAdminLedgerQaRouteImport } from './routes/_authenticated/admin/ledger-qa'
 import { Route as AuthenticatedAdminMediaScanRouteImport } from './routes/_authenticated/admin/media-scan'
@@ -367,6 +368,12 @@ const AuthenticatedAdminGithubRoute =
   AuthenticatedAdminGithubRouteImport.update({
     id: '/github',
     path: '/github',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminIndicesRoute =
+  AuthenticatedAdminIndicesRouteImport.update({
+    id: '/indices',
+    path: '/indices',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminInvitationsRoute =
@@ -1214,6 +1221,7 @@ export interface FileRoutesByFullPath {
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/admin/github': typeof AuthenticatedAdminGithubRoute
+  '/admin/indices': typeof AuthenticatedAdminIndicesRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/admin/media-scan': typeof AuthenticatedAdminMediaScanRoute
@@ -1384,6 +1392,7 @@ export interface FileRoutesByTo {
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/admin/github': typeof AuthenticatedAdminGithubRoute
+  '/admin/indices': typeof AuthenticatedAdminIndicesRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/admin/media-scan': typeof AuthenticatedAdminMediaScanRoute
@@ -1555,6 +1564,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/_authenticated/admin/github': typeof AuthenticatedAdminGithubRoute
+  '/_authenticated/admin/indices': typeof AuthenticatedAdminIndicesRoute
   '/_authenticated/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/_authenticated/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/_authenticated/admin/media-scan': typeof AuthenticatedAdminMediaScanRoute
@@ -1731,6 +1741,7 @@ export interface FileRouteTypes {
     | '/admin/corpus-audit'
     | '/admin/documents'
     | '/admin/github'
+    | '/admin/indices'
     | '/admin/invitations'
     | '/admin/ledger-qa'
     | '/admin/media-scan'
@@ -1901,6 +1912,7 @@ export interface FileRouteTypes {
     | '/admin/corpus-audit'
     | '/admin/documents'
     | '/admin/github'
+    | '/admin/indices'
     | '/admin/invitations'
     | '/admin/ledger-qa'
     | '/admin/media-scan'
@@ -2071,6 +2083,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/corpus-audit'
     | '/_authenticated/admin/documents'
     | '/_authenticated/admin/github'
+    | '/_authenticated/admin/indices'
     | '/_authenticated/admin/invitations'
     | '/_authenticated/admin/ledger-qa'
     | '/_authenticated/admin/media-scan'
@@ -2506,6 +2519,13 @@ declare module '@tanstack/react-router' {
       path: '/github'
       fullPath: '/admin/github'
       preLoaderRoute: typeof AuthenticatedAdminGithubRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/indices': {
+      id: '/_authenticated/admin/indices'
+      path: '/indices'
+      fullPath: '/admin/indices'
+      preLoaderRoute: typeof AuthenticatedAdminIndicesRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/invitations': {
@@ -3665,6 +3685,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCorpusAuditRoute: typeof AuthenticatedAdminCorpusAuditRoute
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
   AuthenticatedAdminGithubRoute: typeof AuthenticatedAdminGithubRoute
+  AuthenticatedAdminIndicesRoute: typeof AuthenticatedAdminIndicesRoute
   AuthenticatedAdminInvitationsRoute: typeof AuthenticatedAdminInvitationsRoute
   AuthenticatedAdminLedgerQaRoute: typeof AuthenticatedAdminLedgerQaRoute
   AuthenticatedAdminMediaScanRoute: typeof AuthenticatedAdminMediaScanRoute
@@ -3712,6 +3733,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminCorpusAuditRoute: AuthenticatedAdminCorpusAuditRoute,
     AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
     AuthenticatedAdminGithubRoute: AuthenticatedAdminGithubRoute,
+    AuthenticatedAdminIndicesRoute: AuthenticatedAdminIndicesRoute,
     AuthenticatedAdminInvitationsRoute: AuthenticatedAdminInvitationsRoute,
     AuthenticatedAdminLedgerQaRoute: AuthenticatedAdminLedgerQaRoute,
     AuthenticatedAdminMediaScanRoute: AuthenticatedAdminMediaScanRoute,

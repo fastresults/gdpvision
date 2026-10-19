@@ -134,6 +134,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/country/$code` | `src/routes/_authenticated/admin/country.$code.tsx` |
 | `/_authenticated/admin/documents` | `src/routes/_authenticated/admin/documents.tsx` |
 | `/_authenticated/admin/github` | `src/routes/_authenticated/admin/github.tsx` |
+| `/_authenticated/admin/indices` | `src/routes/_authenticated/admin/indices.tsx` |
 | `/_authenticated/admin/invitations` | `src/routes/_authenticated/admin/invitations.tsx` |
 | `/_authenticated/admin/ledger-qa` | `src/routes/_authenticated/admin/ledger-qa.tsx` |
 | `/_authenticated/admin/media-scan` | `src/routes/_authenticated/admin/media-scan.tsx` |

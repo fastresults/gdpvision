@@ -21,6 +21,7 @@ const NAV = [
   { to: "/admin/countries", label: "Countries" },
   { to: "/admin/brain", label: "Second brain" },
   { to: "/admin/partner-keys", label: "Partner API" },
+  { to: "/admin/indices", label: "Caribbean Indices" },
   { to: "/admin/media-scan", label: "Media scan" },
   { to: "/admin/proforma", label: "Pro forma" },
   { to: "/admin", label: "Users" },

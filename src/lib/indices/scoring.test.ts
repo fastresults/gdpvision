@@ -226,3 +226,62 @@ describe("helpers", () => {
     ]);
   });
 });
+
+describe("method rules from review", () => {
+  test("coverage is measured against live indicators; pending ones do not block", () => {
+    const s: IndexSpec = {
+      ...spec,
+      indicators: spec.indicators.map((i) =>
+        i.code === "a2" || i.code === "a3" ? { ...i, status: "pending_source" as const } : i,
+      ),
+    };
+    const r = scoreCountry(s, [raw("a1", 80), raw("b1", 40), raw("b2", 10)], 2025);
+    expect(r.pillar_scores.a).toBe(80);
+    expect(r.coverage.by_pillar.a).toEqual({ present: 1, specified: 3, live: 1 });
+    expect(r.status).toBe("scored");
+    expect(r.sextant_parts.availability).toBe(60); // 3 of 5 specified
+  });
+
+  test("a pillar with no live source is not scored", () => {
+    const s: IndexSpec = {
+      ...spec,
+      indicators: spec.indicators.map((i) =>
+        i.pillar_code === "a" ? { ...i, status: "pending_source" as const } : i,
+      ),
+    };
+    expect(scoreCountry(s, [raw("b1", 40), raw("b2", 10)], 2025).status).toBe("not_scored");
+  });
+
+  test("external composites are capped at 20% of the index", () => {
+    // 2 pillars, so a pillar is half the index: composites may carry 40% of a pillar
+    const s: IndexSpec = {
+      ...spec,
+      external_composite_cap: 0.2,
+      indicators: spec.indicators.map((i) =>
+        i.code === "a1" || i.code === "a2" ? { ...i, is_external_composite: true } : i,
+      ),
+    };
+    const r = scoreCountry(
+      s,
+      [raw("a1", 100), raw("a2", 100), raw("a3", 0), raw("b1", 40), raw("b2", 10)],
+      2025,
+    );
+    expect(r.pillar_scores.a).toBe(40); // uncapped this would be 66.67
+  });
+
+  test("a pillar made only of composites is not scored", () => {
+    const s: IndexSpec = {
+      ...spec,
+      indicators: spec.indicators.map((i) =>
+        i.pillar_code === "a" ? { ...i, is_external_composite: true } : i,
+      ),
+    };
+    expect(
+      scoreCountry(
+        s,
+        [raw("a1", 80), raw("a2", 60), raw("a3", 70), raw("b1", 40), raw("b2", 10)],
+        2025,
+      ).pillar_scores.a,
+    ).toBeNull();
+  });
+});

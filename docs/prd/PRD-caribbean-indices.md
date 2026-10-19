@@ -35,6 +35,8 @@ and Barbuda or Belize; B-READY schedules no edition through 2027 for Dominica or
 | Scores, pillars, coverage, Sextant | `index_scores` | Runner, via pure `scoring.ts` |
 | Releases (tracker / edition, sign-off, publication) | `index_releases` | Runner drafts; admin publishes |
 
+Evidence follows a two-person rule enforced by a database trigger (`index_evidence_guard`): new rows are unverified, the verifier cannot be the person who entered it, and any edit clears verification.
+
 RLS: the method layer is readable by anyone. Runs, inputs, scores and releases are readable by
 admins and data stewards, and by any signed-in user only once their release is a **published
 official edition**. A database CHECK makes it impossible to publish a tracker or an unsigned edition.
@@ -42,8 +44,9 @@ official edition**. A database CHECK makes it impossible to publish a tracker or
 ## 2. Data flow
 
 1. **Gather.** One request per active indicator: World Bank WDI and IMF WEO DataMapper are pulled
-   directly (keyless, grade C). IMF projections are dropped — only years before the cut-off year.
-   Registry KPIs (`kpi` source kind) are used only when public and not AI-inferred. Documentary and
+   directly (keyless, grade C). IMF projections and staff estimates are dropped — only years up to
+   the cut-off year minus two.
+   Registry KPIs (`kpi` source kind) are used only when public and verified or entered by a person. Documentary and
    external-assessment indicators read **verified** `index_evidence` rows only, each with an https
    document link. Nothing is AI-assembled.
 2. **Score** (`src/lib/indices/scoring.ts`, no I/O, unit-tested).
@@ -64,17 +67,17 @@ Built on the OECD/JRC *Handbook on Constructing Composite Indicators* (2008), te
   A multi-year window needs ≥ 80% of its years.
 - **Age tolerance:** per indicator (default 3 years). Older values are excluded as `stale`, never
   carried forward.
-- **Pillar:** weighted mean of indicator scores, only if ≥ two-thirds of its indicators are valid.
+- **Pillar:** weighted mean of indicator scores, only if ≥ two-thirds of its indicators *with a live source* are valid. Pending-source indicators are listed in coverage and lower the Sextant; they never count as zero.
 - **Index:** geometric mean of pillar scores (each floored at 1), only if every pillar is scored.
 - **No imputation.** A state below coverage is `not_scored`, with the missing pillars named.
 - **Grades:** A government current year · B government prior year/partial · C multilateral ·
   D analyst reconstruction. Values GDPVision itself estimates are never inputs; a multilateral's
   published series (including ILO estimates) is taken as reported, grade C.
-- **External composites** (WGI, EGDI, UHC index) carry at most 20% of any index's weight.
+- **External composites** (WGI, EGDI, UHC index) carry at most 20% of any index's weight; the scoring code scales them down within a pillar when they would exceed it, and a pillar made only of composites is not scored.
 - **Sextant:** availability 30% · timeliness 25% · grade quality 30% · source health 15%;
   bands Clear ≥ 80 · Fair ≥ 60 · Hazy ≥ 40 · Obscured < 40.
 
-The full indicator list — 54 indicators with source codes, fallbacks, goalposts, licence status and
+The full indicator list — 49 indicators with source codes, fallbacks, goalposts, licence status and
 age tolerances — is the seed in `0040_caribbean_indices.sql` and is served live by
 `GET /api/public/v2/indices`.
 
@@ -103,6 +106,7 @@ score once stewards enter verified evidence.
 
 ## 6. Not yet built (next phases)
 
+- [ ] Freeze method v1 by migration after the methodology panel ratifies goalposts — `publishIndexRelease` refuses while any index is `draft`
 - [ ] Uncertainty: 1,000-run sensitivity on weights, scoring and aggregation → published rank range
 - [ ] External validation report (Spearman vs WGI, HDI, CPI, B-READY)
 - [ ] Admin page for runs, evidence entry and sign-off (server functions exist)

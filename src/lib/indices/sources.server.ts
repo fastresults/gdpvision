@@ -89,7 +89,10 @@ export async function fetchWdi(
   }
 }
 
-/** IMF WEO via DataMapper. Projections are dropped: only years before the cut-off year. */
+/**
+ * IMF WEO via DataMapper. The current and previous year are WEO projections or staff
+ * estimates for most Caribbean economies, so only years up to cut-off − 2 are used.
+ */
 export async function fetchImfWeo(
   code: string,
   countries: Country[],
@@ -109,7 +112,7 @@ export async function fetchImfWeo(
         .filter(
           ([y, v]) =>
             Number(y) >= FIRST_YEAR &&
-            Number(y) < cutoffYear &&
+            Number(y) < cutoffYear - 1 &&
             typeof v === "number" &&
             Number.isFinite(v),
         )
@@ -172,7 +175,8 @@ export async function fetchKpi(
     source_url: string | null;
     provenance: string;
   }>) {
-    if (r.provenance === "inferred" || !r.latest_period) continue; // AI-inferred values never enter an index
+    // only values a person verified or entered; AI-inferred or AI-researched values never enter an index
+    if (!["admin_verified", "admin_override"].includes(r.provenance) || !r.latest_period) continue;
     byCountry.set(r.country_code, {
       observations: [
         { period: String(r.latest_period).slice(0, 4), value: Number(r.latest_value) },
@@ -185,48 +189,53 @@ export async function fetchKpi(
   return { byCountry, ok: true, error: null };
 }
 
-/** Verified documentary / external-assessment values with their evidence. */
-export async function fetchEvidence(
+/** Every verified documentary / external-assessment value, grouped by "INDEX.indicator". */
+export async function fetchAllEvidence(
   sb: AnyClient,
-  indexCode: string,
-  indicatorCode: string,
   countries: Country[],
-): Promise<SourceResult> {
-  const byCountry: SourceResult["byCountry"] = new Map();
+): Promise<{
+  byIndicator: Map<string, SourceResult["byCountry"]>;
+  ok: boolean;
+  error: string | null;
+}> {
+  const byIndicator = new Map<string, SourceResult["byCountry"]>();
   const { data, error } = await db(sb)
     .from("index_evidence")
-    .select("country_code,value,period,document_url,publisher,grade")
-    .eq("index_code", indexCode)
-    .eq("indicator_code", indicatorCode)
+    .select("index_code,indicator_code,country_code,value,period,document_url,publisher,grade")
     .eq("verified", true)
     .in(
       "country_code",
       countries.map((c) => c.code),
-    );
-  if (error) return { byCountry, ok: false, error: error.message };
-  for (const r of (data ?? []) as Array<{
+    )
+    .order("period", { ascending: true })
+    .limit(10000);
+  if (error) return { byIndicator, ok: false, error: error.message };
+  type Row = {
+    index_code: string;
+    indicator_code: string;
     country_code: string;
     value: number;
     period: string;
     document_url: string;
     publisher: string;
     grade: Grade;
-  }>) {
-    const e = byCountry.get(r.country_code) ?? {
+  };
+  for (const r of (data ?? []) as Row[]) {
+    const key = `${r.index_code}.${r.indicator_code}`;
+    const m = byIndicator.get(key) ?? new Map();
+    const e = m.get(r.country_code) ?? {
       observations: [],
       grade: r.grade,
       source_url: r.document_url,
       source_org: r.publisher,
     };
     e.observations.push({ period: String(r.period).slice(0, 4), value: Number(r.value) });
-    // keep the newest document as the cited one
-    const newest = e.observations.reduce((a, b) => (a.period >= b.period ? a : b));
-    if (newest.period === String(r.period).slice(0, 4)) {
-      e.source_url = r.document_url;
-      e.source_org = r.publisher;
-      e.grade = r.grade;
-    }
-    byCountry.set(r.country_code, e);
+    // rows arrive oldest first, so the newest document ends up as the cited one
+    e.source_url = r.document_url;
+    e.source_org = r.publisher;
+    e.grade = r.grade;
+    m.set(r.country_code, e);
+    byIndicator.set(key, m);
   }
-  return { byCountry, ok: true, error: null };
+  return { byIndicator, ok: true, error: null };
 }

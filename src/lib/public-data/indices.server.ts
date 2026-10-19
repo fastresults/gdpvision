@@ -121,7 +121,11 @@ export async function getIndexCatalogue() {
   };
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function resolveEdition(c: ReturnType<typeof db>, edition?: string | null) {
+  if (edition && edition !== "latest" && !UUID.test(edition))
+    throw Object.assign(new Error('edition must be "latest" or an edition id.'), { status: 400 });
   let q = c
     .from("index_releases")
     .select("id,run_id,label,published_at")
@@ -160,7 +164,8 @@ export async function getIndexEdition(
     .eq("run_id", rel.run_id)
     .eq("index_code", code)
     .order("rank", { ascending: true, nullsFirst: false });
-  if (countries?.length) q = q.in("country_code", countries);
+  // null = every country; an empty list (nothing this key may read) returns nothing
+  if (countries) q = q.in("country_code", countries);
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   const { data: names } = await c.from("countries").select("code,name");

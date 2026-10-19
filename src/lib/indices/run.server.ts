@@ -19,7 +19,7 @@ import {
   type RawInput,
 } from "./scoring";
 import {
-  fetchEvidence,
+  fetchAllEvidence,
   fetchImfWeo,
   fetchKpi,
   fetchWdi,
@@ -60,7 +60,7 @@ export async function loadSpecs(
   const [s, p, i] = await Promise.all([
     c
       .from("index_specs")
-      .select("code,method_version,aggregation,pillar_coverage_min,position")
+      .select("code,method_version,aggregation,pillar_coverage_min,external_composite_cap,position")
       .order("position"),
     c.from("index_pillars").select("index_code,code,weight,position").order("position"),
     c.from("index_indicators").select("*").order("position"),
@@ -74,6 +74,7 @@ export async function loadSpecs(
     band_low: r.band_low == null ? null : Number(r.band_low),
     band_high: r.band_high == null ? null : Number(r.band_high),
     weight: Number(r.weight ?? 1),
+    is_external_composite: r.indicator_type === "external_composite",
   })) as IndicatorRow[];
   const specs = (
     (s.data ?? []) as Array<{
@@ -81,12 +82,14 @@ export async function loadSpecs(
       method_version: number;
       aggregation: "geometric" | "arithmetic";
       pillar_coverage_min: number;
+      external_composite_cap: number | null;
     }>
   ).map((x) => ({
     code: x.code,
     method_version: x.method_version,
     aggregation: x.aggregation,
     pillar_coverage_min: Number(x.pillar_coverage_min),
+    external_composite_cap: Number(x.external_composite_cap ?? 0.2),
     pillars: ((p.data ?? []) as Array<{ index_code: string; code: string; weight: number }>)
       .filter((q) => q.index_code === x.code)
       .map((q) => ({ code: q.code, weight: Number(q.weight) })),
@@ -116,7 +119,7 @@ async function fetchSource(
         ? fetchKpi(sb, ind.source_code, countries)
         : { byCountry: new Map(), ok: false, error: "no source_code" };
     case "evidence":
-      return fetchEvidence(sb, ind.index_code, ind.code, countries);
+      return { byCountry: new Map(), ok: false, error: "evidence is loaded in one query" };
   }
 }
 
@@ -156,6 +159,17 @@ export async function runIndices(opts: {
   if (cerr) throw new Error(cerr.message);
   const countries = (crows ?? []) as Country[];
 
+  // a run cut off mid-way (Worker cancelled) never reaches its catch block
+  await c
+    .from("index_runs")
+    .update({
+      status: "failed",
+      error: "Run did not finish (timed out or cancelled).",
+      finished_at: new Date().toISOString(),
+    })
+    .eq("status", "running")
+    .lt("started_at", new Date(Date.now() - 30 * 60_000).toISOString());
+
   const { data: run, error: rerr } = await c
     .from("index_runs")
     .insert({
@@ -171,18 +185,42 @@ export async function runIndices(opts: {
   const runId = (run as { id: string }).id;
 
   try {
-    // 1 · gather, one request per indicator (sequential: polite to public APIs)
+    // 1 · gather: one request per distinct API series (four at a time), and every
+    //     verified evidence row in a single query
     const fetched = new Map<string, SourceResult>();
     const failed: RunSummary["sources"]["failed"] = [];
     let ok = 0;
-    for (const ind of indicators) {
-      const r = await fetchSource(sb, ind, countries, cutoffYear);
-      fetched.set(`${ind.index_code}.${ind.code}`, r);
-      if (ind.status === "active") {
-        if (r.ok) ok++;
-        else
-          failed.push({ indicator: `${ind.index_code}.${ind.code}`, error: r.error ?? "unknown" });
+    const evidence = await fetchAllEvidence(sb, countries);
+    const seriesCache = new Map<string, Promise<SourceResult>>();
+    const active = indicators.filter((i) => i.status === "active");
+    const load = (ind: IndicatorRow): Promise<SourceResult> => {
+      if (ind.source_kind === "evidence") {
+        return Promise.resolve(
+          evidence.ok
+            ? {
+                byCountry: evidence.byIndicator.get(`${ind.index_code}.${ind.code}`) ?? new Map(),
+                ok: true,
+                error: null,
+              }
+            : { byCountry: new Map(), ok: false, error: evidence.error },
+        );
       }
+      const key = `${ind.source_kind}:${ind.source_code}`;
+      if (!seriesCache.has(key)) seriesCache.set(key, fetchSource(sb, ind, countries, cutoffYear));
+      return seriesCache.get(key)!;
+    };
+    for (let i = 0; i < active.length; i += 4) {
+      const batch = active.slice(i, i + 4);
+      const res = await Promise.all(batch.map(load));
+      batch.forEach((ind, j) => {
+        fetched.set(`${ind.index_code}.${ind.code}`, res[j]);
+        if (res[j].ok) ok++;
+        else
+          failed.push({
+            indicator: `${ind.index_code}.${ind.code}`,
+            error: res[j].error ?? "unknown",
+          });
+      });
     }
 
     // 2 · score, freeze inputs

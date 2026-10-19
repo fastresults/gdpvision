@@ -12,8 +12,10 @@
 //              log scale when the indicator says so. Works for either direction.
 //   window     latest value, 5-year mean, 10-year standard deviation, or the
 //              distance outside a target band (0 inside it).
-//   pillar     mean of its indicator scores, only if at least two-thirds of its
-//              indicators have a valid value; otherwise not scored.
+//   pillar     weighted mean of its indicator scores, only if at least two-thirds
+//              of its indicators with a live source have a valid value; otherwise
+//              not scored. Pending-source indicators lower the Sextant instead.
+//              External composites are capped at 20% of the index's weight.
 //   index      geometric mean of the pillar scores (each floored at 1), only if
 //              every pillar is scored. Nothing is imputed or estimated.
 //   sextant    availability 30% · timeliness 25% · grade quality 30% · source
@@ -34,6 +36,8 @@ export interface IndicatorSpec {
   age_tolerance_years: number;
   weight: number;
   status: "active" | "pending_source";
+  /** Another publisher's index score (WGI, EGDI, UHC). Capped by external_composite_cap. */
+  is_external_composite?: boolean;
 }
 
 export interface PillarSpec {
@@ -46,6 +50,8 @@ export interface IndexSpec {
   method_version: number;
   aggregation: "geometric" | "arithmetic";
   pillar_coverage_min: number;
+  /** Max share of the index's weight from external composites (default 0.2). */
+  external_composite_cap?: number;
   pillars: PillarSpec[];
   indicators: IndicatorSpec[];
 }
@@ -84,7 +90,7 @@ export interface CountryResult {
   coverage: {
     present: number;
     specified: number;
-    by_pillar: Record<string, { present: number; specified: number }>;
+    by_pillar: Record<string, { present: number; specified: number; live: number }>;
   };
   weakest_grade: Grade | null;
   sextant: number;
@@ -251,22 +257,45 @@ export function scoreCountry(spec: IndexSpec, raws: RawInput[], cutoffYear: numb
   const scoreOf = new Map(inputs.map((i) => [i.indicator_code, i]));
 
   const pillar_scores: Record<string, number | null> = {};
-  const by_pillar: Record<string, { present: number; specified: number }> = {};
+  const by_pillar: Record<string, { present: number; specified: number; live: number }> = {};
   const missingPillars: string[] = [];
+
+  // External composites: with equal pillar weights, a pillar's share of the index is
+  // weight_p / Σweights, so composites may carry at most cap ÷ that share of a pillar.
+  const cap = spec.external_composite_cap ?? 0.2;
+  const totalPillarWeight = spec.pillars.reduce((s, p) => s + p.weight, 0);
 
   for (const p of spec.pillars) {
     const inds = spec.indicators.filter((i) => i.pillar_code === p.code);
-    const scored = inds.filter((i) => scoreOf.get(i.code)?.score != null);
-    by_pillar[p.code] = { present: scored.length, specified: inds.length };
+    // Coverage is measured against indicators with a live source; pending ones are
+    // named in coverage.by_pillar (pending) and lower the Sextant, not the score.
+    const live = inds.filter((i) => i.status === "active");
+    const scored = live.filter((i) => scoreOf.get(i.code)?.score != null);
+    by_pillar[p.code] = { present: scored.length, specified: inds.length, live: live.length };
     // tolerance so "two-thirds" (stored as 0.667) admits 2 of 3
-    if (!inds.length || scored.length / inds.length < spec.pillar_coverage_min - 0.001) {
+    if (!live.length || scored.length / live.length < spec.pillar_coverage_min - 0.001) {
       pillar_scores[p.code] = null;
       missingPillars.push(p.code);
       continue;
     }
-    const wsum = scored.reduce((s, i) => s + i.weight, 0);
-    const v =
-      scored.reduce((s, i) => s + i.weight * (scoreOf.get(i.code)!.score as number), 0) / wsum;
+    const maxShare = Math.min(1, cap / (p.weight / totalPillarWeight));
+    const comp = scored.filter((i) => i.is_external_composite);
+    const own = scored.filter((i) => !i.is_external_composite);
+    const wComp = comp.reduce((s, i) => s + i.weight, 0);
+    const wOwn = own.reduce((s, i) => s + i.weight, 0);
+    let factor = 1;
+    if (wComp > 0 && wComp / (wComp + wOwn) > maxShare + 1e-9) {
+      if (wOwn === 0) {
+        // a pillar made only of other publishers' scores is not our measurement
+        pillar_scores[p.code] = null;
+        missingPillars.push(p.code);
+        continue;
+      }
+      factor = (maxShare * wOwn) / (wComp * (1 - maxShare));
+    }
+    const w = (i: IndicatorSpec) => i.weight * (i.is_external_composite ? factor : 1);
+    const wsum = scored.reduce((s, i) => s + w(i), 0);
+    const v = scored.reduce((s, i) => s + w(i) * (scoreOf.get(i.code)!.score as number), 0) / wsum;
     pillar_scores[p.code] = round(v, 2);
   }
 

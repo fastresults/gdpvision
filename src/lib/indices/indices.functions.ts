@@ -23,7 +23,7 @@ export interface IndexScoreRow {
   coverage: {
     present: number;
     specified: number;
-    by_pillar: Record<string, { present: number; specified: number }>;
+    by_pillar: Record<string, { present: number; specified: number; live: number }>;
   };
   not_scored_reason: string | null;
   sextant: Num;
@@ -161,17 +161,34 @@ export const publishIndexRelease = createServerFn({ method: "POST" })
     const c = await admin();
     const { data: rel, error } = await c
       .from("index_releases")
-      .select("id,kind,status,signed_off_by")
+      .select("id,kind,status,signed_off_by,run_id")
       .eq("id", data.releaseId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!rel) throw new Error("Release not found.");
-    const r = rel as { kind: string; status: string; signed_off_by: string[] };
+    const r = rel as { kind: string; status: string; signed_off_by: string[]; run_id: string };
     if (r.kind !== "edition")
       throw new Error("Only an official edition can be published; trackers stay private.");
     if (r.status === "published") return { ok: true, already: true };
+    if (r.status === "withdrawn")
+      throw new Error("A withdrawn edition cannot be republished; run a new edition.");
+    const { data: run } = await c
+      .from("index_runs")
+      .select("status")
+      .eq("id", r.run_id)
+      .maybeSingle();
+    if ((run as { status?: string } | null)?.status !== "complete")
+      throw new Error("The edition's run did not complete.");
+    const { data: drafts } = await c
+      .from("index_specs")
+      .select("code")
+      .neq("method_status", "frozen");
+    if ((drafts ?? []).length)
+      throw new Error(
+        `The method is still a draft for ${(drafts as Array<{ code: string }>).map((d) => d.code).join(", ")}. Freeze it (a migration, after the methodology panel ratifies it) before publishing an edition.`,
+      );
     const signed = Array.from(new Set([...(r.signed_off_by ?? []), ctx.userId]));
-    const { error: uerr } = await c
+    const { data: updated, error: uerr } = await c
       .from("index_releases")
       .update({
         status: "published",
@@ -180,7 +197,11 @@ export const publishIndexRelease = createServerFn({ method: "POST" })
         notes: data.notes ?? null,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", data.releaseId);
+      .eq("id", data.releaseId)
+      .eq("status", r.status) // no race: only from the status we read
+      .select("id");
+    if (!uerr && !(updated ?? []).length)
+      throw new Error("The release changed while you were publishing it; reload.");
     if (uerr) throw new Error(uerr.message);
     await c.from("audit_log").insert({
       action: "index_release.published",

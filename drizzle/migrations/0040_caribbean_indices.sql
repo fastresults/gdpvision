@@ -87,6 +87,42 @@ CREATE TABLE IF NOT EXISTS public.index_evidence (
   UNIQUE (index_code, indicator_code, country_code, period)
 );
 
+-- Two-person rule, enforced in the database (not only in the server function):
+-- a new row is never verified; the verifier is the caller and is not the person
+-- who entered it; any change to the fact or its evidence clears verification.
+CREATE OR REPLACE FUNCTION public.index_evidence_guard()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+-- runs as the caller (not SECURITY DEFINER), so current_user is the request's role
+DECLARE is_service boolean := current_user IN ('service_role', 'postgres', 'supabase_admin');
+BEGIN
+  NEW.updated_at := now();
+  IF TG_OP = 'INSERT' THEN
+    IF NOT is_service THEN
+      NEW.entered_by := auth.uid();
+      NEW.verified := false; NEW.verified_by := NULL; NEW.verified_at := NULL;
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF NOT is_service THEN
+    NEW.entered_by := OLD.entered_by;
+  END IF;
+  IF (NEW.value, NEW.period, NEW.document_url, NEW.document_title, NEW.publisher, NEW.grade, NEW.country_code, NEW.indicator_code, NEW.index_code)
+     IS DISTINCT FROM (OLD.value, OLD.period, OLD.document_url, OLD.document_title, OLD.publisher, OLD.grade, OLD.country_code, OLD.indicator_code, OLD.index_code) THEN
+    NEW.verified := false; NEW.verified_by := NULL; NEW.verified_at := NULL;
+    RETURN NEW;
+  END IF;
+  IF NEW.verified AND NOT OLD.verified AND NOT is_service THEN
+    IF auth.uid() IS NULL OR auth.uid() IS NOT DISTINCT FROM NEW.entered_by THEN
+      RAISE EXCEPTION 'A second person must verify evidence.';
+    END IF;
+    NEW.verified_by := auth.uid(); NEW.verified_at := now();
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS index_evidence_guard ON public.index_evidence;
+CREATE TRIGGER index_evidence_guard BEFORE INSERT OR UPDATE ON public.index_evidence
+  FOR EACH ROW EXECUTE FUNCTION public.index_evidence_guard();
+
 -- ------------------------------------------------------------------ runs
 CREATE TABLE IF NOT EXISTS public.index_runs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -363,7 +399,7 @@ ON CONFLICT (index_code, code) DO UPDATE SET
   position = EXCLUDED.position, notes = EXCLUDED.notes;
 
 -- ------------------------------------------------------------------ partner scope
--- GDP Advisor's active partner keys get the new `indices` resource.
+-- Every active partner key (today: GDP Advisor's) gets the new `indices` resource.
 UPDATE public.partner_api_keys
    SET scopes = array_append(scopes, 'indices')
  WHERE revoked_at IS NULL AND expires_at > now() AND NOT ('indices' = ANY (scopes));

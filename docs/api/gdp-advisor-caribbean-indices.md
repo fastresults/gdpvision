@@ -15,8 +15,8 @@ All responses use the v2 envelope `{ version: "v2", generated_at, …body }`.
 | Endpoint | Returns | Cache |
 | --- | --- | --- |
 | `GET /api/public/v2/indices` | Method, Sextant definition, the four indexes with pillars and indicators (source, licence, goalposts, status), and the list of published editions | 1 hour |
-| `GET /api/public/v2/indices/{CGX\|CHX\|CGV\|CCX}?edition=latest&countries=ATG,KNA` | League table for one index from a published edition | Until the next edition (editions never change) |
-| `GET /api/public/v2/countries/{code}/indices` | All four scores for one country, each with its cited inputs ("why this score") | Until the next edition |
+| `GET /api/public/v2/indices/{CGX\|CHX\|CGV\|CCX}?edition=latest&countries=ATG,KNA` | League table for one index from a published edition | Responses carry `max-age=60`; an edition never changes, so cache it on your side until `editions` lists a newer one |
+| `GET /api/public/v2/countries/{code}/indices` | All four scores for one country from the **latest** edition, each with its cited inputs ("why this score") | As above |
 
 MCP (for GDP Advisor's assistant): `get_index_catalogue`, `get_country_indices`.
 
@@ -60,7 +60,7 @@ MCP (for GDP Advisor's assistant): `get_index_catalogue`, `get_country_indices`.
       "country_code": "BRB", "country_name": "Barbados", "status": "scored",
       "score": 71.4, "rank": 1,
       "pillar_scores": { "health": 74.2, "education": 66.0, "income": 70.1, "living": 75.9 },
-      "coverage": { "present": 11, "specified": 14, "by_pillar": { "health": { "present": 2, "specified": 4 } } },
+      "coverage": { "present": 11, "specified": 14, "by_pillar": { "health": { "present": 2, "specified": 4, "live": 2 } } },
       "not_scored_reason": null,
       "sextant": 68.5, "sextant_band": "fair",
       "sextant_parts": { "availability": 78.6, "timeliness": 61.0, "grade_quality": 50, "source_health": 100 },
@@ -70,7 +70,7 @@ MCP (for GDP Advisor's assistant): `get_index_catalogue`, `get_country_indices`.
 }
 ```
 
-Values above illustrate the shape only. A `not_scored` row has `score: null`, `rank: null` and a
+Values above illustrate the shape only. `specified` counts every indicator in the method; `live` counts those with a working source today. A `not_scored` row has `score: null`, `rank: null` and a
 `not_scored_reason` naming the pillars below coverage — show it, don't hide the country.
 
 ### `GET /countries/{code}/indices` (shape)

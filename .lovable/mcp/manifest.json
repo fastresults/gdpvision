@@ -209,6 +209,60 @@
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
+      },
+      {
+        "name": "get_index_catalogue",
+        "title": "Caribbean Indices method",
+        "description": "The Caribbean Indices (Growth CGX, Human CHX, Governance CGV, Capital CCX): pillars, indicators, sources, licences, goalposts and published editions.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "index": {
+              "type": "string",
+              "enum": [
+                "CGX",
+                "CHX",
+                "CGV",
+                "CCX"
+              ],
+              "description": "One index; omit for all four."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_country_indices",
+        "title": "Country Caribbean Index scores",
+        "description": "A country's scores on the Caribbean Indices from the latest published edition: score, rank, pillars, Sextant rating and the cited inputs behind each score.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "string",
+              "pattern": "^[A-Za-z]{2,4}$",
+              "description": "Country code, e.g. KNA."
+            }
+          },
+          "required": [
+            "country"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
       }
     ]
   }

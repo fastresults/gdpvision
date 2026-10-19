@@ -302,6 +302,13 @@
       "when": 1792431525016,
       "tag": "0042_indices_live_source_fixes",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792440005579,
+      "tag": "0043_indices_global_roles",
+      "breakpoints": true
     }
   ]
 }

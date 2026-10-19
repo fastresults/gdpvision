@@ -38,7 +38,7 @@ and Barbuda or Belize; B-READY schedules no edition through 2027 for Dominica or
 Evidence follows a two-person rule enforced by a database trigger (`index_evidence_guard`): new rows are unverified, the verifier cannot be the person who entered it, and any edit clears verification.
 
 RLS: the method layer is readable by anyone. Runs, inputs, scores and releases are readable by
-admins and data stewards, and by any signed-in user only once their release is a **published
+**global** admins and data stewards (`is_indices_steward()`, migration 0043: a role scoped to one country does not count, because one run covers every state), and by any signed-in user only once their release is a **published
 official edition**. A database CHECK makes it impossible to publish a tracker or an unsigned edition.
 
 ## 2. Data flow

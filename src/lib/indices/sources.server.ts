@@ -51,7 +51,13 @@ async function getJson(url: string): Promise<unknown> {
 
 let economies: { at: number; set: Promise<Set<string> | null> } | null = null;
 
-/** ISO3 codes the World Bank API publishes, cached for an hour; null if the list is unreachable. */
+/**
+ * Codes the World Bank API does not publish. Used when its country list is unreachable, because
+ * one unknown code makes the World Bank reject a whole request.
+ */
+const WB_UNPUBLISHED = new Set(["GLP", "MTQ", "MSR"]);
+
+/** ISO3 codes the World Bank API publishes, cached for an hour. A failed lookup is not cached. */
 export function worldBankEconomies(): Promise<Set<string> | null> {
   if (economies && Date.now() - economies.at < 3_600_000) return economies.set;
   const set = getJson("https://api.worldbank.org/v2/country?format=json&per_page=500")
@@ -59,7 +65,11 @@ export function worldBankEconomies(): Promise<Set<string> | null> {
       const rows = (Array.isArray(json) ? json[1] : null) as Array<{ id: string }> | null;
       return rows?.length ? new Set(rows.map((r) => r.id.toUpperCase())) : null;
     })
-    .catch(() => null);
+    .catch(() => null)
+    .then((s) => {
+      if (!s) economies = null; // try the list again on the next call
+      return s;
+    });
   economies = { at: Date.now(), set };
   return set;
 }
@@ -74,7 +84,9 @@ export async function fetchWdi(
   // One unknown code makes the World Bank reject the whole request, so ask only
   // for economies it publishes (Guadeloupe, Martinique, Montserrat are not among them).
   const known = await worldBankEconomies();
-  const asked = known ? countries.filter((c) => known.has(c.iso3.toUpperCase())) : countries;
+  const asked = known
+    ? countries.filter((c) => known.has(c.iso3.toUpperCase()))
+    : countries.filter((c) => !WB_UNPUBLISHED.has(c.iso3.toUpperCase()));
   if (!asked.length) return { byCountry, ok: true, error: null };
   const iso = asked.map((c) => c.iso3).join(";");
   const byIso = new Map(asked.map((c) => [c.iso3, c.code]));
@@ -94,8 +106,18 @@ export async function fetchWdi(
     let rows: Array<{ countryiso3code: string; date: string; value: number | null }>;
     try {
       rows = await attempt(base);
-    } catch {
-      rows = await attempt(`${base}&source=3`); // Worldwide Governance Indicators database
+    } catch (first) {
+      // only an unknown-indicator answer means "try the Worldwide Governance Indicators database";
+      // a timeout or server error is reported as it is, not retried a second time
+      const msg = (first as Error).message ?? "";
+      if (!/not found|deleted or archived|invalid|not valid/i.test(msg)) throw first;
+      try {
+        rows = await attempt(`${base}&source=3`);
+      } catch (second) {
+        throw new Error(
+          `${msg.slice(0, 140)} | source=3: ${(second as Error).message.slice(0, 140)}`,
+        );
+      }
     }
     for (const r of rows) {
       const cc = byIso.get(r.countryiso3code);

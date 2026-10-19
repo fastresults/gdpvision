@@ -50,7 +50,10 @@ export type RunMode = "watch" | "tracker" | "edition" | "test";
 /** Test releases (and their runs) are deleted after this many days. */
 export const TEST_RELEASE_TTL_DAYS = 14;
 /** No retry starts after this much of a run has passed. */
-const RUN_RETRY_BUDGET_MS = 8 * 60_000;
+// Scheduled runs are called by pg_net with a 120 s timeout; the whole retry budget must end before it.
+const RUN_RETRY_BUDGET_MS = 90_000;
+/** A run still marked running after this long was cut off; it no longer blocks new runs. */
+const STALE_RUN_MS = 10 * 60_000;
 
 interface IndicatorRow extends IndicatorSpec {
   index_code: string;
@@ -183,7 +186,7 @@ export async function runIndices(opts: {
       .from("index_runs")
       .select("id")
       .eq("status", "running")
-      .gte("started_at", new Date(Date.now() - 30 * 60_000).toISOString())
+      .gte("started_at", new Date(Date.now() - STALE_RUN_MS).toISOString())
       .limit(1);
     if ((busy ?? []).length)
       throw new Error("Another indices run is in progress; try again when it finishes.");
@@ -207,7 +210,7 @@ export async function runIndices(opts: {
       finished_at: new Date().toISOString(),
     })
     .eq("status", "running")
-    .lt("started_at", new Date(Date.now() - 30 * 60_000).toISOString());
+    .lt("started_at", new Date(Date.now() - STALE_RUN_MS).toISOString());
 
   const { data: run, error: rerr } = await c
     .from("index_runs")
@@ -220,7 +223,13 @@ export async function runIndices(opts: {
     })
     .select("id")
     .single();
-  if (rerr) throw new Error(rerr.message);
+  // index_runs_one_running (migration 0049) closes the race between two runs starting at once
+  if (rerr)
+    throw new Error(
+      (rerr as { code?: string }).code === "23505"
+        ? "Another indices run is in progress; try again when it finishes."
+        : rerr.message,
+    );
   const runId = (run as { id: string }).id;
 
   try {
@@ -228,6 +237,7 @@ export async function runIndices(opts: {
     //     verified evidence row in a single query
     const fetched = new Map<string, SourceResult>();
     const failed: RunSummary["sources"]["failed"] = [];
+    const empty: string[] = [];
     let ok = 0;
     const evidence = await fetchAllEvidence(sb, countries);
     const seriesCache = new Map<string, Promise<SourceResult>>();
@@ -279,8 +289,12 @@ export async function runIndices(opts: {
       const res = await Promise.all(batch.map(load));
       batch.forEach((ind, j) => {
         fetched.set(`${ind.index_code}.${ind.code}`, res[j]);
-        if (res[j].ok) ok++;
-        else
+        if (res[j].ok) {
+          ok++;
+          // an answer with no values is not a working source: report it so it shows in the run
+          if (res[j].byCountry.size === 0 && ind.source_kind !== "evidence")
+            empty.push(`${ind.index_code}.${ind.code}`);
+        } else
           failed.push({
             indicator: `${ind.index_code}.${ind.code}`,
             error: `${res[j].error ?? "unknown"}${res[j].snapshot_at ? ` (snapshot of ${res[j].snapshot_at!.slice(0, 10)} used)` : ""}`,
@@ -409,7 +423,7 @@ export async function runIndices(opts: {
 
     const stats = {
       indexes,
-      sources: { ok, failed },
+      sources: { ok, failed, ...(empty.length ? { empty } : {}) },
       countries: countries.length,
       inputs: inputRows.length,
       retries: Object.fromEntries(attempts),

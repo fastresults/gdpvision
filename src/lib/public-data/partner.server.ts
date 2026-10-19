@@ -76,11 +76,13 @@ export function partnerCors(request: Request, id?: PartnerIdentity | null): Reco
 }
 
 export function partnerJson(request: Request, body: unknown, status = 200, id?: PartnerIdentity | null) {
+  // test releases change with every test run and must never sit in a cache
+  const test = /[?&]edition=test(&|$)/.test(new URL(request.url).search);
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": status === 200 ? "private, max-age=60" : "no-store",
+      "Cache-Control": status === 200 && !test ? "private, max-age=60" : "no-store",
       "X-GDPVision-API": PARTNER_API_VERSION,
       ...partnerCors(request, id),
     },
@@ -103,7 +105,11 @@ export async function withPartner(
     return partnerJson(request, { version: PARTNER_API_VERSION, generated_at: new Date().toISOString(), ...(body as object) }, 200, id);
   } catch (e) {
     const err = e as Error & { status?: number };
-    return partnerProblem(request, err.status ?? 500, err.status ? err.message : "Server error", undefined, id);
+    if (err.status) return partnerProblem(request, err.status, err.message, undefined, id);
+    // unexpected errors are logged with a reference the partner can quote back
+    const ref = crypto.randomUUID().slice(0, 8);
+    console.error(`partner api error ${ref}`, new URL(request.url).pathname, err?.message?.slice(0, 300));
+    return partnerProblem(request, 500, "Server error", `Reference ${ref}`, id);
   }
 }
 

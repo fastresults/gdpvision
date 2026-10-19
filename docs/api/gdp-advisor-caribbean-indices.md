@@ -23,9 +23,13 @@ All responses use the v2 envelope `{ version: "v2", generated_at, …body }`.
 
 | Endpoint | Returns | Cache |
 | --- | --- | --- |
-| `GET /api/public/v2/indices` | Method, Sextant definition, the four indexes with pillars and indicators (source, licence, goalposts, status), and the list of published editions | 1 hour |
+| `GET /api/public/v2/indices` | Method, Sextant definition, the four indexes with pillars and indicators (source, licence, goalposts, status), and the list of published editions | Responses carry `max-age=60`. Cache up to an hour once `editions` is non-empty; while it is empty, re-read every minute so a new edition shows promptly |
 | `GET /api/public/v2/indices/{CGX\|CHX\|CGV\|CCX}?edition=latest&countries=ATG,KNA` | League table for one index from a published edition | Responses carry `max-age=60`; an edition never changes, so cache it on your side until `editions` lists a newer one |
 | `GET /api/public/v2/countries/{code}/indices` | All four scores for one country from the **latest** edition, each with its cited inputs ("why this score") | As above |
+
+Any request with `edition=test` (partner scope `indices_test` only) is answered with `Cache-Control: no-store`. Unexpected errors return 500 with `detail: "Reference xxxxxxxx"`; quote it when reporting a problem.
+
+**Not scored is a result.** An edition can be published while an index scores no country (coverage below the method's threshold). The league table then returns every country with `status: "not_scored"` and a `not_scored_reason`. Show that as a result, not as "pending".
 
 MCP (for GDP Advisor's assistant): `get_index_catalogue`, `get_country_indices`.
 
@@ -87,7 +91,7 @@ Values above illustrate the shape only. `specified` counts every indicator in th
 `data` holds one row per index (same fields as above) plus `inputs`: every indicator with
 `value_used`, `period`, `score`, `source_org`, `source_url`, `licence`, `grade`, `age_years` and
 `excluded_reason` (`pending_source`, `not_collected`, `stale`, `series_too_short`,
-`source_unreachable`, `grade_outside_A_D`, `unscorable_value`). `extra.edition` names the edition.
+`source_unreachable`, `grade_outside_A_D`, `unscorable_value`), plus `origin` (`live`, `snapshot`, `test_fixture`) and `snapshot_at`. Each row carries `index_code` and `country_name`. The edition is at the top level as `edition` (`null`, with a `note`, before the first edition); v1 returns it as `extra.edition`. Read both.
 
 ## Visual routes to build on gdpadvisor.com
 

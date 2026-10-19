@@ -257,8 +257,10 @@ export async function getCountryIndices(
   ]);
   const err = s.error ?? i.error;
   if (err) throw new Error(err.message);
+  const { data: nm } = await c.from("countries").select("name").eq("code", cc).maybeSingle();
   const data = (s.data ?? []).map((row: Record<string, unknown>) => ({
     ...row,
+    country_name: (nm as { name?: string } | null)?.name ?? null,
     inputs: ((i.data ?? []) as unknown as Record<string, unknown>[])
       .filter((x: Record<string, unknown>) => x.index_code === row.index_code)
       .map(({ index_code: _x, ...x }: Record<string, unknown>) => x),

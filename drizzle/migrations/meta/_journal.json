@@ -337,6 +337,13 @@
       "when": 1792444587857,
       "tag": "0047_indices_snapshots_and_test_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792445725213,
+      "tag": "0048_indices_snapshots_and_test_mode",
+      "breakpoints": true
     }
   ]
 }

@@ -4523,6 +4523,478 @@ export type Database = {
           },
         ]
       }
+      index_evidence: {
+        Row: {
+          country_code: string
+          created_at: string
+          document_date: string | null
+          document_title: string
+          document_url: string
+          entered_by: string | null
+          grade: string
+          id: string
+          index_code: string
+          indicator_code: string
+          notes: string | null
+          period: string
+          publisher: string
+          updated_at: string
+          value: number
+          verified: boolean
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          document_date?: string | null
+          document_title: string
+          document_url: string
+          entered_by?: string | null
+          grade: string
+          id?: string
+          index_code: string
+          indicator_code: string
+          notes?: string | null
+          period: string
+          publisher: string
+          updated_at?: string
+          value: number
+          verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          document_date?: string | null
+          document_title?: string
+          document_url?: string
+          entered_by?: string | null
+          grade?: string
+          id?: string
+          index_code?: string
+          indicator_code?: string
+          notes?: string | null
+          period?: string
+          publisher?: string
+          updated_at?: string
+          value?: number
+          verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "index_evidence_index_code_indicator_code_fkey"
+            columns: ["index_code", "indicator_code"]
+            isOneToOne: false
+            referencedRelation: "index_indicators"
+            referencedColumns: ["index_code", "code"]
+          },
+        ]
+      }
+      index_indicators: {
+        Row: {
+          age_tolerance_years: number
+          band_high: number | null
+          band_low: number | null
+          code: string
+          fallback: string | null
+          goal_best: number
+          goal_worst: number
+          index_code: string
+          indicator_type: string
+          licence: string
+          licence_status: string
+          log_scale: boolean
+          name: string
+          notes: string | null
+          pillar_code: string
+          position: number
+          source_code: string | null
+          source_kind: string
+          source_org: string
+          source_url: string | null
+          status: string
+          unit: string
+          weight: number
+          window_kind: string
+        }
+        Insert: {
+          age_tolerance_years?: number
+          band_high?: number | null
+          band_low?: number | null
+          code: string
+          fallback?: string | null
+          goal_best: number
+          goal_worst: number
+          index_code: string
+          indicator_type?: string
+          licence: string
+          licence_status?: string
+          log_scale?: boolean
+          name: string
+          notes?: string | null
+          pillar_code: string
+          position: number
+          source_code?: string | null
+          source_kind: string
+          source_org: string
+          source_url?: string | null
+          status?: string
+          unit?: string
+          weight?: number
+          window_kind?: string
+        }
+        Update: {
+          age_tolerance_years?: number
+          band_high?: number | null
+          band_low?: number | null
+          code?: string
+          fallback?: string | null
+          goal_best?: number
+          goal_worst?: number
+          index_code?: string
+          indicator_type?: string
+          licence?: string
+          licence_status?: string
+          log_scale?: boolean
+          name?: string
+          notes?: string | null
+          pillar_code?: string
+          position?: number
+          source_code?: string | null
+          source_kind?: string
+          source_org?: string
+          source_url?: string | null
+          status?: string
+          unit?: string
+          weight?: number
+          window_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "index_indicators_index_code_fkey"
+            columns: ["index_code"]
+            isOneToOne: false
+            referencedRelation: "index_specs"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "index_indicators_index_code_pillar_code_fkey"
+            columns: ["index_code", "pillar_code"]
+            isOneToOne: false
+            referencedRelation: "index_pillars"
+            referencedColumns: ["index_code", "code"]
+          },
+        ]
+      }
+      index_inputs: {
+        Row: {
+          age_years: number | null
+          country_code: string
+          excluded_reason: string | null
+          grade: string | null
+          id: string
+          index_code: string
+          indicator_code: string
+          licence: string | null
+          method: string | null
+          period: string | null
+          raw_value: number | null
+          retrieved_at: string
+          run_id: string
+          score: number | null
+          source_kind: string
+          source_ok: boolean
+          source_org: string | null
+          source_url: string | null
+          value_used: number | null
+        }
+        Insert: {
+          age_years?: number | null
+          country_code: string
+          excluded_reason?: string | null
+          grade?: string | null
+          id?: string
+          index_code: string
+          indicator_code: string
+          licence?: string | null
+          method?: string | null
+          period?: string | null
+          raw_value?: number | null
+          retrieved_at?: string
+          run_id: string
+          score?: number | null
+          source_kind: string
+          source_ok?: boolean
+          source_org?: string | null
+          source_url?: string | null
+          value_used?: number | null
+        }
+        Update: {
+          age_years?: number | null
+          country_code?: string
+          excluded_reason?: string | null
+          grade?: string | null
+          id?: string
+          index_code?: string
+          indicator_code?: string
+          licence?: string | null
+          method?: string | null
+          period?: string | null
+          raw_value?: number | null
+          retrieved_at?: string
+          run_id?: string
+          score?: number | null
+          source_kind?: string
+          source_ok?: boolean
+          source_org?: string | null
+          source_url?: string | null
+          value_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "index_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "index_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      index_pillars: {
+        Row: {
+          code: string
+          index_code: string
+          name: string
+          position: number
+          weight: number
+        }
+        Insert: {
+          code: string
+          index_code: string
+          name: string
+          position: number
+          weight?: number
+        }
+        Update: {
+          code?: string
+          index_code?: string
+          name?: string
+          position?: number
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "index_pillars_index_code_fkey"
+            columns: ["index_code"]
+            isOneToOne: false
+            referencedRelation: "index_specs"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      index_releases: {
+        Row: {
+          changelog: Json
+          created_at: string
+          id: string
+          kind: string
+          label: string
+          notes: string | null
+          published_at: string | null
+          run_id: string
+          signed_off_by: string[]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          changelog?: Json
+          created_at?: string
+          id?: string
+          kind: string
+          label: string
+          notes?: string | null
+          published_at?: string | null
+          run_id: string
+          signed_off_by?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          changelog?: Json
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          notes?: string | null
+          published_at?: string | null
+          run_id?: string
+          signed_off_by?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "index_releases_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "index_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      index_runs: {
+        Row: {
+          data_cutoff: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          method_versions: Json
+          mode: string
+          started_at: string
+          started_by: string | null
+          stats: Json
+          status: string
+          trigger: string
+        }
+        Insert: {
+          data_cutoff?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          method_versions?: Json
+          mode: string
+          started_at?: string
+          started_by?: string | null
+          stats?: Json
+          status?: string
+          trigger: string
+        }
+        Update: {
+          data_cutoff?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          method_versions?: Json
+          mode?: string
+          started_at?: string
+          started_by?: string | null
+          stats?: Json
+          status?: string
+          trigger?: string
+        }
+        Relationships: []
+      }
+      index_scores: {
+        Row: {
+          country_code: string
+          coverage: Json
+          id: string
+          index_code: string
+          method_version: number
+          not_scored_reason: string | null
+          pillar_scores: Json
+          rank: number | null
+          run_id: string
+          score: number | null
+          sextant: number | null
+          sextant_band: string | null
+          sextant_parts: Json
+          status: string
+          weakest_grade: string | null
+        }
+        Insert: {
+          country_code: string
+          coverage?: Json
+          id?: string
+          index_code: string
+          method_version: number
+          not_scored_reason?: string | null
+          pillar_scores?: Json
+          rank?: number | null
+          run_id: string
+          score?: number | null
+          sextant?: number | null
+          sextant_band?: string | null
+          sextant_parts?: Json
+          status: string
+          weakest_grade?: string | null
+        }
+        Update: {
+          country_code?: string
+          coverage?: Json
+          id?: string
+          index_code?: string
+          method_version?: number
+          not_scored_reason?: string | null
+          pillar_scores?: Json
+          rank?: number | null
+          run_id?: string
+          score?: number | null
+          sextant?: number | null
+          sextant_band?: string | null
+          sextant_parts?: Json
+          status?: string
+          weakest_grade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "index_scores_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "index_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      index_specs: {
+        Row: {
+          aggregation: string
+          benchmark: string
+          code: string
+          external_composite_cap: number
+          method_status: string
+          method_version: number
+          name: string
+          pillar_coverage_min: number
+          pillar_label: string
+          position: number
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          aggregation?: string
+          benchmark: string
+          code: string
+          external_composite_cap?: number
+          method_status?: string
+          method_version?: number
+          name: string
+          pillar_coverage_min?: number
+          pillar_label: string
+          position: number
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          aggregation?: string
+          benchmark?: string
+          code?: string
+          external_composite_cap?: number
+          method_status?: string
+          method_version?: number
+          name?: string
+          pillar_coverage_min?: number
+          pillar_label?: string
+          position?: number
+          question?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       instance_bindings: {
         Row: {
           country_code: string

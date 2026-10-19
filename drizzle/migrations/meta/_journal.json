@@ -295,6 +295,13 @@
       "when": 1792430494344,
       "tag": "0041_caribbean_indices",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792431525016,
+      "tag": "0042_indices_live_source_fixes",
+      "breakpoints": true
     }
   ]
 }

@@ -86,11 +86,13 @@ age tolerances — is the seed in `0040_caribbean_indices.sql` and is served liv
 | Index | Active | Pending source | Live from APIs today | Needs evidence entry |
 | --- | --- | --- | --- | --- |
 | CGX | 8 | 3 (diversification pillar) | 8 (WDI, IMF WEO) | — |
-| CHX | 11 | 3 | 11 (WDI) | — |
+| CHX | 10 | 4 (incl. price level, archived by the World Bank) | 10 (WDI) | — |
 | CGV | 12 | 0 | 1 (WGI via WB API) | 11 documentary / assessment |
 | CCX | 11 | 1 | 3 (WDI) | 8 documentary / assessment |
 
-Consequences, by design: CHX can score as soon as the first run completes; CGX shows the
+First live run (19 Oct 2026): 41 of 42 sources answered; CHX scored Barbados and Saint Lucia. The World Bank does not publish Guadeloupe, Martinique or Montserrat, and the IMF does not cover the eight territories, so those states stay not scored on API-only pillars. CGX uses the overall fiscal balance (GGXCNL_NGDP) because DataMapper has no primary-balance series (migration 0042).
+
+Consequences, by design: CHX scores wherever its four pillars have coverage; CGX shows the
 diversification pillar `not_scored` until sector and export data have real sources; CGV and CCX
 score once stewards enter verified evidence.
 

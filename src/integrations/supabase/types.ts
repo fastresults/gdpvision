@@ -4701,11 +4701,13 @@ export type Database = {
           indicator_code: string
           licence: string | null
           method: string | null
+          origin: string
           period: string | null
           raw_value: number | null
           retrieved_at: string
           run_id: string
           score: number | null
+          snapshot_at: string | null
           source_kind: string
           source_ok: boolean
           source_org: string | null
@@ -4722,11 +4724,13 @@ export type Database = {
           indicator_code: string
           licence?: string | null
           method?: string | null
+          origin?: string
           period?: string | null
           raw_value?: number | null
           retrieved_at?: string
           run_id: string
           score?: number | null
+          snapshot_at?: string | null
           source_kind: string
           source_ok?: boolean
           source_org?: string | null
@@ -4743,11 +4747,13 @@ export type Database = {
           indicator_code?: string
           licence?: string | null
           method?: string | null
+          origin?: string
           period?: string | null
           raw_value?: number | null
           retrieved_at?: string
           run_id?: string
           score?: number | null
+          snapshot_at?: string | null
           source_kind?: string
           source_ok?: boolean
           source_org?: string | null
@@ -4949,6 +4955,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      index_source_snapshots: {
+        Row: {
+          country_code: string
+          grade: string | null
+          observations: Json
+          retrieved_at: string
+          run_id: string | null
+          source_code: string
+          source_kind: string
+          source_org: string | null
+          source_url: string | null
+        }
+        Insert: {
+          country_code: string
+          grade?: string | null
+          observations?: Json
+          retrieved_at?: string
+          run_id?: string | null
+          source_code: string
+          source_kind: string
+          source_org?: string | null
+          source_url?: string | null
+        }
+        Update: {
+          country_code?: string
+          grade?: string | null
+          observations?: Json
+          retrieved_at?: string
+          run_id?: string | null
+          source_code?: string
+          source_kind?: string
+          source_org?: string | null
+          source_url?: string | null
+        }
+        Relationships: []
       }
       index_specs: {
         Row: {

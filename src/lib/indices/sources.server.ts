@@ -45,6 +45,21 @@ async function getJson(url: string): Promise<unknown> {
   }
 }
 
+let economies: { at: number; set: Promise<Set<string> | null> } | null = null;
+
+/** ISO3 codes the World Bank API publishes, cached for an hour; null if the list is unreachable. */
+export function worldBankEconomies(): Promise<Set<string> | null> {
+  if (economies && Date.now() - economies.at < 3_600_000) return economies.set;
+  const set = getJson("https://api.worldbank.org/v2/country?format=json&per_page=500")
+    .then((json) => {
+      const rows = (Array.isArray(json) ? json[1] : null) as Array<{ id: string }> | null;
+      return rows?.length ? new Set(rows.map((r) => r.id.toUpperCase())) : null;
+    })
+    .catch(() => null);
+  economies = { at: Date.now(), set };
+  return set;
+}
+
 /** World Bank WDI (and other WB API databases). Multilateral → grade C. */
 export async function fetchWdi(
   code: string,
@@ -52,11 +67,18 @@ export async function fetchWdi(
   cutoffYear: number,
 ): Promise<SourceResult> {
   const byCountry: SourceResult["byCountry"] = new Map();
-  const iso = countries.map((c) => c.iso3).join(";");
-  const byIso = new Map(countries.map((c) => [c.iso3, c.code]));
+  // One unknown code makes the World Bank reject the whole request, so ask only
+  // for economies it publishes (Guadeloupe, Martinique, Montserrat are not among them).
+  const known = await worldBankEconomies();
+  const asked = known ? countries.filter((c) => known.has(c.iso3.toUpperCase())) : countries;
+  if (!asked.length) return { byCountry, ok: true, error: null };
+  const iso = asked.map((c) => c.iso3).join(";");
+  const byIso = new Map(asked.map((c) => [c.iso3, c.code]));
   const base = `https://api.worldbank.org/v2/country/${iso}/indicator/${encodeURIComponent(code)}?format=json&per_page=2000&date=${FIRST_YEAR}:${cutoffYear}`;
   const attempt = async (url: string) => {
     const json = (await getJson(url)) as unknown[];
+    // a valid request with no observations comes back as [{ total: 0, … }, null]
+    if (Array.isArray(json) && (json[0] as { total?: number } | undefined)?.total === 0) return [];
     if (!Array.isArray(json) || json.length < 2 || !Array.isArray(json[1])) {
       const msg = (json as Array<{ message?: Array<{ value?: string }> }>)?.[0]?.message?.[0]
         ?.value;
@@ -104,7 +126,9 @@ export async function fetchImfWeo(
     const json = (await getJson(url)) as {
       values?: Record<string, Record<string, Record<string, number>>>;
     };
-    const series = json?.values?.[code] ?? {};
+    // an unknown code returns the country list instead of values: that is a failure, not "no data"
+    if (!json?.values?.[code]) throw new Error(`IMF DataMapper has no series ${code}`);
+    const series = json.values[code];
     for (const c of countries) {
       const s = series[c.iso3];
       if (!s) continue;

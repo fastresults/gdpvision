@@ -12,6 +12,7 @@ import {
   discoverCountryOutlets,
   getMediaScanOverview,
   runMediaScan,
+  fixMediaGaps,
   syncSharedOutlets,
   upsertOutlet,
 } from "@/lib/media-scan.functions";
@@ -37,6 +38,7 @@ function MediaScanPage() {
   const qc = useQueryClient();
   const overview = useServerFn(getMediaScanOverview);
   const run = useServerFn(runMediaScan);
+  const fixGapsFn = useServerFn(fixMediaGaps);
   const sync = useServerFn(syncSharedOutlets);
   const discover = useServerFn(discoverCountryOutlets);
   const save = useServerFn(upsertOutlet);
@@ -52,6 +54,14 @@ function MediaScanPage() {
     mutationFn: () => run({ data: { countryCode: country || null } }),
     onSuccess: (r) => {
       setMsg(`Scan finished: ${r.feeds_polled} feeds read, ${r.items_new} new articles, ${r.items_promoted} signals added.`);
+      refresh();
+    },
+    onError: (e) => setMsg((e as Error).message),
+  });
+  const gaps = useMutation({
+    mutationFn: () => fixGapsFn(),
+    onSuccess: (r) => {
+      setMsg(`Checked ${r.targets.length} countries. ${r.still_gap.length ? `Still short: ${r.still_gap.join(", ")} (outlet search run).` : "Every country now has a P1 GDP and P1 political story."}`);
       refresh();
     },
     onError: (e) => setMsg((e as Error).message),
@@ -108,6 +118,14 @@ function MediaScanPage() {
         <button className="btn-primary" disabled={scan.isPending || !!d?.running} onClick={() => scan.mutate()}>
           {scan.isPending || d?.running ? "Scanning…" : "Run scan now"}
         </button>
+        {(() => {
+          const n = (d?.coverage ?? []).filter((c) => c.code !== "CAR" && (c.p1_gdp === "gap" || c.p1_political === "gap")).length;
+          return (
+            <button className="btn-accent" disabled={gaps.isPending || n === 0} onClick={() => gaps.mutate()}>
+              {gaps.isPending ? "Fixing gaps…" : `Fix gaps (${n})`}
+            </button>
+          );
+        })()}
         <button className="btn-secondary" disabled={doSync.isPending} onClick={() => doSync.mutate()}>
           {doSync.isPending ? "Linking outlets…" : "Link shared outlets"}
         </button>

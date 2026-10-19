@@ -115,13 +115,22 @@ export async function coverageReport() {
     if (s.is_political) r.political_7d++;
     if (s.is_economic) r.economic_7d++;
     if (s.link_status === "broken") r.broken_links_7d++;
-    const lvl = priorityFor(s as never).level;
-    if (lvl <= 2) r.p12_7d++;
-    if (lvl === 1) {
-      const st = s.priority_override === 1 ? "raised" : "natural";
-      if (s.is_economic && r.p1_gdp !== "natural") r.p1_gdp = st;
-      if (s.is_political && r.p1_political !== "natural") r.p1_political = st;
-    }
+    if (priorityFor(s as never).level <= 2) r.p12_7d++;
+  }
+  const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const { data: p1s } = await supabaseAdmin
+    .from("intake_items")
+    .select("scope_key,is_political,is_economic,priority_override,recommendation,severity,reach,state")
+    .gte("created_at", since30)
+    .or("priority_override.eq.1,recommendation.in.(lead,counter)")
+    .limit(20000);
+  for (const s of p1s ?? []) {
+    const r = rows.get(s.scope_key as string);
+    if (!r || s.state === "duplicate" || s.state === "dismissed") continue;
+    if (priorityFor(s as never).level !== 1) continue;
+    const st = s.priority_override === 1 ? "raised" : "natural";
+    if (s.is_economic && r.p1_gdp !== "natural") r.p1_gdp = st;
+    if (s.is_political && r.p1_political !== "natural") r.p1_political = st;
   }
   return Array.from(rows.values()).sort((a, b) => a.active_feeds - b.active_feeds);
 }

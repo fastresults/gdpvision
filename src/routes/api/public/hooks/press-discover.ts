@@ -22,7 +22,10 @@ export const Route = createFileRoute("/api/public/hooks/press-discover")({
             return Response.json({ ok: true, ...r });
           }
           const results = await discoverAllCountries();
-          return Response.json({ ok: true, results });
+          // Topic-gap repair: tag backlog, re-run the P1 guarantee, look for outlets.
+          const { fixGaps } = await import("@/lib/narrative-retag.server");
+          const gaps = await fixGaps().catch((e) => ({ error: (e as Error).message }));
+          return Response.json({ ok: true, results, gaps });
         } catch (e) {
           return new Response((e as Error).message, { status: 500 });
         }

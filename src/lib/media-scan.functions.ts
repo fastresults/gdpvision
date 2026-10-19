@@ -122,3 +122,11 @@ export const recomputeSources = createServerFn({ method: "POST" })
     const { recomputeSourceStats } = await import("@/lib/narrative-source-stats.server");
     return withScanLock(`manual:${Date.now()}`, 10, recomputeSourceStats, "source-stats");
   });
+
+export const fixMediaGaps = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .handler(async ({ context }) => {
+    const { withScanLock } = await import("@/lib/media-scan.server");
+    const { fixGaps } = await import("@/lib/narrative-retag.server");
+    return withScanLock(`gaps:${context.userId}:${Date.now()}`, 15, () => fixGaps(), "media-gap-fix");
+  });

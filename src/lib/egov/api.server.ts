@@ -689,6 +689,11 @@ const RESOURCES: Record<ApiScope, Handler> = {
     return { data: out, extra: { window_days: m.MEDIA_WINDOW_DAYS, topics: m.MEDIA_TOPICS } };
   },
 
+  indices: async (_sb, id, req) => {
+    const m = await import("@/lib/public-data/indices.server");
+    return m.getCountryIndices(id.country, new URL(req.url).searchParams.get("edition"));
+  },
+
   media_sources: async (sb, id) => {
     const m = await import("@/lib/public-data/media");
     const { data: feeds } = await db(sb)

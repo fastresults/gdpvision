@@ -1,6 +1,8 @@
 import { auth, defineMcp } from "@lovable.dev/mcp-js";
 
 import compareCountries from "./tools/compare-countries";
+import getCountryIndices from "./tools/get-country-indices";
+import getIndexCatalogue from "./tools/get-index-catalogue";
 import getKpis from "./tools/get-kpis";
 import getSources from "./tools/get-sources";
 import listMediaSignals from "./tools/list-media-signals";
@@ -14,10 +16,19 @@ export default defineMcp({
   title: "EyeFrame Showcase",
   version: "0.1.0",
   instructions:
-    "Read-only access to GDPVision public country data: countries, public economic indicators with sources, cross-country comparisons, verified public Second Brain facts and official source registers, and recent media scan signals. Answers act as the signed-in GDPVision user.",
+    "Read-only access to GDPVision public country data: countries, public economic indicators with sources, cross-country comparisons, verified public Second Brain facts and official source registers, recent media scan signals, and the Caribbean Indices (method and published edition scores with cited inputs). Answers act as the signed-in GDPVision user.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
   }),
-  tools: [listCountries, getKpis, compareCountries, searchSecondBrain, getSources, listMediaSignals],
+  tools: [
+    listCountries,
+    getKpis,
+    compareCountries,
+    searchSecondBrain,
+    getSources,
+    listMediaSignals,
+    getIndexCatalogue,
+    getCountryIndices,
+  ],
 });

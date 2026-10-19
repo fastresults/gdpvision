@@ -142,7 +142,13 @@ function PartnerKeysPage() {
             <li>GET {base}/countries/ATG/kpis?since=2026-01-01</li>
             <li>GET {base}/search?q=tourism&amp;country=ATG,BRB</li>
             <li>GET {base}/compare?metric=gdp&amp;countries=ATG,BRB,DMA</li>
+            <li>GET {base}/indices</li>
+            <li>GET {base}/indices/CHX?edition=latest</li>
+            <li>GET {base}/countries/KNA/indices</li>
           </ul>
+          <p className="text-[12px] text-ink-500">
+            Caribbean Indices contract and visual routes: docs/api/gdp-advisor-caribbean-indices.md in the GDPVision repo.
+          </p>
           <p className="text-[12px] text-ink-500">Resources: {API_SCOPES.join(", ")}.</p>
         </section>
       </div>

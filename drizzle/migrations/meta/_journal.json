@@ -281,6 +281,13 @@
       "when": 1792365694699,
       "tag": "0039_p1_guarantee",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792427712595,
+      "tag": "0040_caribbean_indices",
+      "breakpoints": true
     }
   ]
 }

@@ -203,6 +203,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/api/public/dossier/$token` | `src/routes/api/public/dossier/$token.ts` |
 | `/api/public/field/$token` | `src/routes/api/public/field.$token.ts` |
 | `/api/public/hooks/cadence-daily` | `src/routes/api/public/hooks/cadence-daily.ts` |
+| `/api/public/hooks/indices` | `src/routes/api/public/hooks/indices.ts` |
 | `/api/public/hooks/ledger-qa` | `src/routes/api/public/hooks/ledger-qa.ts` |
 | `/api/public/hooks/narrative-harvest` | `src/routes/api/public/hooks/narrative-harvest.ts` |
 | `/api/public/hooks/peer-analysis` | `src/routes/api/public/hooks/peer-analysis.ts` |
@@ -215,4 +216,6 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/api/public/v2/compare` | `src/routes/api/public/v2/compare.ts` |
 | `/api/public/v2/countries` | `src/routes/api/public/v2/countries.ts` |
 | `/api/public/v2/countries/$code/$resource` | `src/routes/api/public/v2/countries.$code.$resource.ts` |
+| `/api/public/v2/indices` | `src/routes/api/public/v2/indices.ts` |
+| `/api/public/v2/indices/$index` | `src/routes/api/public/v2/indices.$index.ts` |
 | `/api/public/v2/search` | `src/routes/api/public/v2/search.ts` |

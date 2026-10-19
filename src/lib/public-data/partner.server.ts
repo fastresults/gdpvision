@@ -204,3 +204,25 @@ export async function compareKpi(id: PartnerIdentity, opts: { metric: string; co
   const rows = ((await k).data ?? []) as Array<Record<string, unknown>>;
   return { metric, count: rows.length, data: rows };
 }
+
+// ------------------------------------------------------------- Caribbean Indices
+
+function requireIndices(id: PartnerIdentity) {
+  if (!id.scopes.includes("indices")) throw httpError(403, 'This key does not include "indices".');
+}
+
+/** Method, pillars, indicators, sources, licences and published editions. */
+export async function readIndexCatalogue(id: PartnerIdentity) {
+  requireIndices(id);
+  const m = await import("@/lib/public-data/indices.server");
+  return m.getIndexCatalogue();
+}
+
+/** League table for one index from a published edition (?edition=<id>|latest, ?countries=ATG,KNA). */
+export async function readIndexEdition(id: PartnerIdentity, index: string, edition?: string | null, countries?: string[]) {
+  requireIndices(id);
+  const m = await import("@/lib/public-data/indices.server");
+  if (!m.isIndexCode(index)) throw httpError(404, `Unknown index. Indexes: ${m.INDEX_CODES.join(", ")}.`);
+  const codes = allowedCodes(id, countries);
+  return m.getIndexEdition(index, edition, codes);
+}

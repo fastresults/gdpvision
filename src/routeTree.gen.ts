@@ -107,6 +107,7 @@ import { Route as ApiPublicDeckTokenRouteImport } from './routes/api/public/deck
 import { Route as ApiPublicDossierTokenRouteImport } from './routes/api/public/dossier/$token'
 import { Route as ApiPublicFieldTokenRouteImport } from './routes/api/public/field.$token'
 import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
+import { Route as ApiPublicHooksIndicesRouteImport } from './routes/api/public/hooks/indices'
 import { Route as ApiPublicHooksLedgerQaRouteImport } from './routes/api/public/hooks/ledger-qa'
 import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
 import { Route as ApiPublicHooksPeerAnalysisRouteImport } from './routes/api/public/hooks/peer-analysis'
@@ -117,6 +118,7 @@ import { Route as ApiPublicHooksSourceStatsRouteImport } from './routes/api/publ
 import { Route as ApiPublicV1HandshakeRouteImport } from './routes/api/public/v1/handshake'
 import { Route as ApiPublicV2CompareRouteImport } from './routes/api/public/v2/compare'
 import { Route as ApiPublicV2CountriesRouteImport } from './routes/api/public/v2/countries'
+import { Route as ApiPublicV2IndicesRouteImport } from './routes/api/public/v2/indices'
 import { Route as ApiPublicV2SearchRouteImport } from './routes/api/public/v2/search'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
@@ -142,6 +144,7 @@ import { Route as AuthenticatedConsoleCodeChamberChamberRouteImport } from './ro
 import { Route as AuthenticatedConsoleCodeRequestNewRouteImport } from './routes/_authenticated/console.$code.request.new'
 import { Route as AuthenticatedConsoleCodeRequestsIndexRouteImport } from './routes/_authenticated/console.$code.requests.index'
 import { Route as AuthenticatedConsoleCodeRequestsIdRouteImport } from './routes/_authenticated/console.$code.requests.$id'
+import { Route as ApiPublicV2IndicesIndexRouteImport } from './routes/api/public/v2/indices.$index'
 import { Route as AuthenticatedAdminCountriesCodeCabinetIndexRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.index'
 import { Route as AuthenticatedAdminCountriesCodeEgovPrdIdRouteImport } from './routes/_authenticated/admin/countries.$code.egov_.$prdId'
 import { Route as AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport } from './routes/_authenticated/admin/countries.$code.investments.$id'
@@ -732,6 +735,11 @@ const ApiPublicHooksCadenceDailyRoute =
     path: '/api/public/hooks/cadence-daily',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksIndicesRoute = ApiPublicHooksIndicesRouteImport.update({
+  id: '/api/public/hooks/indices',
+  path: '/api/public/hooks/indices',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksLedgerQaRoute = ApiPublicHooksLedgerQaRouteImport.update({
   id: '/api/public/hooks/ledger-qa',
   path: '/api/public/hooks/ledger-qa',
@@ -785,6 +793,11 @@ const ApiPublicV2CompareRoute = ApiPublicV2CompareRouteImport.update({
 const ApiPublicV2CountriesRoute = ApiPublicV2CountriesRouteImport.update({
   id: '/api/public/v2/countries',
   path: '/api/public/v2/countries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV2IndicesRoute = ApiPublicV2IndicesRouteImport.update({
+  id: '/api/public/v2/indices',
+  path: '/api/public/v2/indices',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicV2SearchRoute = ApiPublicV2SearchRouteImport.update({
@@ -936,6 +949,11 @@ const AuthenticatedConsoleCodeRequestsIdRoute =
     path: '/$code/requests/$id',
     getParentRoute: () => AuthenticatedConsoleRoute,
   } as any)
+const ApiPublicV2IndicesIndexRoute = ApiPublicV2IndicesIndexRouteImport.update({
+  id: '/$index',
+  path: '/$index',
+  getParentRoute: () => ApiPublicV2IndicesRoute,
+} as any)
 const AuthenticatedAdminCountriesCodeCabinetIndexRoute =
   AuthenticatedAdminCountriesCodeCabinetIndexRouteImport.update({
     id: '/countries/$code/cabinet/',
@@ -1253,6 +1271,7 @@ export interface FileRoutesByFullPath {
   '/api/public/dossier/$token': typeof ApiPublicDossierTokenRoute
   '/api/public/field/$token': typeof ApiPublicFieldTokenRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
+  '/api/public/hooks/indices': typeof ApiPublicHooksIndicesRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/api/public/hooks/peer-analysis': typeof ApiPublicHooksPeerAnalysisRoute
@@ -1263,6 +1282,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
+  '/api/public/v2/indices': typeof ApiPublicV2IndicesRouteWithChildren
   '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
@@ -1293,6 +1313,7 @@ export interface FileRoutesByFullPath {
   '/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
+  '/api/public/v2/indices/$index': typeof ApiPublicV2IndicesIndexRoute
   '/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
   '/admin/countries/$code/egov/$prdId': typeof AuthenticatedAdminCountriesCodeEgovPrdIdRoute
   '/admin/countries/$code/investments/$id': typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren
@@ -1420,6 +1441,7 @@ export interface FileRoutesByTo {
   '/api/public/dossier/$token': typeof ApiPublicDossierTokenRoute
   '/api/public/field/$token': typeof ApiPublicFieldTokenRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
+  '/api/public/hooks/indices': typeof ApiPublicHooksIndicesRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/api/public/hooks/peer-analysis': typeof ApiPublicHooksPeerAnalysisRoute
@@ -1430,6 +1452,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
+  '/api/public/v2/indices': typeof ApiPublicV2IndicesRouteWithChildren
   '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/admin/countries': typeof AuthenticatedAdminCountriesIndexRoute
@@ -1455,6 +1478,7 @@ export interface FileRoutesByTo {
   '/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
+  '/api/public/v2/indices/$index': typeof ApiPublicV2IndicesIndexRoute
   '/console/$code/requests': typeof AuthenticatedConsoleCodeRequestsIndexRoute
   '/admin/countries/$code/egov/$prdId': typeof AuthenticatedAdminCountriesCodeEgovPrdIdRoute
   '/admin/countries/$code/investments/$id': typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren
@@ -1588,6 +1612,7 @@ export interface FileRoutesById {
   '/api/public/dossier/$token': typeof ApiPublicDossierTokenRoute
   '/api/public/field/$token': typeof ApiPublicFieldTokenRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
+  '/api/public/hooks/indices': typeof ApiPublicHooksIndicesRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/api/public/hooks/peer-analysis': typeof ApiPublicHooksPeerAnalysisRoute
@@ -1598,6 +1623,7 @@ export interface FileRoutesById {
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
+  '/api/public/v2/indices': typeof ApiPublicV2IndicesRouteWithChildren
   '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/_authenticated/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
@@ -1628,6 +1654,7 @@ export interface FileRoutesById {
   '/_authenticated/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/_authenticated/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/_authenticated/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
+  '/api/public/v2/indices/$index': typeof ApiPublicV2IndicesIndexRoute
   '/_authenticated/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
   '/_authenticated/admin/countries/$code/egov_/$prdId': typeof AuthenticatedAdminCountriesCodeEgovPrdIdRoute
   '/_authenticated/admin/countries/$code/investments/$id': typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren
@@ -1761,6 +1788,7 @@ export interface FileRouteTypes {
     | '/api/public/dossier/$token'
     | '/api/public/field/$token'
     | '/api/public/hooks/cadence-daily'
+    | '/api/public/hooks/indices'
     | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
     | '/api/public/hooks/peer-analysis'
@@ -1771,6 +1799,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/handshake'
     | '/api/public/v2/compare'
     | '/api/public/v2/countries'
+    | '/api/public/v2/indices'
     | '/api/public/v2/search'
     | '/kiosk/api/public/presentation-pdf'
     | '/admin/countries/'
@@ -1801,6 +1830,7 @@ export interface FileRouteTypes {
     | '/console/$code/chamber/$chamber'
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
+    | '/api/public/v2/indices/$index'
     | '/console/$code/requests/'
     | '/admin/countries/$code/egov/$prdId'
     | '/admin/countries/$code/investments/$id'
@@ -1928,6 +1958,7 @@ export interface FileRouteTypes {
     | '/api/public/dossier/$token'
     | '/api/public/field/$token'
     | '/api/public/hooks/cadence-daily'
+    | '/api/public/hooks/indices'
     | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
     | '/api/public/hooks/peer-analysis'
@@ -1938,6 +1969,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/handshake'
     | '/api/public/v2/compare'
     | '/api/public/v2/countries'
+    | '/api/public/v2/indices'
     | '/api/public/v2/search'
     | '/kiosk/api/public/presentation-pdf'
     | '/admin/countries'
@@ -1963,6 +1995,7 @@ export interface FileRouteTypes {
     | '/console/$code/chamber/$chamber'
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
+    | '/api/public/v2/indices/$index'
     | '/console/$code/requests'
     | '/admin/countries/$code/egov/$prdId'
     | '/admin/countries/$code/investments/$id'
@@ -2095,6 +2128,7 @@ export interface FileRouteTypes {
     | '/api/public/dossier/$token'
     | '/api/public/field/$token'
     | '/api/public/hooks/cadence-daily'
+    | '/api/public/hooks/indices'
     | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
     | '/api/public/hooks/peer-analysis'
@@ -2105,6 +2139,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/handshake'
     | '/api/public/v2/compare'
     | '/api/public/v2/countries'
+    | '/api/public/v2/indices'
     | '/api/public/v2/search'
     | '/kiosk/api/public/presentation-pdf'
     | '/_authenticated/admin/countries/'
@@ -2135,6 +2170,7 @@ export interface FileRouteTypes {
     | '/_authenticated/console/$code/chamber/$chamber'
     | '/_authenticated/console/$code/request/new'
     | '/_authenticated/console/$code/requests/$id'
+    | '/api/public/v2/indices/$index'
     | '/_authenticated/console/$code/requests/'
     | '/_authenticated/admin/countries/$code/egov_/$prdId'
     | '/_authenticated/admin/countries/$code/investments/$id'
@@ -2202,6 +2238,7 @@ export interface RootRouteChildren {
   ApiPublicDossierTokenRoute: typeof ApiPublicDossierTokenRoute
   ApiPublicFieldTokenRoute: typeof ApiPublicFieldTokenRoute
   ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
+  ApiPublicHooksIndicesRoute: typeof ApiPublicHooksIndicesRoute
   ApiPublicHooksLedgerQaRoute: typeof ApiPublicHooksLedgerQaRoute
   ApiPublicHooksNarrativeHarvestRoute: typeof ApiPublicHooksNarrativeHarvestRoute
   ApiPublicHooksPeerAnalysisRoute: typeof ApiPublicHooksPeerAnalysisRoute
@@ -2212,6 +2249,7 @@ export interface RootRouteChildren {
   ApiPublicV1HandshakeRoute: typeof ApiPublicV1HandshakeRoute
   ApiPublicV2CompareRoute: typeof ApiPublicV2CompareRoute
   ApiPublicV2CountriesRoute: typeof ApiPublicV2CountriesRouteWithChildren
+  ApiPublicV2IndicesRoute: typeof ApiPublicV2IndicesRouteWithChildren
   ApiPublicV2SearchRoute: typeof ApiPublicV2SearchRoute
   ApiPublicV1CountriesCodeResourceRoute: typeof ApiPublicV1CountriesCodeResourceRoute
 }
@@ -2904,6 +2942,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCadenceDailyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/indices': {
+      id: '/api/public/hooks/indices'
+      path: '/api/public/hooks/indices'
+      fullPath: '/api/public/hooks/indices'
+      preLoaderRoute: typeof ApiPublicHooksIndicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/ledger-qa': {
       id: '/api/public/hooks/ledger-qa'
       path: '/api/public/hooks/ledger-qa'
@@ -2972,6 +3017,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/v2/countries'
       fullPath: '/api/public/v2/countries'
       preLoaderRoute: typeof ApiPublicV2CountriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v2/indices': {
+      id: '/api/public/v2/indices'
+      path: '/api/public/v2/indices'
+      fullPath: '/api/public/v2/indices'
+      preLoaderRoute: typeof ApiPublicV2IndicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/v2/search': {
@@ -3148,6 +3200,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/console/$code/requests/$id'
       preLoaderRoute: typeof AuthenticatedConsoleCodeRequestsIdRouteImport
       parentRoute: typeof AuthenticatedConsoleRoute
+    }
+    '/api/public/v2/indices/$index': {
+      id: '/api/public/v2/indices/$index'
+      path: '/$index'
+      fullPath: '/api/public/v2/indices/$index'
+      preLoaderRoute: typeof ApiPublicV2IndicesIndexRouteImport
+      parentRoute: typeof ApiPublicV2IndicesRoute
     }
     '/_authenticated/admin/countries/$code/cabinet/': {
       id: '/_authenticated/admin/countries/$code/cabinet/'
@@ -3954,6 +4013,17 @@ const ApiPublicV2CountriesRouteChildren: ApiPublicV2CountriesRouteChildren = {
 const ApiPublicV2CountriesRouteWithChildren =
   ApiPublicV2CountriesRoute._addFileChildren(ApiPublicV2CountriesRouteChildren)
 
+interface ApiPublicV2IndicesRouteChildren {
+  ApiPublicV2IndicesIndexRoute: typeof ApiPublicV2IndicesIndexRoute
+}
+
+const ApiPublicV2IndicesRouteChildren: ApiPublicV2IndicesRouteChildren = {
+  ApiPublicV2IndicesIndexRoute: ApiPublicV2IndicesIndexRoute,
+}
+
+const ApiPublicV2IndicesRouteWithChildren =
+  ApiPublicV2IndicesRoute._addFileChildren(ApiPublicV2IndicesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -3982,6 +4052,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicDossierTokenRoute: ApiPublicDossierTokenRoute,
   ApiPublicFieldTokenRoute: ApiPublicFieldTokenRoute,
   ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,
+  ApiPublicHooksIndicesRoute: ApiPublicHooksIndicesRoute,
   ApiPublicHooksLedgerQaRoute: ApiPublicHooksLedgerQaRoute,
   ApiPublicHooksNarrativeHarvestRoute: ApiPublicHooksNarrativeHarvestRoute,
   ApiPublicHooksPeerAnalysisRoute: ApiPublicHooksPeerAnalysisRoute,
@@ -3992,6 +4063,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicV1HandshakeRoute: ApiPublicV1HandshakeRoute,
   ApiPublicV2CompareRoute: ApiPublicV2CompareRoute,
   ApiPublicV2CountriesRoute: ApiPublicV2CountriesRouteWithChildren,
+  ApiPublicV2IndicesRoute: ApiPublicV2IndicesRouteWithChildren,
   ApiPublicV2SearchRoute: ApiPublicV2SearchRoute,
   ApiPublicV1CountriesCodeResourceRoute: ApiPublicV1CountriesCodeResourceRoute,
 }

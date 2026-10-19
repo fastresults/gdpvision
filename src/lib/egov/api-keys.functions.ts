@@ -29,6 +29,7 @@ export const API_SCOPES = [
   "sources",
   "media",
   "media_sources",
+  "indices",
 ] as const;
 export type ApiScope = (typeof API_SCOPES)[number];
 
@@ -47,6 +48,8 @@ export const API_SCOPE_LABEL: Record<ApiScope, string> = {
   sources: "Official sources register",
   media: "Media scan: last 30 days of news signals with topics, priority and source strength",
   media_sources: "Media outlets scanned, with strength and reach tiers",
+  indices:
+    "Caribbean Indices (Growth, Human, Governance, Capital): published edition scores, pillars, Sextant rating and every cited input",
 };
 
 export interface ApiKeyRow {

@@ -1,7 +1,7 @@
 # PRD · Caribbean Indices
 
 **Product:** GDPVision (gdpvision.com), consumed by GDP Advisor (gdpadvisor.com)
-**Status:** method version 0 (draft) — tables, runner, scoring, partner API and back-office page shipped; first official edition pending sign-off
+**Status:** method v1 frozen (19 Oct 2026, owner waiver of panel ratification and the 30-day lead; migration 0045). IMF WEO series parked pending written permission for commercial reuse. First official edition: October 2026
 **Date:** 19 October 2026
 **Code:** `drizzle/migrations/0040_caribbean_indices.sql` · `src/lib/indices/*` · `src/lib/public-data/indices.server.ts`
 **API contract for GDP Advisor:** `docs/api/gdp-advisor-caribbean-indices.md`

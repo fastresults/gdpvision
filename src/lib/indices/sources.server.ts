@@ -199,17 +199,25 @@ export async function fetchAllEvidence(
   error: string | null;
 }> {
   const byIndicator = new Map<string, SourceResult["byCountry"]>();
-  const { data, error } = await db(sb)
-    .from("index_evidence")
-    .select("index_code,indicator_code,country_code,value,period,document_url,publisher,grade")
-    .eq("verified", true)
-    .in(
-      "country_code",
-      countries.map((c) => c.code),
-    )
-    .order("period", { ascending: true })
-    .limit(10000);
-  if (error) return { byIndicator, ok: false, error: error.message };
+  // PostgREST caps a response at 1,000 rows: page through until a short page.
+  const PAGE = 1000;
+  const data: unknown[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data: page, error } = await db(sb)
+      .from("index_evidence")
+      .select("index_code,indicator_code,country_code,value,period,document_url,publisher,grade")
+      .eq("verified", true)
+      .in(
+        "country_code",
+        countries.map((c) => c.code),
+      )
+      .order("period", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) return { byIndicator, ok: false, error: error.message };
+    data.push(...(page ?? []));
+    if ((page ?? []).length < PAGE) break;
+  }
   type Row = {
     index_code: string;
     indicator_code: string;
@@ -220,7 +228,7 @@ export async function fetchAllEvidence(
     publisher: string;
     grade: Grade;
   };
-  for (const r of (data ?? []) as Row[]) {
+  for (const r of data as Row[]) {
     const key = `${r.index_code}.${r.indicator_code}`;
     const m = byIndicator.get(key) ?? new Map();
     const e = m.get(r.country_code) ?? {

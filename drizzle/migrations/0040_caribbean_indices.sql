@@ -109,7 +109,15 @@ BEGIN
   IF (NEW.value, NEW.period, NEW.document_url, NEW.document_title, NEW.publisher, NEW.grade, NEW.country_code, NEW.indicator_code, NEW.index_code)
      IS DISTINCT FROM (OLD.value, OLD.period, OLD.document_url, OLD.document_title, OLD.publisher, OLD.grade, OLD.country_code, OLD.indicator_code, OLD.index_code) THEN
     NEW.verified := false; NEW.verified_by := NULL; NEW.verified_at := NULL;
+    -- whoever changes the fact becomes its author, so they cannot also verify it
+    IF NOT is_service THEN NEW.entered_by := auth.uid(); END IF;
     RETURN NEW;
+  END IF;
+  IF NOT is_service AND NEW.verified IS NOT DISTINCT FROM OLD.verified THEN
+    NEW.verified_by := OLD.verified_by; NEW.verified_at := OLD.verified_at;
+  END IF;
+  IF NOT NEW.verified AND OLD.verified AND NOT is_service THEN
+    NEW.verified_by := NULL; NEW.verified_at := NULL;
   END IF;
   IF NEW.verified AND NOT OLD.verified AND NOT is_service THEN
     IF auth.uid() IS NULL OR auth.uid() IS NOT DISTINCT FROM NEW.entered_by THEN

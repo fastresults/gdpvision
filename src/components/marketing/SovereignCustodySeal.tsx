@@ -1,11 +1,11 @@
 import { useHoverIntent } from "@/hooks/useHoverIntent";
 import { useEffect, useRef, useState, type KeyboardEvent, useCallback } from "react";
 
-type Stage = "evidence" | "access" | "custody" | "release";
+type Stage = "data" | "access" | "custody" | "release";
 
 const STAGE_COPY: Record<Stage, { title: string; body: string }> = {
   evidence: {
-    title: "National evidence enters",
+    title: "National data enters",
     body: "Government records enter a country-controlled boundary and remain part of the national record.",
   },
   access: {
@@ -18,7 +18,7 @@ const STAGE_COPY: Record<Stage, { title: string; body: string }> = {
   },
   release: {
     title: "Government authorises release",
-    body: "A named approval may release a finding. The underlying national evidence stays under national control.",
+    body: "A named approval may release a finding. The underlying national data stays under national control.",
   },
 };
 
@@ -72,10 +72,10 @@ export function SovereignCustodySeal() {
     <figure
       ref={ref}
       className={`scs mt-12 w-full max-w-[390px] select-none ${visible ? "scs-on" : ""} ${active ? "scs-paused" : ""}`}
-      aria-label="The Sovereign Custody Seal shows national evidence entering a country-controlled boundary, authorised access being recorded, and only an approved finding leaving."
+      aria-label="The Sovereign Custody Seal shows national data entering a country-controlled boundary, authorised access being recorded, and only an approved finding leaving."
     >
       <svg key={cycle} viewBox="0 0 390 320" className="block h-auto w-full overflow-visible">
-        <title>National evidence remains under national control</title>
+        <title>National data remains under national control</title>
         <defs>
           <pattern
             id="scs-hatch"
@@ -139,9 +139,9 @@ export function SovereignCustodySeal() {
           </text>
         </g>
 
-        <g className="scs-evidence" {...stageProps("evidence")}>
+        <g className="scs-evidence" {...stageProps("data")}>
           <text x="15" y="72" className="font-mono" fontSize="7" fill="var(--color-ink-500)">
-            NATIONAL EVIDENCE
+            NATIONAL DATA
           </text>
           {[0, 1, 2].map((index) => (
             <g key={index} className="scs-document" style={{ ["--i" as string]: index }}>
@@ -440,7 +440,7 @@ export function SovereignCustodySeal() {
               The Sovereign Custody Seal
             </span>
             <br />
-            Government controls the evidence, the access rules and every authorised release.
+            Government controls the data, the access rules and every authorised release.
           </>
         )}
       </figcaption>

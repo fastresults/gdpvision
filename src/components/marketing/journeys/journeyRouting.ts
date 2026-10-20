@@ -51,7 +51,7 @@ export const STAGE_PLAYBOOK: Record<string, StagePlay[]> = {
   ],
   "02": [
     sp("What does the mandate say?", "Mandate read from the gazette", "Cabinet Secretary"),
-    sp("Who has real influence?", "Influence scored on evidence", "Cabinet Secretary"),
+    sp("Who has real influence?", "Influence scored on trusted data", "Cabinet Secretary"),
     sp(
       "Where do ministries depend on each other?",
       "Overlaps shown to both ministers",
@@ -81,13 +81,13 @@ export const STAGE_PLAYBOOK: Record<string, StagePlay[]> = {
   "05": [
     sp("What is being said, and where?", "Signal logged with its source", "Communications unit"),
     sp("What are the verified facts?", "Only approved facts used", "Cabinet Office"),
-    sp("What is the national position?", "Position tied to evidence", "Prime Minister's office"),
+    sp("What is the national position?", "Position tied to data", "Prime Minister's office"),
     sp("Does it survive challenge?", "Tested against opposition lines", "Communications unit"),
     sp("Who releases it, when?", "Responsible leader approves release", "Prime Minister"),
   ],
   "06": [
     sp("What must be decided first?", "Queue ranked by value and urgency", "Cabinet Secretary"),
-    sp("Is the evidence good enough?", "Evidence grade checked", "Cabinet Secretary"),
+    sp("Is the data good enough?", "Data grade checked", "Cabinet Secretary"),
     sp("What are the real options?", "Options costed side by side", "Ministers concerned"),
     sp("What did Cabinet decide?", "Decision minuted and kept", "Cabinet"),
     sp("Who delivers it, by when?", "Commitment tracked to completion", "Accountable minister"),
@@ -114,9 +114,9 @@ export const STAGE_PLAYBOOK: Record<string, StagePlay[]> = {
     sp("Is it working?", "Uptake and time saved measured", "Cabinet Room"),
   ],
   "10": [
-    sp("What does the sector evidence show?", "Sector data cited and graded", "Sector ministry"),
+    sp("What does the sector data show?", "Sector data cited and graded", "Sector ministry"),
     sp("Which priority comes first?", "Head of Government chooses", "Prime Minister"),
-    sp("What holds the sector back?", "Constraint backed by evidence", "Sector ministry"),
+    sp("What holds the sector back?", "Constraint backed by trusted data", "Sector ministry"),
     sp("Which projects, which roadmap?", "Projects with owners and funders", "Sector ministry"),
     sp("Does Cabinet commit?", "Commitment tracked through Cabinet", "Cabinet"),
   ],
@@ -168,7 +168,7 @@ export function evidenceChips(journey: Scenario): EvidenceChip[] {
     grade: GRADE[id],
   }));
   if (nodes(journey).includes("corpus"))
-    chips.push({ id: "corpus", label: "National evidence library", inCountry: false, grade: "A" });
+    chips.push({ id: "corpus", label: "National data library", inCountry: false, grade: "A" });
   if (nodes(journey).includes("vault"))
     chips.push({ id: "vault", label: "Sovereign Vault", inCountry: true, grade: "A" });
   if (nodes(journey).includes("safeguards"))

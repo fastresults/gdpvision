@@ -228,7 +228,7 @@ export function CorpusChamberRing() {
         <g
           tabIndex={0}
           role="img"
-          aria-label="The Corpus: graded, cited national evidence."
+          aria-label="The Corpus: graded, cited national data."
           {...hover("core")}
           className="outline-none"
         >
@@ -305,7 +305,7 @@ export function CorpusChamberRing() {
               {ch.outcome}
             </>
           ) : active === "core" ? (
-            "The Corpus: graded, cited national evidence."
+            "The Corpus: graded, cited national data."
           ) : (
             "Ten Chambers. One national corpus."
           )}

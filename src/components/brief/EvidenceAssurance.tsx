@@ -52,7 +52,7 @@ export function EvidenceStatus({
         STATE_CLASS[entry.state],
         className,
       )}
-      aria-label={`${entry.label}: ${STATE_LABEL[entry.state]}, ${detail}. Review evidence status`}
+      aria-label={`${entry.label}: ${STATE_LABEL[entry.state]}, ${detail}. Review data status`}
     >
       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden />
       <span>{STATE_LABEL[entry.state]}</span>
@@ -73,17 +73,17 @@ export function EvidenceAssuranceStrip({
   return (
     <section
       className="border-y border-line-200 bg-paper-50 print:hidden"
-      aria-label="Evidence status"
+      aria-label="Data status"
     >
       <div className="mx-auto grid max-w-[1280px] gap-5 px-5 py-5 sm:px-6 md:grid-cols-[1fr_auto] md:items-center md:px-10">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Public estimate · evidence status
+            Public estimate · data status
           </div>
           <p className="mt-2 max-w-4xl text-[14px] leading-relaxed text-ink-700">
             This open brief combines sourced national records with clearly marked reference
             assumptions. During a government engagement, authorised data replaces assumptions. A
-            named official takes responsibility for each source, and the evidence is reviewed and
+            named official takes responsibility for each source, and the data is reviewed and
             approved before recommendations are used for a formal decision.
           </p>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em]">
@@ -156,7 +156,7 @@ export function EvidencePathwayModal({
               </dl>
               <p className="mt-4 text-[13.5px] leading-relaxed text-ink-700">
                 <strong className="font-medium text-ink-950">
-                  Evidence required to replace or validate it:
+                  Data required to replace or validate it:
                 </strong>{" "}
                 {selected.replacement}
               </p>
@@ -187,7 +187,7 @@ export function EvidencePathwayModal({
                 [
                   "04",
                   "Issue the controlled brief",
-                  "Fix the evidence date and model version, record the approvals, and preserve the full history for formal use.",
+                  "Fix the data date and model version, record the approvals, and preserve the full history for formal use.",
                 ],
               ].map(([n, title, body]) => (
                 <li key={n} className="grid gap-2 py-4 sm:grid-cols-[44px_190px_1fr] sm:gap-5">
@@ -202,7 +202,7 @@ export function EvidencePathwayModal({
           <section>
             <div className="flex items-baseline justify-between gap-4">
               <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                Evidence still to be strengthened
+                Data still to be strengthened
               </div>
               <span className="font-mono text-[10px] text-ink-500">
                 {unresolved.length} of {entries.length}

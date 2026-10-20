@@ -141,7 +141,7 @@ export const PROFILES: Record<string, JourneyProfile> = {
     "Credibility",
     "4 weeks",
     "5 days",
-    "Agree the evidence and position for the IMF review.",
+    "Agree the data and position for the IMF review.",
   ),
   "Debt-service spike": p(
     "Shock",
@@ -261,7 +261,7 @@ export const PROFILES: Record<string, JourneyProfile> = {
     "Opportunity",
     "2 weeks",
     "3 days",
-    "Agree the minister’s evidence, answers and requests.",
+    "Agree the minister’s data, answers and requests.",
   ),
   "Promises vs fiscal room": p(
     "Structural",
@@ -326,9 +326,9 @@ export const MORE_BENEFITS: Record<string, Five> = {
   "Article IV mission": [
     "Which figures are solid, which are weak, and why.",
     "Which figures need correction before the IMF review.",
-    "Identify evidence gaps before ministers meet the IMF team.",
+    "Identify data gaps before ministers meet the IMF team.",
     "Finance and statistics speak with one voice.",
-    "Record IMF questions for the next evidence update.",
+    "Record IMF questions for the next data update.",
   ],
   "Debt-service spike": [
     "The extra interest bill, year by year.",
@@ -359,7 +359,7 @@ export const MORE_BENEFITS: Record<string, Five> = {
     "The decision rule is reused for the next request.",
   ],
   "Stalled flagship": [
-    "Evidence on the causes of the eighteen-month delay.",
+    "Data on the causes of the eighteen-month delay.",
     "Which action could address the main delivery barrier.",
     "Identify actions that could limit further cost overruns.",
     "One owner with new, public dates.",
@@ -430,7 +430,7 @@ export const MORE_BENEFITS: Record<string, Five> = {
   ],
   "Budget week trade-offs": [
     "What each funding request is expected to deliver.",
-    "Which requests have stronger evidence of national value.",
+    "Which requests have stronger data of national value.",
     "Identify the risk of a budget built on weak claims.",
     "Every minister knows the outcome and why.",
     "Funded results return to next year's budget.",
@@ -467,7 +467,7 @@ export const MORE_BENEFITS: Record<string, Five> = {
     "Possible donor questions explored with simulated profiles.",
     "Which answers and asks to lead with.",
     "Identify unanswered questions that could weaken the funding case.",
-    "The minister has reviewed evidence and possible questions.",
+    "The minister has trusted data and possible questions.",
     "Donor feedback is captured for next time.",
   ],
   "Promises vs fiscal room": [
@@ -539,7 +539,7 @@ export const MORE_BENEFITS: Record<string, Five> = {
 export const BENEFIT_SLOTS: { label: string; headline: string; before: string }[] = [
   {
     label: "A clearer picture",
-    headline: "Evidence you can check",
+    headline: "Data you can check",
     before: "Before: figures from different ministries disagree.",
   },
   {

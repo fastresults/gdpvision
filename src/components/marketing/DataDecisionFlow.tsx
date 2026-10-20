@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { FlowDiagramStage } from "./FlowDiagramStage";
 import { PlaybackStrip } from "./journeys/PlaybackStrip";
 
-type Path = "evidence" | "safeguards" | "money" | "delivery";
+type Path = "data" | "safeguards" | "money" | "delivery";
 type Band = 0 | 1 | 2 | 3 | 4;
 
 interface FlowNode {
@@ -35,18 +35,18 @@ const NODES: FlowNode[] = [
     band: 0,
     label: "Public statistics",
     what: "National accounts, trade, prices and labour figures from official and international sources.",
-    feeds: "The national evidence library, with source references.",
+    feeds: "The national data library, with source references.",
     gdp: "Gives government a shared starting point, with sources it can check.",
-    paths: ["evidence"],
+    paths: ["data"],
   },
   {
     id: "ministries",
     band: 0,
     label: "Ministries & ministers",
     what: "Mandates, programmes and the current minister for every ministry.",
-    feeds: "The national evidence library and Ministry Growth & Delivery workspace.",
+    feeds: "The national data library and Ministry Growth & Delivery workspace.",
     gdp: "Shows which ministry is responsible for each economic priority.",
-    paths: ["evidence", "delivery"],
+    paths: ["data", "delivery"],
   },
   {
     id: "kpis",
@@ -55,16 +55,16 @@ const NODES: FlowNode[] = [
     what: "Targets and latest values the government tracks.",
     feeds: "The Ledger, Cabinet Room and the National Record.",
     gdp: "Makes progress measurable instead of anecdotal.",
-    paths: ["evidence", "delivery"],
+    paths: ["data", "delivery"],
   },
   {
     id: "flows",
     band: 0,
     label: "Investment & money flows",
     what: "Where money enters and leaves the economy — investment, fiscal spending, imports.",
-    feeds: "National evidence, policy scenarios and investment planning.",
+    feeds: "National data, policy scenarios and investment planning.",
     gdp: "Shows where money leaves the economy and where local production or investment could add value.",
-    paths: ["evidence", "money"],
+    paths: ["data", "money"],
   },
   {
     id: "manifestos",
@@ -73,16 +73,16 @@ const NODES: FlowNode[] = [
     what: "Party promises and the government's formal mandate.",
     feeds: "The Mandate Compact and Narrative chambers.",
     gdp: "Ties decisions to what citizens voted for.",
-    paths: ["evidence"],
+    paths: ["data"],
   },
   {
     id: "peers",
     band: 0,
     label: "Caribbean peer benchmarks",
     what: "Comparison with 22 regional nations, refreshed monthly.",
-    feeds: "The national evidence library and country comparisons.",
+    feeds: "The national data library and country comparisons.",
     gdp: "Shows what neighbours already achieve — realistic ambition.",
-    paths: ["evidence"],
+    paths: ["data"],
   },
   {
     id: "private",
@@ -90,20 +90,20 @@ const NODES: FlowNode[] = [
     label: "Private government records",
     what: "Sensitive ministry data uploaded by the state.",
     feeds: "The Sovereign Vault only.",
-    gdp: "Lets private evidence improve decisions without leaving national control.",
+    gdp: "Lets private data improve decisions without leaving national control.",
     href: "/vault",
-    paths: ["evidence", "safeguards"],
+    paths: ["data", "safeguards"],
   },
 
   {
     id: "corpus",
     band: 1,
-    label: "Second Brain · evidence library",
-    what: "The connected national evidence library: sources brought together with references and reliability checks.",
+    label: "Second Brain · data library",
+    what: "The connected national data library: sources brought together with references and reliability checks.",
     feeds: "All ten Chambers.",
     gdp: "Helps ministries compare sources and resolve conflicting figures before deciding.",
     href: "/record",
-    paths: ["evidence", "safeguards"],
+    paths: ["data", "safeguards"],
   },
   {
     id: "vault",
@@ -111,9 +111,9 @@ const NODES: FlowNode[] = [
     label: "Sovereign Vault",
     what: "Protected government-controlled storage for sensitive records and analysis.",
     feeds: "Approved findings only — to the Chambers.",
-    gdp: "Adds private evidence to decisions while the data stays in the country.",
+    gdp: "Adds private data to decisions while the data stays in the country.",
     href: "/vault",
-    paths: ["safeguards", "evidence"],
+    paths: ["safeguards", "data"],
   },
   {
     id: "safeguards",
@@ -121,7 +121,7 @@ const NODES: FlowNode[] = [
     label: "Sources & reliability checks",
     what: "Review source references, reliability and the reasoning behind figures before using them.",
     feeds: "Every Chamber output and brief.",
-    gdp: "Lets ministers see the evidence and limitations behind a recommendation.",
+    gdp: "Lets ministers see the data and limitations behind a recommendation.",
     paths: ["safeguards"],
   },
 
@@ -129,11 +129,11 @@ const NODES: FlowNode[] = [
     id: "c01",
     band: 2,
     group: "Understand",
-    label: "01 National Evidence Ledger",
+    label: "01 National Data Ledger",
     what: "The economy on one page — ask any question and see why a number is what it is.",
     feeds: "Scenarios, Cabinet Room, Decision Brief.",
     gdp: "Faster diagnosis of where growth is stalling.",
-    paths: ["evidence"],
+    paths: ["data"],
   },
   {
     id: "c02",
@@ -173,7 +173,7 @@ const NODES: FlowNode[] = [
     what: "Explore policies with simulated citizen and business profiles, and study the skills a leadership role needs.",
     feeds: "Narrative and Cabinet Room.",
     gdp: "Highlights possible concerns before launch; simulated responses are not a public survey.",
-    paths: ["evidence"],
+    paths: ["data"],
   },
   {
     id: "c05",
@@ -190,7 +190,7 @@ const NODES: FlowNode[] = [
     band: 2,
     group: "Decide",
     label: "06 Cabinet Decisions & Delivery",
-    what: "Bring priority decisions, supporting evidence and delivery progress into one Cabinet workspace.",
+    what: "Bring priority decisions, supporting data and delivery progress into one Cabinet workspace.",
     feeds: "Cabinet decisions and commitments.",
     gdp: "Helps Cabinet address urgent priorities without losing sight of delivery.",
     paths: ["delivery", "safeguards"],
@@ -220,7 +220,7 @@ const NODES: FlowNode[] = [
     band: 2,
     group: "Deliver",
     label: "10 Sector Growth & Delivery",
-    what: "Builds evidence-based growth plans for each sector.",
+    what: "Builds data-backed growth plans for each sector.",
     feeds: "Investor packages and delivery.",
     gdp: "Helps compare sector priorities before committing public money.",
     paths: ["money", "delivery"],
@@ -234,13 +234,13 @@ const NODES: FlowNode[] = [
     feeds: "Cabinet decisions.",
     gdp: "Ministers decide with the full picture on one page.",
     href: "/business-case/brief",
-    paths: ["evidence", "safeguards"],
+    paths: ["data", "safeguards"],
   },
   {
     id: "cabinet",
     band: 3,
     label: "Cabinet decisions",
-    what: "Authorised choices, recorded with their evidence.",
+    what: "Authorised choices, recorded with their data.",
     feeds: "Commitments and delivery.",
     gdp: "Better choices, made sooner.",
     paths: ["delivery", "safeguards"],
@@ -268,7 +268,7 @@ const NODES: FlowNode[] = [
     id: "delay",
     band: 4,
     label: "Less decision delay",
-    what: "Prepared evidence and clear responsibility can reduce avoidable delays.",
+    what: "Prepared data and clear responsibility can reduce avoidable delays.",
     feeds: "Better use of public resources.",
     gdp: "Lets government move from discussion to approved action with less wasted time.",
     paths: ["delivery"],
@@ -277,7 +277,7 @@ const NODES: FlowNode[] = [
     id: "spend",
     band: 4,
     label: "Better-targeted spending",
-    what: "Compare expected value, costs and evidence before allocating public money.",
+    what: "Compare expected value, costs and data before allocating public money.",
     feeds: "Better use of public resources.",
     gdp: "Helps government assess whether public spending is producing the intended results.",
     paths: ["money"],
@@ -296,10 +296,10 @@ const NODES: FlowNode[] = [
     band: 4,
     label: "Delivery on the record",
     what: "Results published to the National Record.",
-    feeds: "Back into the national evidence library.",
+    feeds: "Back into the national data library.",
     gdp: "Recorded results help government improve the next decision.",
     href: "/record",
-    paths: ["delivery", "evidence"],
+    paths: ["delivery", "data"],
   },
 ];
 
@@ -375,7 +375,7 @@ const HOLD_MS = 5500;
 const DRAW_MS = 1800;
 
 const PATH_LABEL: Record<Path, string> = {
-  evidence: "Evidence",
+  evidence: "Data",
   safeguards: "Safeguards",
   money: "Money",
   delivery: "Delivery",
@@ -654,7 +654,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
             {mode !== "scenario" ? (
               <div className="pt-2 text-[14px] text-ink-700">
                 {mode === "path"
-                  ? `Showing the ${PATH_LABEL[filter ?? "evidence"]} path`
+                  ? `Showing the ${PATH_LABEL[filter ?? "data"]} path`
                   : `Showing ${sel?.label} connections`}{" "}
               </div>
             ) : running ? (
@@ -678,7 +678,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
               </>
             ) : (
               <div className="pt-2 text-[14px] text-ink-500">
-                Connecting the national evidence and decision tools…
+                Connecting the national data and decision tools…
               </div>
             )}
           </div>
@@ -1072,7 +1072,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
                   {curStep?.text ??
                     (step >= S.steps.length
                       ? S.outcome
-                      : "National information becomes checked evidence, informed choices and accountable action.")}
+                      : "National information becomes trusted data, informed choices and accountable action.")}
                 </p>
                 <p className="mt-3 text-[13px] leading-relaxed text-ink-950">{guideValue}</p>
                 {currentNodes.includes("vault") && (
@@ -1086,7 +1086,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
                   ["Gather information", "Official figures, ministry plans and investment data."],
                   [
                     "Connect and protect",
-                    "The Second Brain connects national evidence. Sources are checked; sensitive records remain protected.",
+                    "The Second Brain connects national data. Sources are checked; sensitive records remain protected.",
                   ],
                   [
                     "Work through choices",
@@ -1120,7 +1120,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
                 ))}
               </ol>
               <p className="mt-4 border-l-2 border-gold-500 pl-3 font-display text-[14px] italic leading-relaxed text-ink-950">
-                GDPVision connects evidence, policy, investment and delivery so government can act
+                GDPVision connects data, policy, investment and delivery so government can act
                 with a clearer picture, a record of its decisions and responsibility for results.
               </p>
               <p className="mt-3 text-ink-500">

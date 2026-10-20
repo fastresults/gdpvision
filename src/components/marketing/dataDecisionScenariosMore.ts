@@ -34,7 +34,7 @@ export const MORE_SCENARIOS: Scenario[] = [
       ],
       [
         [["corpus", "safeguards"]],
-        "Flag outdated figures, weak sources and missing evidence.",
+        "Flag outdated figures, weak sources and missing data.",
       ],
       [
         [["safeguards", "c01"]],
@@ -43,7 +43,7 @@ export const MORE_SCENARIOS: Scenario[] = [
       [[["c01", "brief"]], "Prepare a sourced brief on the government’s economic position."],
       [[["brief", "cabinet"]], "Ministers agree the facts and questions to take into the IMF review."],
     ],
-    "Better preparation for the IMF review, with evidence gaps visible beforehand.",
+    "Better preparation for the IMF review, with trusted data gaps visible beforehand.",
   ),
   s(
     "01",
@@ -238,7 +238,7 @@ export const MORE_SCENARIOS: Scenario[] = [
     "Correspondent banking",
     "Foreign banks may cut international payment links—which payments are at risk?",
     [
-      [[["flows", "corpus"]], "Gather evidence on international payments and trade."],
+      [[["flows", "corpus"]], "Gather data on international payments and trade."],
       [[["corpus", "c04"]], "Identify the banks and economic activities at risk."],
       [[["c04", "c03"]], "Compare rule-compliance work and alternative payment arrangements."],
       [[["c03", "brief"]], "Prepare the costs, risks and assumptions for Cabinet review."],
@@ -302,12 +302,12 @@ export const MORE_SCENARIOS: Scenario[] = [
     "Ministries ask for twice the money available — how does Cabinet decide?",
     [
       [[["kpis", "corpus"]], "Gather ministry funding requests and expected results."],
-      [[["corpus", "safeguards"]], "Check the evidence behind each request."],
+      [[["corpus", "safeguards"]], "Check the data behind each request."],
       [[["safeguards", "c06"]], "Compare the requests by expected national value and readiness."],
       [[["c06", "cabinet"]], "Cabinet agrees priorities within the available budget."],
       [[["cabinet", "spend"]], "Direct approved money to the selected programmes."],
     ],
-    "A budget debate focused on evidence, affordability and intended results.",
+    "A budget debate focused on trusted data, affordability and intended results.",
   ),
   s(
     "06",
@@ -333,7 +333,7 @@ export const MORE_SCENARIOS: Scenario[] = [
     "One hundred days in — which promises are on track?",
     [
       [[["kpis", "corpus"]], "Gather progress measures for the first hundred days."],
-      [[["corpus", "safeguards"]], "Check the evidence behind reported progress."],
+      [[["corpus", "safeguards"]], "Check the data behind reported progress."],
       [[["safeguards", "c06"]], "Show what is on track, at risk or delayed for Cabinet review."],
       [[["c06", "commit"]], "Agree changes to actions, dates or responsibility where needed."],
       [[["commit", "record"]], "Publish approved results for public accountability."],

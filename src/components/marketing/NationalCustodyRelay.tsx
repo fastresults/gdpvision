@@ -15,7 +15,7 @@ const STAGES: Array<{
     id: "understand",
     number: "01",
     title: "Understand",
-    body: "Authorised officials review sourced national evidence inside the country-controlled boundary.",
+    body: "Authorised officials review sourced national data inside the country-controlled boundary.",
     x: 68,
     y: 77,
   },
@@ -31,7 +31,7 @@ const STAGES: Array<{
     id: "decide",
     number: "03",
     title: "Decide",
-    body: "A named decision and its conditions are recorded against the evidence used.",
+    body: "A named decision and its conditions are recorded against the data used.",
     x: 344,
     y: 190,
   },
@@ -39,7 +39,7 @@ const STAGES: Array<{
     id: "deliver",
     number: "04",
     title: "Deliver",
-    body: "The authorised instruction advances while protected evidence remains in national custody.",
+    body: "The authorised instruction advances while protected data remains in national custody.",
     x: 195,
     y: 255,
   },
@@ -103,11 +103,11 @@ export function NationalCustodyRelay() {
     <figure
       ref={ref}
       className={`ncr w-full max-w-[390px] select-none ${visible ? "ncr-on" : ""} ${active ? "ncr-paused" : ""}`}
-      aria-label="The National Custody Relay shows evidence remaining in a national register while authorised actions move through five stages of a government decision."
+      aria-label="The National Custody Relay shows data remaining in a national register while authorised actions move through five stages of a government decision."
     >
       <svg key={cycle} viewBox="0 0 390 300" className="block h-auto w-full overflow-visible">
         <title>
-          National evidence remains under national control through every stage of a decision
+          National data remains under national control through every stage of a decision
         </title>
         <defs>
           <pattern
@@ -197,7 +197,7 @@ export function NationalCustodyRelay() {
             fontSize="6.2"
             fill="var(--color-ink-950)"
           >
-            NATIONAL EVIDENCE
+            NATIONAL DATA
           </text>
           <text
             x="195"
@@ -284,7 +284,7 @@ export function NationalCustodyRelay() {
             fontSize="10.5"
             fill="var(--color-ink-950)"
           >
-            The decision moves. The evidence stays.
+            The decision moves. The data stays.
           </text>
         </g>
       </svg>
@@ -305,7 +305,7 @@ export function NationalCustodyRelay() {
               The National Custody Relay
             </span>
             <br />
-            National evidence stays under national control through every authorised decision stage.
+            National data stays under national control through every authorised decision stage.
           </>
         )}
       </figcaption>

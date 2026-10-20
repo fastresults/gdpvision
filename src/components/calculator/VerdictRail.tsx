@@ -19,7 +19,7 @@ export function VerdictRail({
   onStance,
   onDownload,
   busy,
-  evidence,
+  data,
   onEvidence,
 }: {
   result: ValueResult;
@@ -54,7 +54,7 @@ export function VerdictRail({
           className="btn-ghost mt-4 w-full border-t border-line-100 px-0 pt-3 text-left"
         >
           <span className="block font-mono text-[9.5px] uppercase tracking-[0.16em] text-ink-500">
-            Public estimate · review the evidence
+            Public estimate · review the data
           </span>
           <span className="mt-1.5 block text-[12px] leading-relaxed text-ink-700">
             {evidence.record} supported by national records · {evidence.reference} based on

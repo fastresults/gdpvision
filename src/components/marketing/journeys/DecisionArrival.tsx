@@ -70,7 +70,7 @@ export function DecisionArrival({ journey, beat }: { journey: ChamberJourney; be
           <div className="mt-3 border border-gold-500 bg-ink-950 p-4 text-paper-0">
             <Clock3 className="h-5 w-5 text-gold-500" />
             <div className="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-gold-300">
-              Without connected evidence
+              Without connected data
             </div>
             <div className="font-display text-2xl line-through decoration-gold-500">
               {journey.profile.clock[0]}

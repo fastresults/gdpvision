@@ -6,7 +6,7 @@ type Stage = "corpus" | "vault" | "analysis" | "approval" | "value";
 const STAGE_COPY: Record<Stage, { title: string; body: string }> = {
   corpus: {
     title: "Public Corpus",
-    body: "Cited public evidence comes into the government-controlled system to meet the national record.",
+    body: "Cited public data comes into the government-controlled system to meet the national record.",
   },
   vault: {
     title: "Owned and managed by the state",
@@ -14,7 +14,7 @@ const STAGE_COPY: Record<Stage, { title: string; body: string }> = {
   },
   analysis: {
     title: "Governed analysis",
-    body: "Public evidence and protected records are analysed together inside the sovereign boundary.",
+    body: "Public data and protected records are analysed together inside the sovereign boundary.",
   },
   approval: {
     title: "Approved findings only",
@@ -22,7 +22,7 @@ const STAGE_COPY: Record<Stage, { title: string; body: string }> = {
   },
   value: {
     title: "Better decisions, made sooner",
-    body: "Stronger evidence can improve investment, delivery, resilience and productivity—the conditions for durable GDP growth.",
+    body: "Stronger data can improve investment, delivery, resilience and productivity—the conditions for durable GDP growth.",
   },
 };
 
@@ -74,11 +74,11 @@ export function SovereignDecisionCircuit() {
     <figure
       ref={ref}
       className={`sdc w-full max-w-[520px] select-none ${started ? "sdc-on" : ""} ${active ? "sdc-paused" : ""}`}
-      aria-label="The Sovereign Decision Circuit shows public evidence entering state-owned servers, protected national data remaining inside, and approved findings supporting timely decisions and durable GDP growth."
+      aria-label="The Sovereign Decision Circuit shows public data entering state-owned servers, protected national data remaining inside, and approved findings supporting timely decisions and durable GDP growth."
     >
       <svg key={cycle} viewBox="0 0 520 410" className="block h-auto w-full overflow-visible">
         <title>
-          Public and protected evidence become approved findings inside a state-owned sovereign
+          Public and protected data become approved findings inside a state-owned sovereign
           system
         </title>
         <defs>
@@ -118,7 +118,7 @@ export function SovereignDecisionCircuit() {
           </pattern>
         </defs>
 
-        {/* Public evidence approaches the sovereign boundary. */}
+        {/* Public data approaches the sovereign boundary. */}
         <g className="sdc-corpus" {...stageProps("corpus")}>
           <text
             x="52"
@@ -493,7 +493,7 @@ export function SovereignDecisionCircuit() {
           fontSize="11"
           fill="var(--color-ink-950)"
         >
-          Public evidence comes in.
+          Public data comes in.
         </text>
         <text
           x="126"

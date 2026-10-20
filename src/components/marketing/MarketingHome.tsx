@@ -63,7 +63,7 @@ const LOOP_STEPS = [
   {
     step: "01",
     head: "Understand",
-    body: "Bring the national evidence into one sourced view. See what is known, what is out of date, and which gaps could change the decision.",
+    body: "Bring the national data into one sourced view. See what is known, what is out of date, and which gaps could change the decision.",
   },
   {
     step: "02",
@@ -78,7 +78,7 @@ const LOOP_STEPS = [
   {
     step: "04",
     head: "Deliver",
-    body: "Turn the decision into a plan owned by the responsible ministry. Keep milestones, evidence, risks, and required action visible between Cabinet sessions.",
+    body: "Turn the decision into a plan owned by the responsible ministry. Keep milestones, data, risks, and required action visible between Cabinet sessions.",
   },
   {
     step: "05",
@@ -171,7 +171,7 @@ export function MarketingHome() {
             </h1>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-700 sm:mt-6 md:text-[17px]">
               GDPVision gives Presidents, Prime Ministers and Cabinets one trusted picture of the
-              country’s evidence. Rehearse means comparing credible choices before committing, then
+              country’s data. Rehearse means comparing credible choices before committing, then
               following the chosen course through delivery. Each country operates in a separate,
               government-controlled environment.
             </p>
@@ -302,7 +302,7 @@ export function MarketingHome() {
           <SectionHeader
             eyebrow="Ten connected workspaces. One national purpose."
             title="Govern with confidence. Turn national priorities into economic progress."
-            lede="GDPVision’s ten Chambers are connected digital workspaces for the work of government—from understanding the economy to shaping policy, attracting investment and delivering results. Each brings your country’s evidence and decision tools together, helping Cabinet and ministries act as one, direct resources where they matter and build the conditions for lasting GDP growth—with government in control."
+            lede="GDPVision’s ten Chambers are connected digital workspaces for the work of government—from understanding the economy to shaping policy, attracting investment and delivering results. Each brings your country’s data and decision tools together, helping Cabinet and ministries act as one, direct resources where they matter and build the conditions for lasting GDP growth—with government in control."
           />
           <div className="relative mt-10 overflow-hidden border border-charcoal bg-charcoal px-5 py-6 shadow-sm sm:px-8 sm:py-8">
             <div aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-gold-500" />
@@ -400,23 +400,23 @@ export function MarketingHome() {
             <div className="order-1">
             <SectionHeader
               eyebrow="Second Brain 2.0 · One trusted national record"
-              title="Give Cabinet one trusted view of the evidence."
-              lede="At GDPVision’s core is Second Brain 2.0: a connected national evidence library. It brings public sources and authorised government records together so Cabinet can shape policy, assess investment and guide delivery with greater confidence. Important claims keep their source, date and confidence grade."
+              title="Give Cabinet one trusted view of the data."
+              lede="At GDPVision’s core is Second Brain 2.0: a connected national data library. It brings public sources and authorised government records together so Cabinet can shape policy, assess investment and guide delivery with greater confidence. Important claims keep their source, date and confidence grade."
             />
             </div>
           <div className="order-3 grid min-w-0 gap-5 lg:mt-8">
             {[
               {
-                head: "Public evidence",
+                head: "Public data",
                 body: "National, regional, and international sources are organised by ministry. Each is dated, cited, and graded for confidence.",
               },
               {
-                head: "Government evidence",
+                head: "Government data",
                 body: "Authorised contracts, memoranda, agreements, and briefings follow the same checking standard. Only approved country users can see them.",
               },
               {
                 head: "One clear view for a decision",
-                body: "Briefings and scenarios can use both records without confusing public evidence with restricted information. Every access and change can be reviewed.",
+                body: "Briefings and scenarios can use both records without confusing public data with restricted information. Every access and change can be reviewed.",
               },
             ].map((p) => (
               <div key={p.head} className="border-t border-line-200 pt-4">
@@ -444,8 +444,8 @@ export function MarketingHome() {
           <div className="grid items-end gap-8 md:grid-cols-[1fr_auto]">
             <SectionHeader
               eyebrow="From question to accountable delivery"
-              title="Move every decision from evidence to accountable delivery."
-              lede="Most systems report what has already happened. GDPVision helps government move a live decision from the evidence placed before Cabinet to the result a ministry must deliver."
+              title="Move every decision from trusted data to accountable delivery."
+              lede="Most systems report what has already happened. GDPVision helps government move a live decision from the data placed before Cabinet to the result a ministry must deliver."
             />
             <NationalCustodyRelay />
           </div>
@@ -460,7 +460,7 @@ export function MarketingHome() {
             ))}
           </div>
           <p className="mt-12 max-w-2xl font-serif text-[21px] leading-snug text-ink-950">
-            GDPVision prepares the evidence and tests the options. Authorised officials decide,
+            GDPVision prepares the data and tests the options. Authorised officials decide,
             approve, and remain accountable. Nothing is released autonomously.
           </p>
         </div>
@@ -472,14 +472,14 @@ export function MarketingHome() {
           <SectionHeader
             eyebrow="The first engagement"
             title="Start with one urgent decision. Build a capability government keeps."
-            lede="The engagement starts with a decision already demanding Cabinet attention. We prepare the evidence, test credible choices, identify what must improve, and establish a method government can continue to use."
+            lede="The engagement starts with a decision already demanding Cabinet attention. We prepare the data, test credible choices, identify what must improve, and establish a method government can continue to use."
           />
           <div className="mt-10 grid gap-8 border-t border-line-200 pt-10 sm:mt-14 md:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 step: "01",
-                head: "Review the evidence",
-                body: "A confidential review of the national evidence, how reliable it is, and which gaps could alter the decision.",
+                head: "Review the data",
+                body: "A confidential review of the national data, how reliable it is, and which gaps could alter the decision.",
               },
               {
                 step: "02",
@@ -507,7 +507,7 @@ export function MarketingHome() {
           </div>
           <p className="mt-10 max-w-3xl font-serif text-[21px] leading-snug text-ink-950">
             This is not a report handed over at the end of an assignment. It is a practical way for
-            government to keep using its own evidence, officials, and authority to make decisions.
+            government to keep using its own data, officials, and authority to make decisions.
           </p>
         </div>
       </section>
@@ -519,7 +519,7 @@ export function MarketingHome() {
             <SectionHeader
               eyebrow="Counsel between engagements"
               title="Give national leaders a sourced answer when they need it."
-              lede="The Counsel gives a President, Prime Minister, or authorised adviser a concise answer drawn from the national evidence record. It is designed for questions asked between meetings and keeps the source behind every important claim."
+              lede="The Counsel gives a President, Prime Minister, or authorised adviser a concise answer drawn from the national data record. It is designed for questions asked between meetings and keeps the source behind every important claim."
             />
           <div className="mt-8 grid gap-6 border-t border-line-200 pt-6 sm:grid-cols-3">
             {[
@@ -533,7 +533,7 @@ export function MarketingHome() {
               },
               {
                 head: "Always cited",
-                body: "Important claims retain their source and confidence grade from the national evidence record.",
+                body: "Important claims retain their source and confidence grade from the national data record.",
               },
             ].map((p) => (
               <div key={p.head} className="flex items-start gap-5">
@@ -557,7 +557,7 @@ export function MarketingHome() {
           <div>
             <SectionHeader
               eyebrow="Sovereignty"
-              title="National evidence remains under national control."
+              title="National data remains under national control."
               lede="Government decides where its information stays, who may see it, and what may leave. Those rules are built into both the system and the engagement."
             />
             <SovereignCustodySeal />
@@ -566,7 +566,7 @@ export function MarketingHome() {
             {[
               {
                 head: "A separate system for each country",
-                body: "Each country operates in its own protected environment. Regional comparisons use approved public evidence, never another government’s restricted records.",
+                body: "Each country operates in its own protected environment. Regional comparisons use approved public data, never another government’s restricted records.",
               },
               {
                 head: "Data ownership",
@@ -574,7 +574,7 @@ export function MarketingHome() {
               },
               {
                 head: "Public and private, separated by design",
-                body: "Restricted government records are kept separate from public evidence. Every access and important change is recorded for review.",
+                body: "Restricted government records are kept separate from public data. Every access and important change is recorded for review.",
               },
               {
                 head: "Controlled access and a full record",
@@ -582,7 +582,7 @@ export function MarketingHome() {
               },
               {
                 head: "Works with the government’s record",
-                body: "The first engagement strengthens existing evidence and ways of working. Government does not need to replace every current system before value can be demonstrated.",
+                body: "The first engagement strengthens existing data and ways of working. Government does not need to replace every current system before value can be demonstrated.",
               },
             ].map((p) => (
               <div key={p.head} className="border-b border-line-200 pb-8 last:border-b-0">
@@ -634,12 +634,12 @@ export function MarketingHome() {
               {
                 year: "2026",
                 head: "SEDE — the Saint Lucia prototype",
-                body: "A working government-controlled system combining economic modelling, sourced advice, national evidence, and secure document intake.",
+                body: "A working government-controlled system combining economic modelling, sourced advice, national data, and secure document intake.",
               },
               {
                 year: "Today",
                 head: "Built in the region, for the region",
-                body: "Designed around the exposures Caribbean and small-island states actually carry: concentrated revenue, climate shock, external repricing, and evidence that too often arrives after the decision.",
+                body: "Designed around the exposures Caribbean and small-island states actually carry: concentrated revenue, climate shock, external repricing, and data that too often arrives after the decision.",
               },
             ].map((p) => (
               <div key={p.head} className="border-t border-line-200 pt-6">
@@ -676,12 +676,12 @@ export function MarketingHome() {
               <SectionHeader
                 eyebrow="A confidential first conversation"
                 title="Bring one national decision. Leave with a clear next step."
-                lede="Bring one priority decision. We will prepare a country-specific view of the supporting evidence, the gaps that could change the answer, and a practical route forward."
+                lede="Bring one priority decision. We will prepare a country-specific view of the supporting data, the gaps that could change the answer, and a practical route forward."
               />
               <div className="mt-10 flex items-start justify-between gap-8">
                 <div className="space-y-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
                   <div>— Your priority decision, framed clearly</div>
-                  <div>— The evidence and material gaps</div>
+                  <div>— The data and material gaps</div>
                   <div>— A live test using national data</div>
                   <div>— A practical next-step recommendation</div>
                 </div>
@@ -692,7 +692,7 @@ export function MarketingHome() {
                 />
               </div>
               <p className="mt-8 max-w-md text-[15px] leading-relaxed text-ink-700">
-                Prepared from your nation’s public evidence and the context you authorise. The
+                Prepared from your nation’s public data and the context you authorise. The
                 conversation is confidential, country-specific, and designed to produce a useful
                 next decision—not a generic product demonstration.
               </p>

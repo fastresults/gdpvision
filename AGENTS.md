@@ -28,6 +28,8 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 - **Briefing flow fit**: `/present` fits only the desktop Data & Decision Flow diagram on a fixed reference canvas; keep the reserved-space reading tray outside that transform and flush to the slide’s right edge so it remains readable and collapsible. Mobile keeps the native stacked flow.
 - **Briefing viewer preload**: register every `/present` `LiveFrame` with `ViewerPreloadProvider`; mount each iframe eagerly once and report launched, loaded, sign-in and slow states separately so offscreen viewers preload without cold remounts.
 
+- **Indices evidence**: AI drafts land unverified and only person-verified `index_evidence` counts in a run; verified evidence may fill states a single-value API series skips, so small states are not excluded only because the World Bank omits them.
+
 ## Do not edit
 
 `src/routeTree.gen.ts`, `src/integrations/supabase/{client,client.server,auth-middleware,auth-attacher,types}.ts`, `.env`, `supabase/config.toml`.

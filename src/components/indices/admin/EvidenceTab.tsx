@@ -133,6 +133,7 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
         </div>
 
         <div className="mt-4 space-y-3">
+          {state === "unverified" && q.data && <VerifyShown rows={q.data} />}
           {q.isLoading && <Empty>Loading…</Empty>}
           {q.error && <p className="text-sm text-red-700">{(q.error as Error).message}</p>}
           {q.data?.length === 0 && (

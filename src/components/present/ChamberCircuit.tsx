@@ -3,7 +3,7 @@ import { CorpusMark } from "./CorpusMark";
 
 /**
  * One chamber's circuit, drawn for the live briefing: the Second Brain feeds
- * evidence through the chamber's three stages and out as a decision. Pure
+ * data through the chamber's three stages and out as a decision. Pure
  * SVG; reveals and draws run off the `.prs-*` keyframes once the parent step
  * carries `.is-on`. Colour comes from the chamber's accent variable.
  */
@@ -106,7 +106,7 @@ export function ChamberCircuit({ demo, accentVar }: { demo: ChamberDemo; accentV
         </g>
       ))}
 
-      {/* Evidence travelling from the brain */}
+      {/* Data travelling from the brain */}
       {centers.map((cy, i) => (
         <circle key={i} r={3.6} fill={accent} opacity={0}>
           <set attributeName="opacity" to="1" begin={`${1.8 + i * 1.1}s`} />

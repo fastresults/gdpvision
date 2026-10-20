@@ -43,7 +43,7 @@ function OpEdsIndex() {
             </h1>
             <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-ink-700">
               Each piece takes about twelve minutes and carries its sources on the page. Nothing
-              here is withheld to make a point—the evidence is visible before you give us a name.
+              here is withheld to make a point—the data is visible before you give us a name.
             </p>
           </header>
         </div>

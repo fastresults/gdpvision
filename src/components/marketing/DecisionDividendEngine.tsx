@@ -5,7 +5,7 @@ type Stage = "evidence" | "decision" | "value";
 
 const STAGE_COPY: Record<Stage, { title: string; body: string }> = {
   evidence: {
-    title: "Evidence aligned",
+    title: "Data aligned",
     body: "Public records, national records and clearly marked assumptions form one reviewable starting point.",
   },
   decision: {
@@ -66,11 +66,11 @@ export function DecisionDividendEngine() {
     <figure
       ref={ref}
       className={`dde w-[330px] max-w-full select-none ${started ? "dde-on" : ""} ${active ? "dde-paused" : ""}`}
-      aria-label="The Decision Dividend Engine shows evidence becoming a faster governed decision and a qualified estimate of national value."
+      aria-label="The Decision Dividend Engine shows data becoming a faster governed decision and a qualified estimate of national value."
     >
       <svg key={cycle} viewBox="0 0 360 276" className="block h-auto w-full overflow-visible">
         <title>
-          Evidence becomes a faster governed decision and a qualified estimate of national value
+          Data becomes a faster governed decision and a qualified estimate of national value
         </title>
         <defs>
           <pattern
@@ -146,7 +146,7 @@ export function DecisionDividendEngine() {
             fill="var(--color-ink-700)"
             style={{ letterSpacing: "0.18em" }}
           >
-            EVIDENCE
+            DATA
           </text>
         </g>
 
@@ -326,7 +326,7 @@ export function DecisionDividendEngine() {
           fontSize="12"
           fill="var(--color-ink-950)"
         >
-          Better evidence. Faster decisions.
+          Better data. Faster decisions.
         </text>
         <text
           x="180"

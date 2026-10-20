@@ -42,7 +42,7 @@ const CONSTRAINTS: Record<string, string[]> = {
   "03": ["Available budget", "Uncertain projections"],
   "04": ["Value for the country", "Legal requirements"],
   "05": ["Verified facts", "Lawful disclosure"],
-  "06": ["Evidence readiness", "Cabinet approval"],
+  "06": ["Data readiness", "Cabinet approval"],
   "07": ["Representative audiences", "Government privacy rules"],
   "08": ["Approved government priorities", "Delivery capacity"],
   "09": ["Privacy from the start", "Service accessibility"],

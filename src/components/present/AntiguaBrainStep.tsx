@@ -61,7 +61,7 @@ export function AntiguaBrainStep() {
           This is Antigua's Second Brain — live.
         </h2>
         <p className="mt-3 text-[clamp(1rem,1.2vw,1.12rem)] leading-[1.5] text-ink-700">
-          Every circle is a sector the government's evidence is organised by; every dot is a memory
+          Every circle is a sector the government's data is organised by; every dot is a memory
           GDPVision can cite.
         </p>
         <div className="mt-4 w-full">

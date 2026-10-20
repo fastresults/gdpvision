@@ -339,7 +339,7 @@ export function SovereignEyeWorkspace({ code, initialMode = "regional" }: { code
           </div>
            {visibleLayers.some((layer) => layer.visibility.private > 0) ? (
             <p className="mt-2 text-xs leading-relaxed text-ink-500">
-              Public links require layers containing public evidence only.
+              Public links require layers containing public data only.
             </p>
           ) : null}
           <button

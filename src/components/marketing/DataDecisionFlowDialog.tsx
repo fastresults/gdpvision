@@ -163,7 +163,7 @@ export function DataDecisionFlowDialog() {
             mode="national"
             emblem="lens"
             headline="Data & Decision Flow"
-            caption="From national evidence to government action"
+            caption="From national data to government action"
             aria-haspopup="dialog"
             onPick={() => {
               setMode("national");
@@ -194,17 +194,17 @@ export function DataDecisionFlowDialog() {
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
-                  GDPVision · Evidence into action
+                  GDPVision · Data into action
                 </div>
                 <DialogPrimitive.Title className="mt-1 font-display text-2xl leading-tight text-ink-950 md:text-3xl">
                   {mode === "national"
-                    ? "How GDPVision connects evidence to government action."
+                    ? "How GDPVision connects data to government action."
                     : "See a national priority become a government decision."}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="mt-1 max-w-2xl text-[14px] text-ink-700">
                   {mode === "national"
                     ? "Bring national information together, compare policy and investment choices, and turn approved decisions into accountable delivery."
-                    : "Follow a real-world example through a Chamber—a connected government workspace—from checked evidence to choices, approval and action."}
+                    : "Follow a real-world example through a Chamber—a connected government workspace—from trusted data to choices, approval and action."}
                 </DialogPrimitive.Description>
               </div>
               <div

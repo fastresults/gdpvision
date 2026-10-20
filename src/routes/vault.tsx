@@ -18,7 +18,7 @@ const SITE_URL = "https://gdpvision.com";
 const TITLE =
   "The Sovereign Vault — stronger national decisions, government in control | GDPVision";
 const DESCRIPTION =
-  "Put national data to work for better policy, investment and lasting economic progress. The Sovereign Vault brings evidence together on government premises, with private records protected and findings approved by officials.";
+  "Put national data to work for better policy, investment and lasting economic progress. The Sovereign Vault brings data together on government premises, with private records protected and findings approved by officials.";
 
 export const Route = createFileRoute("/vault")({
   head: () => ({
@@ -46,12 +46,12 @@ const RULES = [
     body: "Sensitive records are analysed on government premises, not copied to GDPVision’s cloud or an outside AI service. Government retains custody of the information behind each finding.",
   },
   {
-    head: "Public evidence comes in",
-    body: "Published statistics, regional comparisons and the national evidence library come to the Vault. Officials can connect that wider picture to the country’s own records without exposing them.",
+    head: "Public data comes in",
+    body: "Published statistics, regional comparisons and the national data library come to the Vault. Officials can connect that wider picture to the country’s own records without exposing them.",
   },
   {
     head: "Only approved findings go out",
-    body: "A combined finding—not a person’s or organisation’s private record—must pass privacy checks and receive approval from the data custodian and a second official. Its source remains clear when it joins GDPVision’s national evidence.",
+    body: "A combined finding—not a person’s or organisation’s private record—must pass privacy checks and receive approval from the data custodian and a second official. Its source remains clear when it joins GDPVision’s national data.",
   },
 ];
 
@@ -66,12 +66,12 @@ const SECURITY = [
 
 const SERVICE = [
   {
-    head: "Know the evidence",
+    head: "Know the data",
     body: "See which datasets are available, who owns them and when they were updated—without viewing the private records.",
   },
   {
     head: "Ask the question",
-    body: "Submit an approved question about policy, spending or delivery. The Vault analyses the evidence on government premises.",
+    body: "Submit an approved question about policy, spending or delivery. The Vault analyses the data on government premises.",
   },
   {
     head: "Review and approve",
@@ -79,7 +79,7 @@ const SERVICE = [
   },
   {
     head: "Put findings to work",
-    body: "Read approved findings alongside public evidence, with their origin clear, to inform decisions and track delivery.",
+    body: "Read approved findings alongside public data, with their origin clear, to inform decisions and track delivery.",
   },
 ];
 
@@ -99,7 +99,7 @@ function VaultPage() {
           <div className="mt-8 grid gap-10 md:grid-cols-[1.15fr_1fr] md:items-center md:gap-14">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                Government-held evidence · National advantage
+                Government-held data · National advantage
               </div>
               <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
               <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] text-ink-950 sm:text-[40px] sm:leading-[1.05] md:text-[50px]">
@@ -109,7 +109,7 @@ function VaultPage() {
                 Put your country’s data to work. Keep government in control.
               </p>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
-                Bring sensitive national records and public evidence together on government
+                Bring sensitive national records and public data together on government
                 premises. Give Cabinet and ministries a stronger basis for policy, investment and
                 delivery—so your country can act sooner, strengthen its regional position and build
                 economic progress that lasts. Private records stay protected; officials approve what
@@ -145,7 +145,7 @@ function VaultPage() {
             <p>
               Tax, customs, treasury, registry, health and employment records can reveal what public
               statistics alone cannot. The Vault gives government a secure place to analyse these
-              records together—turning information held across ministries into evidence leaders can
+              records together—turning information held across ministries into data leaders can
               use.
             </p>
             <p>
@@ -163,7 +163,7 @@ function VaultPage() {
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-24">
           <SectionHeader
             eyebrow="Three clear boundaries"
-            title="Use more evidence. Share only what government approves."
+            title="Use more data. Share only what government approves."
           />
           <Illustration src={boundaryArt.url} variant="rule" className="mx-auto mt-8" />
           <div className="mt-8 grid gap-8 md:grid-cols-3">
@@ -193,7 +193,7 @@ function VaultPage() {
                 that are difficult to bring together when a decision is needed.
               </p>
               <p>
-                A stronger evidence base helps government target resources, prepare credible
+                A stronger data base helps government target resources, prepare credible
                 investment proposals and address delivery problems earlier. That can strengthen the
                 country’s position in a competitive region—and support a faster, more durable path
                 to growth. Results still depend on the decisions made and how well they are
@@ -214,7 +214,7 @@ function VaultPage() {
             <SectionHeader
               eyebrow="Security you can inspect"
               title="Protect national trust—and the freedom to act."
-              lede="Government should not have to choose between useful evidence and control of sensitive records. The Vault’s safeguards keep custody and release decisions in official hands. No system is beyond attack; each deployment needs testing and ongoing oversight."
+              lede="Government should not have to choose between useful data and control of sensitive records. The Vault’s safeguards keep custody and release decisions in official hands. No system is beyond attack; each deployment needs testing and ongoing oversight."
             />
             <Illustration src={custodyArt.url} variant="aside" className="mt-8" />
           </div>
@@ -235,7 +235,7 @@ function VaultPage() {
             <SectionHeader
               eyebrow="Managed from GDPVision"
               title="One clear process—from question to approved finding."
-              lede="Officials can see what evidence is available, request analysis and follow the approval process. GDPVision receives dataset descriptions, requests and approved findings—not the private records behind them. Government decides what may be released."
+              lede="Officials can see what data is available, request analysis and follow the approval process. GDPVision receives dataset descriptions, requests and approved findings—not the private records behind them. Government decides what may be released."
             />
             <div className="flex justify-end">
               <Illustration src={workbenchArt.url} variant="aside" />
@@ -260,7 +260,7 @@ function VaultPage() {
             <SectionHeader
               eyebrow="Request a briefing"
               title="Start with the decision your government needs to make."
-              lede="Tell us the priority, which ministry holds the evidence and what Cabinet needs to decide. We’ll discuss where the Vault could help and what a government-controlled deployment would require. A principal from OPEN Interactive will respond through your official email."
+              lede="Tell us the priority, which ministry holds the data and what Cabinet needs to decide. We’ll discuss where the Vault could help and what a government-controlled deployment would require. A principal from OPEN Interactive will respond through your official email."
             />
             <Illustration src={briefingArt.url} variant="spot" className="mt-8" />
           </div>

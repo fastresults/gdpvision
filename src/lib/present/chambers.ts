@@ -15,7 +15,7 @@ export interface ChamberDemo {
   path: string;
   /** The question the chamber exists to answer. */
   ask: string;
-  /** Three stages the evidence passes through, left to right. */
+  /** Three stages the data passes through, left to right. */
   stages: [string, string, string];
   /** What comes out the other side. */
   output: string;
@@ -35,7 +35,7 @@ export const CHAMBER_DEMOS: ChamberDemo[] = [
     index: "02",
     path: `${base}/portfolio`,
     ask: "Where does this portfolio move growth?",
-    stages: ["Sector links", "Delivery measures", "Evidence strength"],
+    stages: ["Sector links", "Delivery measures", "Data strength"],
     output: "The minister's options, in one view",
   },
   {
@@ -91,7 +91,7 @@ export const CHAMBER_DEMOS: ChamberDemo[] = [
     index: "10",
     path: `${base}/studio`,
     ask: "Which sectors can move growth?",
-    stages: ["Rank from the evidence", "Head of Government's choice", "Roadmap"],
+    stages: ["Rank from the data", "Head of Government's choice", "Roadmap"],
     output: "An accountable growth plan per sector",
   },
 ];

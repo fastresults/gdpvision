@@ -38,7 +38,7 @@ export function HomepageSecondBrain() {
       ) : (
         <div className="flex aspect-square flex-col items-center justify-center gap-4 border border-line-200 bg-paper-50 px-6 text-center" role="status">
           <p className="text-[15px] text-ink-700">
-            {shape.isPending ? "Loading Antigua’s Second Brain…" : "Antigua’s live evidence view is currently unavailable."}
+            {shape.isPending ? "Loading Antigua’s Second Brain…" : "Antigua’s live data view is currently unavailable."}
           </p>
           {!shape.isPending && (
             <button type="button" className="btn-secondary" disabled={shape.isFetching} onClick={() => void shape.refetch()}>
@@ -49,7 +49,7 @@ export function HomepageSecondBrain() {
         </div>
       )}
       <p className="mt-4 text-[12px] leading-relaxed text-ink-500">
-        A live view of Antigua’s evidence, organised by sector. Protected record titles and contents are not shown.
+        A live view of Antigua’s data, organised by sector. Protected record titles and contents are not shown.
       </p>
     </div>
   );

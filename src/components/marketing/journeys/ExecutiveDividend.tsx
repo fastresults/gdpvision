@@ -38,7 +38,7 @@ export function ExecutiveDividend({ journey, beat }: { journey: ChamberJourney; 
               How this supports economic progress
             </div>
             <p className="mt-2 text-[12px] leading-relaxed">
-              Clearer evidence → informed choices → accountable delivery → stronger conditions for
+              Clearer data → informed choices → accountable delivery → stronger conditions for
               growth.
             </p>
           </div>

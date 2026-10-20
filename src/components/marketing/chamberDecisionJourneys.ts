@@ -6,7 +6,7 @@ import { evidenceChips } from "./journeys/journeyRouting";
 export const JOURNEY_ACTS = [
   "The priority",
   "Frame the question",
-  "Check the evidence",
+  "Check the data",
   "Select the Chamber",
   "Work through options",
   "Government value",
@@ -22,7 +22,7 @@ export interface ChamberMethod {
 export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
   "01": {
     index: "01",
-    name: "National Evidence Ledger",
+    name: "National Data Ledger",
     stages: [
       "Frame the question",
       "Assemble cited figures",
@@ -85,7 +85,7 @@ export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
     name: "Cabinet Decisions & Delivery",
     stages: [
       "Order the decision queue",
-      "Check evidence readiness",
+      "Check data readiness",
       "Compare viable options",
       "Record the decision",
       "Assign the commitment",
@@ -132,7 +132,7 @@ export const CHAMBER_METHODS: Record<string, ChamberMethod> = {
     index: "10",
     name: "Sector Growth & Delivery Studio",
     stages: [
-      "Read sector evidence",
+      "Read sector data",
       "Choose the priority",
       "Find what holds growth back",
       "Build projects and roadmap",
@@ -154,7 +154,7 @@ const BENEFITS: Record<string, BenefitSeed> = {
   "Defending the growth figure": {
     knows: "Which sources and assumptions support the growth figure.",
     choice: "How to explain the figure and its limits to lenders.",
-    risk: "Weak or conflicting evidence can be addressed before the meeting.",
+    risk: "Weak or conflicting data can be addressed before the meeting.",
     owner: "Finance and statistics leaders share one sourced brief.",
     measure: "Record questions and corrections for the next update.",
   },
@@ -222,7 +222,7 @@ const BENEFITS: Record<string, BenefitSeed> = {
     measure: "Review readiness and recovery to improve the next plan.",
   },
   "Crowded agenda": {
-    knows: "Which decisions are urgent and supported by enough evidence.",
+    knows: "Which decisions are urgent and supported by enough data.",
     choice: "What Cabinet should decide now or return for more work.",
     risk: "Keep low-priority debate from crowding out important action.",
     owner: "Record the responsible leader for each approved action.",
@@ -278,7 +278,7 @@ const BENEFITS: Record<string, BenefitSeed> = {
     measure: "Track use, access issues and whether privacy checks are working.",
   },
   "Budget priorities": {
-    knows: "Where sector evidence suggests opportunities for economic progress.",
+    knows: "Where sector data suggests opportunities for economic progress.",
     choice: "Which three priorities deserve funding and further review.",
     risk: "Challenge weak assumptions before allocating limited public money.",
     owner: "Each chosen sector has a plan and responsible ministry.",

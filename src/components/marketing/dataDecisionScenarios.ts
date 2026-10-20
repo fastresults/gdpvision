@@ -10,7 +10,7 @@ export interface Scenario {
 }
 
 export const CHAMBER_NAMES: Record<string, string> = {
-  "01": "National Evidence Ledger",
+  "01": "National Data Ledger",
   "02": "Ministry Growth & Delivery",
   "03": "Policy Scenario Engine",
   "04": "Investment & Resilience",
@@ -23,16 +23,16 @@ export const CHAMBER_NAMES: Record<string, string> = {
 };
 
 export const CHAMBER_PURPOSES: Record<string, string> = {
-  all: "See how the ten connected government workspaces bring evidence, decisions and delivery together.",
-  "01": "Bring national figures and their sources together so government decisions start with reliable evidence.",
+  all: "See how the ten connected government workspaces bring data, decisions and delivery together.",
+  "01": "Bring national figures and their sources together so government decisions start with trusted data.",
   "02": "Connect each ministry’s responsibilities to economic priorities and track delivery.",
   "03": "Compare potential costs, benefits and risks before committing to a policy.",
   "04": "Assess investment choices and prepare for shocks that could threaten economic progress.",
-  "05": "Spot important media signals and prepare clear, evidence-backed government responses.",
+  "05": "Spot important media signals and prepare clear, data-backed government responses.",
   "06": "Turn Cabinet decisions into commitments with clear owners and progress tracking.",
   "07": "Explore how different groups and leadership perspectives may respond to policy choices.",
   "08": "Connect government promises to delivery milestones and accountable progress.",
-  "09": "Plan public websites and services using national evidence and government approval.",
+  "09": "Plan public websites and services using national data and government approval.",
   "10": "Turn sector opportunities into practical plans with priorities, responsibilities and measures of progress.",
 };
 
@@ -55,7 +55,7 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         edges: [["safeguards", "c01"]],
-        text: "Explain the growth figure and its assumptions in the evidence workspace.",
+        text: "Explain the growth figure and its assumptions in the data workspace.",
       },
       {
         edges: [["c01", "brief"]],
@@ -63,11 +63,11 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         edges: [["brief", "cabinet"]],
-        text: "Cabinet agrees one evidence-based response to the IMF.",
+        text: "Cabinet agrees one data-backed response to the IMF.",
       },
       {
         edges: [["cabinet", "delay"]],
-        text: "Prepared evidence can help government respond without avoidable delay.",
+        text: "Prepared data can help government respond without avoidable delay.",
       },
     ],
     outcome: "A clearer case for lenders, with limitations openly explained.",
@@ -218,7 +218,7 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         edges: [["brief", "cabinet"]],
-        text: "Cabinet reviews the evidence and approves a course.",
+        text: "Cabinet reviews the data and approves a course.",
       },
       {
         edges: [["cabinet", "spend"]],
@@ -245,7 +245,7 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         edges: [["c04", "invest"]],
-        text: "Prepare project costs, evidence and responsibilities for investor review.",
+        text: "Prepare project costs, data and responsibilities for investor review.",
       },
       {
         edges: [["invest", "capital"]],
@@ -261,7 +261,7 @@ export const SCENARIOS: Scenario[] = [
     steps: [
       {
         edges: [["flows", "corpus"]],
-        text: "Gather evidence on the investor’s contribution to jobs and revenue.",
+        text: "Gather data on the investor’s contribution to jobs and revenue.",
       },
       {
         edges: [["corpus", "c04"]],
@@ -346,7 +346,7 @@ export const SCENARIOS: Scenario[] = [
     steps: [
       {
         edges: [["kpis", "corpus"]],
-        text: "Gather the evidence on what each urgent decision affects.",
+        text: "Gather the data on what each urgent decision affects.",
       },
       {
         edges: [["corpus", "safeguards"]],
@@ -412,7 +412,7 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         edges: [["c05", "cabinet"]],
-        text: "Cabinet considers possible reactions alongside evidence before deciding.",
+        text: "Cabinet considers possible reactions alongside data before deciding.",
       },
       {
         edges: [["cabinet", "delay"]],
@@ -480,7 +480,7 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         edges: [["commit", "record"]],
-        text: "Publish approved results and use them as evidence for the next review.",
+        text: "Publish approved results and use them as data for the next review.",
       },
     ],
     outcome: "Promises linked to actions, responsibility and visible progress.",
@@ -601,7 +601,7 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         edges: [["commit", "spend"]],
-        text: "Allocate approved funding against expected value and evidence.",
+        text: "Allocate approved funding against expected value and data.",
       },
     ],
     outcome: "A clearer basis for directing limited public money to national priorities.",
@@ -621,7 +621,7 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         edges: [["corpus", "c10"]],
-        text: "Identify production barriers and prepare an evidence-based action plan.",
+        text: "Identify production barriers and prepare an data-backed action plan.",
       },
       {
         edges: [["c10", "invest"]],

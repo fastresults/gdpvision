@@ -529,8 +529,8 @@ export function ValueCalculator({
           <section>
             <StepHeading
               n="02"
-              title="Review the evidence and replace assumptions."
-              lede="Six conditions shape the size of the opportunity. Where national evidence provides an answer, the figure appears with its source and confidence grade. Where it does not, a typical regional value is used and clearly marked as an assumption. You can correct any figure."
+              title="Review the data and replace assumptions."
+              lede="Six conditions shape the size of the opportunity. Where national data provides an answer, the figure appears with its source and confidence grade. Where it does not, a typical regional value is used and clearly marked as an assumption. You can correct any figure."
             />
             <div className="divide-y divide-line-100 border-y border-line-100">
               {FRAMING_QUESTIONS.map((q) => (
@@ -553,7 +553,7 @@ export function ValueCalculator({
             <StepHeading
               n="03"
               title="Set the first-year priorities."
-              lede="The ten Chambers are shown in the order the evidence suggests for the first year, with the estimated value each could release. Adjust the depth of any Chamber and the result updates."
+              lede="The ten Chambers are shown in the order the data suggests for the first year, with the estimated value each could release. Adjust the depth of any Chamber and the result updates."
             />
             <ol className="border-y border-line-100">
               {sequence.order.map((idx, i) => {

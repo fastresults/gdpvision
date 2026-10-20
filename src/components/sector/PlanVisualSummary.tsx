@@ -16,7 +16,7 @@ import { MICRO } from "./labels";
 const LABELS = {
   comparison: "Source section",
   trend: "Plan reading",
-  members: "Evidence strength",
+  members: "Data strength",
   relevance: "Decision relevance",
   caution: "Status & caution",
 } as const;
@@ -75,7 +75,7 @@ function ReadinessGauge({
   const item = perspective(
     "sector-plan-readiness",
     "Plan readiness",
-    `${checks.filter((check) => check.passed).length} of ${checks.length} evidence and completeness checks pass.`,
+    `${checks.filter((check) => check.passed).length} of ${checks.length} data and completeness checks pass.`,
     "All ten saved sections, their citations and deterministic Auditor findings.",
     label,
     checks.map((check) => `${check.passed ? "Passed" : "Open"}: ${check.label}`).join(" · "),
@@ -347,7 +347,7 @@ export function PlanVisualSummary({
       : "No flagship could be identified in the saved section.",
     `${confirmed} confirmed · ${summary.projects.length - confirmed} need confirmation.`,
     "Use the portfolio to test whether each pillar has an executable project and accountable owner.",
-    "These are proposed projects, not evidence that implementation has begun.",
+    "These are proposed projects, not data that implementation has begun.",
   );
   const roadmapItem = perspective(
     "sector-roadmap",
@@ -358,16 +358,16 @@ export function PlanVisualSummary({
       "No structured phase table was found.",
     "Milestones come directly from the saved roadmap.",
     "Use each gate as a decision point before moving public funds or delivery capacity forward.",
-    "Every item is a planned achievement until delivery evidence is recorded elsewhere.",
+    "Every item is a planned achievement until delivery data is recorded elsewhere.",
   );
   const evidenceItem = perspective(
     "sector-evidence",
-    "Evidence and gaps",
+    "Data and gaps",
     `${summary.evidence.grounded} sections are grounded without an explicit unresolved marker.`,
     "All saved plan sections, citations and Auditor notes.",
     `${summary.evidence.needsConfirmation} need confirmation · ${summary.evidence.gaps} are gaps.`,
     `${summary.evidence.citations} citations · ${summary.evidence.findings} Auditor notes.`,
-    "Resolve the largest evidence gaps before approval and public communication.",
+    "Resolve the largest data gaps before approval and public communication.",
     "A grounded section can still contain judgement; inspect its cited source lines before relying on it.",
   );
 
@@ -382,7 +382,7 @@ export function PlanVisualSummary({
             </h2>
           </div>
           <p className="max-w-xl text-right text-xs leading-relaxed text-ink-500">
-            Planned outcomes, delivery machinery and evidence strength. Hover or focus for the
+            Planned outcomes, delivery machinery and data strength. Hover or focus for the
             executive perspective.
           </p>
         </div>
@@ -499,12 +499,12 @@ export function PlanVisualSummary({
           <PerspectiveSurface item={evidenceItem} className="border-t border-line-200 pt-5">
             <div className={MICRO}>
               <Explain id="sector.evidence-composition" ctx={summary.evidence}>
-                Evidence and gaps
+                Data and gaps
               </Explain>
             </div>
             <div
               className="mt-5 flex h-4 overflow-hidden bg-line-100"
-              aria-label="Plan evidence composition"
+              aria-label="Plan data composition"
             >
               <div
                 className="bg-signal-positive"

@@ -27,7 +27,7 @@ import {
 const SITE_URL = "https://gdpvision.com";
 const TITLE = "The National Record — every figure Cabinet relies on, with its source and grade";
 const DESCRIPTION =
-  "How GDPVision keeps one national record of public evidence and government data: each figure sourced, dated and graded, restricted records kept apart, and the whole record carried forward from one decision to the next.";
+  "How GDPVision keeps one national record of public data and government data: each figure sourced, dated and graded, restricted records kept apart, and the whole record carried forward from one decision to the next.";
 
 export const Route = createFileRoute("/record")({
   head: () => ({
@@ -80,7 +80,7 @@ const LIFE = [
 
 const RECORDS = [
   {
-    head: "Public evidence",
+    head: "Public data",
     body: "National statistics, budgets, central bank and regional data, international indexes and published reports. Researched, cited and graded. Suitable for the country's public platform and for investors.",
   },
   {
@@ -103,7 +103,7 @@ const CHANGES = [
   {
     q: "How long does a Cabinet question take to answer?",
     before: "Weeks, while ministries assemble and reconcile their own versions.",
-    after: "The evidence is already assembled, so the question starts from what is known.",
+    after: "The data is already assembled, so the question starts from what is known.",
   },
   {
     q: "What survives a change of minister or government?",
@@ -118,7 +118,7 @@ const CHANGES = [
   {
     q: "How is the country prepared for the global indexes?",
     before: "Submissions are compiled under deadline from whatever is to hand.",
-    after: "The measures the indexes read are already tracked, with their evidence.",
+    after: "The measures the indexes read are already tracked, with their data.",
   },
 ];
 
@@ -237,8 +237,8 @@ function RecordPage() {
                 Every figure Cabinet relies on, with its source, its date and its grade.
               </h1>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
-                An economy cannot be managed faster than its evidence can be found and trusted.
-                GDPVision keeps one national record: public evidence and government data, each
+                An economy cannot be managed faster than its data can be found and trusted.
+                GDPVision keeps one national record: public data and government data, each
                 figure sourced and graded, restricted records kept apart, and the whole record
                 carried forward from one decision to the next.
               </p>
@@ -269,15 +269,15 @@ function RecordPage() {
         <div className={WRAP}>
           <SectionHeader
             eyebrow="How the system works"
-            title="Three systems combine to turn scattered national evidence into stronger economic decisions."
-            lede="The Corpus gathers and grades public evidence. The Sovereign Vault protects the records that must remain in government. The Second Brain connects both into a national memory that helps leaders act faster, prepare stronger investments and improve delivery."
+            title="Three systems combine to turn scattered national data into stronger economic decisions."
+            lede="The Corpus gathers and grades public data. The Sovereign Vault protects the records that must remain in government. The Second Brain connects both into a national memory that helps leaders act faster, prepare stronger investments and improve delivery."
           />
           <SovereignIntelligenceFlywheel
             country={facts.data?.name ?? code}
             stats={stats.data ?? null}
           />
           <p className="mt-7 max-w-3xl border-l-2 border-gold-500 pl-4 text-[14px] leading-relaxed text-ink-700">
-            Better evidence does not guarantee growth. It improves the decisions, delivery and
+            Better data does not guarantee growth. It improves the decisions, delivery and
             investor confidence that make durable growth more achievable.
           </p>
         </div>
@@ -315,7 +315,7 @@ function RecordPage() {
         <div className={WRAP}>
           <SectionHeader
             eyebrow="Public and state-owned, kept apart"
-            title="Three kinds of evidence. One view for a decision. No confusion between them."
+            title="Three kinds of data. One view for a decision. No confusion between them."
             lede="Visibility is recorded on every item. A briefing can draw on all three, and always shows which is which."
           />
           <div className="mt-12 grid items-center gap-10 lg:grid-cols-[340px_1fr]">
@@ -424,7 +424,7 @@ function RecordPage() {
           <SectionHeader
             eyebrow="Request a briefing"
             title="See your country's record, and what it is missing."
-            lede="A principal from OPEN Interactive will walk your team through the record GDPVision already holds for your country and the evidence that would raise its grades."
+            lede="A principal from OPEN Interactive will walk your team through the record GDPVision already holds for your country and the data that would raise its grades."
           />
           <BriefingForm topic="record" />
         </div>

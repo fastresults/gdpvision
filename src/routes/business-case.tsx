@@ -150,7 +150,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="Executive summary"
-          title="A clearer path from evidence to economic action."
+          title="A clearer path from trusted data to economic action."
         />
         <div className="mt-10 grid gap-8 md:grid-cols-2">
           <div className="space-y-6">
@@ -202,7 +202,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="01 · What is at stake"
-          title="Major decisions leave little room for unclear evidence."
+          title="Major decisions leave little room for unclear data."
           lede="A disaster, a revenue shock or a delayed investment can change a country’s options. The historical example below shows the scale of one event—not a regional average or a prediction."
         />
         <div className="mt-8 max-w-3xl text-[14px] leading-relaxed text-ink-500">
@@ -249,7 +249,7 @@ function BusinessCasePage() {
           <div>
             <SectionHeader
               eyebrow="02 · The problem"
-              title="Government needs decision-ready evidence, not more effort."
+              title="Government needs decision-ready data, not more effort."
             />
             <div className="mt-8 space-y-5 max-w-2xl">
               {INSTRUMENTATION_INTRO.map((p) => (
@@ -279,7 +279,7 @@ function BusinessCasePage() {
         <SectionHeader
           eyebrow="03 · How GDPVision supports government"
           title="Ten connected workspaces. One government decision process."
-          lede="Chambers are connected digital workspaces for government responsibilities. Together they bring evidence, policy choices, approvals and delivery into a shared process—with officials retaining responsibility for decisions."
+          lede="Chambers are connected digital workspaces for government responsibilities. Together they bring data, policy choices, approvals and delivery into a shared process—with officials retaining responsibility for decisions."
         />
         <div className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2">
           {CHAMBERS.map((c) => (
@@ -385,7 +385,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="07 · The standard to verify"
-          title="Check the evidence. Test the controls. Agree the terms."
+          title="Check the data. Test the controls. Agree the terms."
           lede={TIER_ONE_INTRO[0]}
         />
         <p className="mt-6 max-w-2xl text-[16.5px] leading-relaxed text-ink-700">
@@ -493,7 +493,7 @@ function BusinessCasePage() {
           <div>
             <SectionHeader
               eyebrow="09 · Responsibilities before proceeding"
-              title="Agree who checks the evidence, controls and terms."
+              title="Agree who checks the data, controls and terms."
               lede="Leadership, finance, coordination, procurement and data protection each need a clear basis for proceeding."
             />
             <div className="mt-10 space-y-6 max-w-2xl">
@@ -589,7 +589,7 @@ function BusinessCasePage() {
       {/* Sources */}
       <Section>
         <SectionHeader
-          eyebrow="The evidence behind this paper"
+          eyebrow="The data behind this paper"
           title="Check what the figure means—and what it does not."
           lede={SOURCES_NOTE}
         />
@@ -631,7 +631,7 @@ function BusinessCasePage() {
                 Bring one Cabinet decision to a confidential briefing.
               </h2>
               <p className="mt-5 max-w-xl text-[16.5px] leading-relaxed text-ink-700">
-                Tell us the priority, the evidence available and what government needs to decide. We
+                Tell us the priority, the data available and what government needs to decide. We
                 can discuss the work a pilot should test and the terms that would need agreement.
                 Share sensitive material only after confidentiality and handling arrangements are
                 agreed.

@@ -58,7 +58,7 @@ export function IndexBand() {
               className="mt-5 font-serif text-[24px] leading-[1.2] tracking-tight text-ink-950 md:text-[30px]"
             >
               Ten bodies set the measures that rank a country for investors and lenders. GDPVision
-              connects directly to them — a near-live feed where evidence becomes decisions, policy
+              connects directly to them — a near-live feed where data becomes decisions, policy
               and investment: the environment where GDP grows.
             </h2>
             <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-ink-500">

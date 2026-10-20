@@ -66,7 +66,7 @@ export function EvidenceAssembly({ journey, beat }: { journey: ChamberJourney; b
           <BeatLabel index={2}>Check figures agree</BeatLabel>
           <GitCompareArrows className="mx-auto mt-6 h-8 w-8 text-gold-500" />
           <div className="mt-4 space-y-2">
-            {["Compare dates", "Check definitions", "Flag missing evidence"].map((item, index) => (
+            {["Compare dates", "Check definitions", "Flag missing data"].map((item, index) => (
               <div
                 key={item}
                 className="flex items-center gap-2 border-b border-line-100 pb-1 text-[12px] text-ink-950"
@@ -107,7 +107,7 @@ export function EvidenceAssembly({ journey, beat }: { journey: ChamberJourney; b
             <ApprovalGate open={beat >= 4} />
           </div>
           <p className="mt-2 text-[10px] leading-snug text-ink-500">
-            * Evidence grades are illustrative in this presentation.
+            * Data grades are illustrative in this presentation.
           </p>
         </section>
       </div>

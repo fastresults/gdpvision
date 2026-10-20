@@ -72,7 +72,7 @@ export function FactRail({ facts, loading }: { facts: CountryFacts | null; loadi
         <p className="text-[13px] text-ink-700">
           {facts.onboarded ? (
             <>
-              GDPVision holds national evidence for {facts.name}: {fromRecord} of{" "}
+              GDPVision holds national data for {facts.name}: {fromRecord} of{" "}
               {facts.facts.length} figures below come from it and carry confidence grades. The rest
               are regional assumptions you can correct.
             </>
@@ -80,7 +80,7 @@ export function FactRail({ facts, loading }: { facts: CountryFacts | null; loadi
             <>
               National records for {facts.name} have not yet been added to GDPVision. The figures
               below are general regional estimates; a government engagement replaces them with the
-              country’s own evidence.
+              country’s own data.
             </>
           )}
         </p>

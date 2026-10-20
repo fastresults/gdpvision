@@ -45,15 +45,15 @@ export interface Chamber {
 export const CHAMBERS: Chamber[] = [
   {
     index: "01",
-    title: "National Evidence Ledger",
+    title: "National Data Ledger",
     accentVar: "--sector-01",
     image: ch01.url,
     screenshot: screen01.url,
-    outcome: "Put trusted evidence behind every economic decision.",
+    outcome: "Put trusted data behind every economic decision.",
     purpose: "Bring national and sector data into one sourced record so Cabinet can assess the economy and direct resources with confidence.",
     bullets: [
-      "Compare trends, sources and evidence strength before setting priorities.",
-      "Build briefings that link every key figure to its supporting evidence.",
+      "Compare trends, sources and data strength before setting priorities.",
+      "Build briefings that link every key figure to its supporting data.",
     ],
   },
   {
@@ -102,7 +102,7 @@ export const CHAMBERS: Chamber[] = [
     image: ch05.url,
     screenshot: screen05.url,
     outcome: "Protect national confidence with a credible public position.",
-    purpose: "Turn emerging developments into evidence-backed briefings so government can respond clearly when uncertainty threatens investment, confidence or growth.",
+    purpose: "Turn emerging developments into data-backed briefings so government can respond clearly when uncertainty threatens investment, confidence or growth.",
     bullets: [
       "Assemble relevant events, sources and prior government knowledge.",
       "Prepare responses for authorised review and approval before release.",
@@ -130,7 +130,7 @@ export const CHAMBERS: Chamber[] = [
     outcome: "Anticipate concerns before putting policy into practice.",
     purpose: "Explore how different audiences may respond and what leadership requires, helping government refine proposals before committing to implementation.",
     bullets: [
-      "Run evidence-grounded simulations for citizens, diaspora and investors.",
+      "Run data-backed simulations for citizens, diaspora and investors.",
       "Examine ministerial skills and policy concerns; simulated findings are not public opinion polls.",
     ],
   },
@@ -144,7 +144,7 @@ export const CHAMBERS: Chamber[] = [
     purpose: "Translate the mandate into ministry-owned commitments so government can review progress, explain changes and demonstrate what has been delivered.",
     bullets: [
       "Give each pledge clear deliverables, measures, owners and review dates.",
-      "Keep approvals, evidence and quarterly progress in one accountable record.",
+      "Keep approvals, data and quarterly progress in one accountable record.",
     ],
   },
   {
@@ -153,7 +153,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--chamber-09",
     screenshot: screen09.url,
     outcome: "Define better public services on government’s terms.",
-    purpose: "Turn national needs and verified government information into a clear digital-service blueprint, giving government control over scope, evidence and approval.",
+    purpose: "Turn national needs and verified government information into a clear digital-service blueprint, giving government control over scope, data and approval.",
     bullets: [
       "Specify services, audiences, institutions and governance using cited requirements.",
       "Approve information before sharing it through authorised digital connections.",
@@ -165,7 +165,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--chamber-10",
     screenshot: screen10.url,
     outcome: "Focus national effort on sectors with growth potential.",
-    purpose: "Use national evidence to select priorities and build accountable sector plans, connecting economic ambition to practical action and Cabinet oversight.",
+    purpose: "Use national data to select priorities and build accountable sector plans, connecting economic ambition to practical action and Cabinet oversight.",
     bullets: [
       "Compare sector opportunities while preserving the Head of Government’s choice.",
       "Develop cited plans with milestones, responsibilities and approval before Cabinet commitment.",

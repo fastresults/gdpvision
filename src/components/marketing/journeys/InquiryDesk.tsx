@@ -7,7 +7,7 @@ import { decisionFrame } from "./journeyVisuals";
 export function InquiryDesk({ journey, beat }: { journey: ChamberJourney; beat: number }) {
   const frame = decisionFrame(journey);
   const fields = [
-    ["Country context", `Your country’s evidence · Workspace ${journey.chamber}`],
+    ["Country context", `Your country’s data · Workspace ${journey.chamber}`],
     ["Who decides", frame.authority],
     ["Illustrative time comparison", `${frame.horizon} · not measured`],
     ["What is at stake", frame.exposures.join(" · ")],

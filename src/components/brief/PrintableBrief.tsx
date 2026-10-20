@@ -144,7 +144,7 @@ export function PrintableBrief({
           decision; it does not predict the future.
         </p>
         <div style={{ border: "0.6pt solid #999", padding: "3mm", marginTop: "4mm" }}>
-          <div className="mono">Evidence status · public estimate</div>
+          <div className="mono">Data status · public estimate</div>
           <p style={{ margin: "1.5mm 0 0" }}>
             {evidenceCounts.record} supported by national records · {evidenceCounts.reference}{" "}
             reference assumptions · {evidenceCounts.adjusted} adjusted by the user. Reference
@@ -168,7 +168,7 @@ export function PrintableBrief({
           country={countryName}
           today={today}
           accent={palette.band}
-          title="What the evidence shows, and where assumptions remain"
+          title="What the data shows, and where assumptions remain"
         />
         <table>
           <thead>
@@ -322,20 +322,20 @@ export function PrintableBrief({
 
         <h2>Sources</h2>
         <p>
-          Figures are read from GDPVision’s national evidence record for {countryName} at the time
+          Figures are read from GDPVision’s national data record for {countryName} at the time
           of printing ({facts?.generatedAt?.slice(0, 10) ?? "—"}): only graded public figures and
           counts of approved, verified or published rows. Tables consulted:{" "}
           {sources.join(", ") || "none"}. Figures marked “Assumption” use a typical regional value
-          where national evidence is unavailable.
+          where national data is unavailable.
         </p>
-        <h2>Evidence status and validation requirement</h2>
+        <h2>Data status and validation requirement</h2>
         <table>
           <thead>
             <tr>
               <th>Input</th>
               <th>Status</th>
               <th>Current basis</th>
-              <th>Evidence required</th>
+              <th>Data required</th>
             </tr>
           </thead>
           <tbody>
@@ -359,7 +359,7 @@ export function PrintableBrief({
         </table>
         <p>
           During a government engagement, these inputs are brought into agreement. The reporting
-          period and responsible official are recorded, and the approved starting evidence and model
+          period and responsible official are recorded, and the approved starting data and model
           version are fixed for formal use. User adjustments remain scenarios until that checking is
           complete.
         </p>

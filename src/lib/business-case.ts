@@ -1,13 +1,13 @@
 // @domain marketing
 // @tables none
 // @ui src/routes/business-case.tsx
-// Public decision-paper copy and its evidence links. Deployment terms are not delivered outcomes.
+// Public decision-paper copy and its data links. Deployment terms are not delivered outcomes.
 
 export const BUSINESS_CASE_META = {
   eyebrow: "The business case for GDPVision",
   title: "Better national decisions. Stronger economic progress.",
   standfirst:
-    "GDPVision connects national evidence, policy choices and government delivery in one system. It helps Cabinet and ministries direct resources, prepare investment and keep action accountable—with sources they can check and decisions that remain in government hands.",
+    "GDPVision connects national data, policy choices and government delivery in one system. It helps Cabinet and ministries direct resources, prepare investment and keep action accountable—with sources they can check and decisions that remain in government hands.",
   author: "Adam Anderson",
   org: "OPEN Interactive",
 };
@@ -18,11 +18,11 @@ export interface LabelledPara {
 export const EXECUTIVE_SUMMARY: LabelledPara[] = [
   {
     label: "The problem",
-    body: "Government must make choices about spending, investment and resilience while the evidence sits across ministries. Reconciling that evidence can take attention away from the decision itself.",
+    body: "Government must make choices about spending, investment and resilience while the data sits across ministries. Reconciling that data can take attention away from the decision itself.",
   },
   {
     label: "The practical change",
-    body: "Bring the evidence together, compare options, record an approved decision and follow its delivery. GDPVision connects these activities so Cabinet and ministries can work from a shared picture.",
+    body: "Bring the data together, compare options, record an approved decision and follow its delivery. GDPVision connects these activities so Cabinet and ministries can work from a shared picture.",
   },
   {
     label: "The economic value",
@@ -34,11 +34,11 @@ export const EXECUTIVE_SUMMARY: LabelledPara[] = [
   },
   {
     label: "The next step",
-    body: "Bring one real government decision to a briefing. Follow with a time-limited pilot, clear responsibilities and agreed tests. Decide on wider use only after reviewing the evidence from that pilot.",
+    body: "Bring one real government decision to a briefing. Follow with a time-limited pilot, clear responsibilities and agreed tests. Decide on wider use only after reviewing the data from that pilot.",
   },
 ];
 export const NOT_CLAIMED =
-  "Potential value is not a proven result. This paper does not claim measured GDP growth, savings, revenue gained or time saved by GDPVision. Test the case against your country’s evidence and one real decision.";
+  "Potential value is not a proven result. This paper does not claim measured GDP growth, savings, revenue gained or time saved by GDPVision. Test the case against your country’s data and one real decision.";
 export interface StakeFigure {
   value: number;
   unit?: string;
@@ -69,7 +69,7 @@ export const PRESSURES: LabelledPara[] = [
   },
   {
     label: "Investment readiness",
-    body: "Investors need answers about land, approvals, infrastructure and workforce. A credible proposal connects those requirements to evidence and identifies what government must resolve.",
+    body: "Investors need answers about land, approvals, infrastructure and workforce. A credible proposal connects those requirements to data and identifies what government must resolve.",
   },
   {
     label: "Delivery capacity",
@@ -77,7 +77,7 @@ export const PRESSURES: LabelledPara[] = [
   },
 ];
 export const STAKES_CLOSE =
-  "The lesson is not that every country faces the same exposure. It is that major decisions need a clear view of revenue, risk and delivery capacity. Use regional experience as context; build the national decision on the country’s own evidence.";
+  "The lesson is not that every country faces the same exposure. It is that major decisions need a clear view of revenue, risk and delivery capacity. Use regional experience as context; build the national decision on the country’s own data.";
 export const INSTRUMENTATION_INTRO = [
   "Capable officials cannot make scattered information useful by effort alone. Ministries may hold different versions, reporting periods and definitions of the same issue.",
   "A useful system connects those records, identifies gaps and keeps assumptions visible. It should help government answer a question while there is still time to act—not simply produce another report.",
@@ -88,7 +88,7 @@ export const THREE_FAILURES: LabelledPara[] = [
     body: "Show where each figure comes from, when it was updated and what it measures. Differences between sources should be visible, not hidden behind a single confident number.",
   },
   {
-    label: "Separate evidence from assumptions",
+    label: "Separate data from assumptions",
     body: "An official statistic and a working estimate should not look equally certain. Ministers need to know which conclusions are well supported and which depend on further checks.",
   },
   {
@@ -98,13 +98,13 @@ export const THREE_FAILURES: LabelledPara[] = [
 ];
 export const CHEAP_ANSWER_INTRO = [
   "AI tools can help officials summarise reports, draft notes and explore options. That assistance has real value. GDPVision also uses AI; the case is not that government should reject it.",
-  "The additional requirement is a connected government workflow: shared evidence, defined methods, access controls, approvals and delivery records. A personal AI account does not establish that workflow on its own.",
-  "Enterprise AI services can offer administration, retention controls and audit features. Those features still need to be assessed and connected to government’s evidence, responsibilities and legal requirements.",
+  "The additional requirement is a connected government workflow: shared data, defined methods, access controls, approvals and delivery records. A personal AI account does not establish that workflow on its own.",
+  "Enterprise AI services can offer administration, retention controls and audit features. Those features still need to be assessed and connected to government’s data, responsibilities and legal requirements.",
 ];
 export const CANNOTS: LabelledPara[] = [
   {
-    label: "A shared evidence base",
-    body: "Chat histories can persist, but individual conversations are not automatically a reconciled national record. GDPVision brings evidence into a common structure with sources and access rules.",
+    label: "A shared data base",
+    body: "Chat histories can persist, but individual conversations are not automatically a reconciled national record. GDPVision brings data into a common structure with sources and access rules.",
   },
   {
     label: "Appropriate handling of sensitive material",
@@ -124,7 +124,7 @@ export const CANNOTS: LabelledPara[] = [
   },
 ];
 export const SHADOW_AI_INTRO = [
-  "Where officials use personal AI accounts without an approved process, government can lose visibility over evidence and sensitive material. The response should be practical: approved tools, clear handling rules and responsibilities—not a blanket claim that all AI use is unsafe.",
+  "Where officials use personal AI accounts without an approved process, government can lose visibility over data and sensitive material. The response should be practical: approved tools, clear handling rules and responsibilities—not a blanket claim that all AI use is unsafe.",
 ];
 export const SHADOW_LIABILITIES: LabelledPara[] = [
   {
@@ -137,7 +137,7 @@ export const SHADOW_LIABILITIES: LabelledPara[] = [
   },
   {
     label: "Competing versions",
-    body: "Separate conversations can produce inconsistent assumptions and drafts. Agree the evidence and record the approved version.",
+    body: "Separate conversations can produce inconsistent assumptions and drafts. Agree the data and record the approved version.",
   },
   {
     label: "Knowledge tied to individuals",
@@ -147,14 +147,14 @@ export const SHADOW_LIABILITIES: LabelledPara[] = [
 export const SHADOW_CLOSE =
   "The choice is how to make AI assistance useful, accountable and safe within government’s wider decision process. GDPVision should be judged on that added capability—not on a comparison with the price of a personal subscription alone.";
 export const TIER_ONE_INTRO = [
-  "The more consequential the decision, the more important it is to inspect the evidence, control access and record who approved action. Government needs these safeguards whether it builds a system or procures one.",
+  "The more consequential the decision, the more important it is to inspect the data, control access and record who approved action. Government needs these safeguards whether it builds a system or procures one.",
   "The comparison below concerns personal AI use without a government workflow. It is not a claim that enterprise AI services lack controls, or that every GDPVision deployment already meets every requirement.",
 ];
 export const TIER_ONE_TESTS: Array<{ test: string; chat: string; instrument: string }> = [
   {
-    test: "Shared national evidence",
+    test: "Shared national data",
     chat: "Individual histories; a shared, checked record must be organised separately",
-    instrument: "Connected evidence records; verify coverage, source quality and update dates",
+    instrument: "Connected data records; verify coverage, source quality and update dates",
   },
   {
     test: "Access by responsibility",
@@ -195,7 +195,7 @@ export const OPTION_PATHS: OptionPath[] = [
     key: "A",
     title: "Use AI tools with an approved process",
     owns: ["Drafting", "Research", "Internal controls"],
-    body: "A practical way to improve individual work. Government must still organise shared evidence, calculations, approvals and delivery tracking. Enterprise features and export rights vary; assess the service rather than assuming they are absent.",
+    body: "A practical way to improve individual work. Government must still organise shared data, calculations, approvals and delivery tracking. Enterprise features and export rights vary; assess the service rather than assuming they are absent.",
   },
   {
     key: "B",
@@ -206,8 +206,8 @@ export const OPTION_PATHS: OptionPath[] = [
   {
     key: "C",
     title: "Evaluate GDPVision",
-    owns: ["Connected evidence", "Decision workflow", "Delivery records"],
-    body: "Test an existing connected approach rather than assembling each function separately. Value depends on evidence quality, adoption and implementation. Agree costs, ownership, hosting, support and exit terms, and verify the pilot before wider deployment.",
+    owns: ["Connected data", "Decision workflow", "Delivery records"],
+    body: "Test an existing connected approach rather than assembling each function separately. Value depends on trusted data quality, adoption and implementation. Agree costs, ownership, hosting, support and exit terms, and verify the pilot before wider deployment.",
   },
 ];
 export const OPTIONS_CLOSE =
@@ -215,25 +215,25 @@ export const OPTIONS_CLOSE =
 export const INSTRUMENT_INTRO =
   "Ten connected digital workspaces support different government responsibilities—from understanding the economy to approving action and tracking delivery.";
 export const CHAMBER_LINES: Record<string, string> = {
-  "01": "Bring national figures, sector evidence and sources into a shared picture. See the starting point, data gaps and confidence behind a decision.",
+  "01": "Bring national figures, sector data and sources into a shared picture. See the starting point, data gaps and confidence behind a decision.",
   "02": "Connect ministry responsibilities to economic priorities. See dependencies, coordinate action and keep delivery ownership clear.",
   "03": "Compare policy scenarios before committing. Examine projected effects, assumptions and trade-offs; treat the outputs as estimates, not forecasts guaranteed to occur.",
   "04": "Assess revenue exposure and investment readiness. Prepare proposals that connect funding needs to practical requirements and delivery timelines.",
-  "05": "Track reporting, assess issues and prepare evidence-backed communications. Keep review and approval separate from drafting.",
+  "05": "Track reporting, assess issues and prepare data-backed communications. Keep review and approval separate from drafting.",
   "06": "Prepare Cabinet decisions, record owners and commitments, and keep progress visible between meetings.",
   "07": "Explore how a policy or message could be received through simulated personas. Use the exercise to find questions and risks—not as polling or measured public opinion.",
   "08": "Turn government priorities into ministry-owned deliverables. Review progress and retain a clear record of approved changes.",
-  "09": "Plan digital government services from national evidence. Define requirements and approved information flows rather than treating a generated plan as a delivered public service.",
-  "10": "Compare sector priorities and prepare development plans. Connect evidence, delivery requirements and review before proposals become government commitments.",
+  "09": "Plan digital government services from national data. Define requirements and approved information flows rather than treating a generated plan as a delivered public service.",
+  "10": "Compare sector priorities and prepare development plans. Connect data, delivery requirements and review before proposals become government commitments.",
 };
 export const CORPUS_FOOTNOTE =
-  "The Second Brain is the connected national evidence library underneath these workspaces. Sources and records can be reused across authorised work. Public evidence and sensitive government material require distinct access and handling arrangements; private Vault records stay within the in-country boundary.";
+  "The Second Brain is the connected national data library underneath these workspaces. Sources and records can be reused across authorised work. Public data and sensitive government material require distinct access and handling arrangements; private Vault records stay within the in-country boundary.";
 export const WORTH_INTRO =
   "These are practical pathways to value, not measured GDPVision outcomes. A pilot should establish whether the system improves the specific work your government needs to do.";
 export const WORTH: LabelledPara[] = [
   {
     label: "Put resources where they can deliver more",
-    body: "Connect priorities to evidence, costs and delivery responsibilities. Government can compare where additional spending is justified and where the evidence needs strengthening.",
+    body: "Connect priorities to data, costs and delivery responsibilities. Government can compare where additional spending is justified and where the data needs strengthening.",
   },
   {
     label: "Prepare investment with fewer unanswered questions",
@@ -248,7 +248,7 @@ export const WORTH: LabelledPara[] = [
     body: "Link decisions to owners and progress reviews. A visible commitment record helps government identify delays and decide when intervention is needed.",
   },
   {
-    label: "Communicate from checked evidence",
+    label: "Communicate from trusted data",
     body: "Prepare a consistent explanation of the decision, its basis and its uncertainties. Authorised officials remain responsible for what is approved and published.",
   },
   {
@@ -259,7 +259,7 @@ export const WORTH: LabelledPara[] = [
 export const APPROVALS: LabelledPara[] = [
   {
     label: "Government leadership",
-    body: "Is this useful for a real national priority? Can ministers inspect the evidence and retain responsibility for the decision?",
+    body: "Is this useful for a real national priority? Can ministers inspect the data and retain responsibility for the decision?",
   },
   {
     label: "Cabinet coordination",
@@ -281,25 +281,25 @@ export const APPROVALS: LabelledPara[] = [
 export const APPROVALS_CLOSE =
   "These are five areas of responsibility, not a universal rule requiring five signatories. Your government’s laws, procurement process and data-protection requirements determine who must approve.";
 export const PROVENANCE_PARAS = [
-  "A government system needs more than well-designed screens. It must reflect how evidence is checked, how authority is exercised and how a decision becomes work that ministries can deliver.",
+  "A government system needs more than well-designed screens. It must reflect how data is checked, how authority is exercised and how a decision becomes work that ministries can deliver.",
   "OPEN Interactive has convened the Caribbean Investment Summit since 2009 and delivered national digital government infrastructure through a confidential engagement with the Office of the Prime Minister of St. Kitts & Nevis. SEDE was the Saint Lucia prototype for the approach.",
-  "That experience informs GDPVision’s focus on small-state government. It is relevant context—not a substitute for technical review, procurement checks or evidence from your own pilot.",
+  "That experience informs GDPVision’s focus on small-state government. It is relevant context—not a substitute for technical review, procurement checks or data from your own pilot.",
 ];
 export const RISKS_PROCEEDING =
   "Poor data, limited adoption or unclear responsibility can undermine value. Control scope, verify methods and permissions, train the people who will use the system and agree supplier support, security and exit terms. The pilot should expose these risks before wider commitment.";
 export const RISKS_NOT_PROCEEDING =
-  "Keeping disconnected arrangements can leave government reconciling evidence repeatedly, losing knowledge when staff leave and struggling to follow decisions through delivery. These risks vary by country; assess the current process rather than assuming every ministry faces the same problem.";
+  "Keeping disconnected arrangements can leave government reconciling data repeatedly, losing knowledge when staff leave and struggling to follow decisions through delivery. These risks vary by country; assess the current process rather than assuming every ministry faces the same problem.";
 export const STAGES: LabelledPara[] = [
   {
     label: "Briefing — choose the decision",
-    body: "Bring one Cabinet or ministry priority. Review the available public evidence, the work required and the people who would use the system. Agree confidentiality arrangements before sharing sensitive information.",
+    body: "Bring one Cabinet or ministry priority. Review the available public data, the work required and the people who would use the system. Agree confidentiality arrangements before sharing sensitive information.",
   },
   {
     label: "Pilot — test the work",
-    body: "Set a clear duration, scope and review point. Agree the evidence base, permissions, users and acceptance tests. Check sources, calculations, approvals and whether decisions can be followed through to owners and progress.",
+    body: "Set a clear duration, scope and review point. Agree the data base, permissions, users and acceptance tests. Check sources, calculations, approvals and whether decisions can be followed through to owners and progress.",
   },
   {
-    label: "Deployment — decide on the evidence",
+    label: "Deployment — decide on the data",
     body: "Review the pilot before expanding. Agree national deployment boundaries, security, responsibilities, costs, ownership, support and export and exit terms in writing. Wider use is a government decision, not an automatic next step.",
   },
 ];
@@ -313,7 +313,7 @@ export const SEVEN_QUESTIONS = [
   "Who is responsible for checking the work, resolving errors and supporting government?",
 ];
 export const RECOMMENDATION =
-  "Start with one real decision and a briefing. Require these tests of GDPVision and every alternative. Proceed only when the evidence, controls and terms meet your government’s needs.";
+  "Start with one real decision and a briefing. Require these tests of GDPVision and every alternative. Proceed only when the data, controls and terms meet your government’s needs.";
 export const SOURCES: Array<{ figure: string; grade: string; source: string; url: string }> = [
   {
     figure: "Hurricane Maria: damage and losses equivalent to 226% of Dominica’s 2016 GDP",
@@ -323,4 +323,4 @@ export const SOURCES: Array<{ figure: string; grade: string; source: string; url
   },
 ];
 export const SOURCES_NOTE =
-  "Grades are GDPVision’s assessment of the evidence, not a certification by the source. A means the stated historical figure is traceable to an official assessment; it does not establish the likely impact in another country. Check the source, date and definition before using it.";
+  "Grades are GDPVision’s assessment of the data, not a certification by the source. A means the stated historical figure is traceable to an official assessment; it does not establish the likely impact in another country. Check the source, date and definition before using it.";

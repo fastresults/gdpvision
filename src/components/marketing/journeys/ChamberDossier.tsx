@@ -5,7 +5,7 @@ import type { ChamberJourney } from "../chamberDecisionJourneys";
 import { STAGE_PLAYBOOK, evidenceChips } from "./journeyRouting";
 import { stageFinding, stageOperation } from "./journeyVisuals";
 
-/** Act 5 — "Open the Chamber": evidence tray → workbench → decision file. */
+/** Act 5 — "Open the Chamber": data tray → workbench → decision file. */
 export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; beat: number }) {
   const stages = journey.stageDetail;
   const play = STAGE_PLAYBOOK[journey.chamber];
@@ -27,7 +27,7 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
           </div>
           <h3 className="font-display text-2xl text-ink-950">{current.stage}</h3>
           <div className="mt-0.5 text-[11px] text-ink-500">
-            Evidence used: {chips.length} sources · {inCountry} kept in country
+            Data used: {chips.length} sources · {inCountry} kept in country
           </div>
         </div>
         <div className="shrink-0 border border-line-200 bg-paper-0 px-3 py-1.5 text-right">
@@ -110,7 +110,7 @@ export function ChamberDossier({ journey, beat }: { journey: ChamberJourney; bea
           <dl className="mt-3 space-y-3 text-[14px]">
             {stageBeat >= 1 && (
               <div>
-                <dt className="text-[12px] font-semibold text-ink-500">Evidence used</dt>
+                <dt className="text-[12px] font-semibold text-ink-500">Data used</dt>
                 <dd className="mt-1 leading-snug text-ink-950">{current.input}</dd>
               </div>
             )}

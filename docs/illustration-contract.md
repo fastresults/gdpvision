@@ -100,3 +100,7 @@ colour token — only `paper-*` / `ink-*` / `line-*` are legal, per the token co
 PDF and deck generators use the same assets and the same rules: monochrome engraved
 sketch, generous margins, no colour. If an exporter cannot use the `<Illustration>`
 component, it must still pull from `src/assets/illustrations/` and render greyscale.
+
+## Exception: GDP Events
+
+Pages under `/events` use the separate "Bold civic festival" design system (saturated Caribbean colour blocks, condensed display type) and may use photography. The engraved-graphite rule still applies everywhere else.

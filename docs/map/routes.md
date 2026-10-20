@@ -14,6 +14,10 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/business-case_/calculator` | `src/routes/business-case_.calculator.tsx` |
 | `/d/$token` | `src/routes/d.$token.tsx` |
 | `/e/$token` | `src/routes/e.$token.tsx` |
+| `/events` | `src/routes/events.tsx` |
+| `/events/` | `src/routes/events.index.tsx` |
+| `/events/$slug` | `src/routes/events.$slug.tsx` |
+| `/events/host` | `src/routes/events.host.tsx` |
 | `/f/$token` | `src/routes/f.$token.tsx` |
 | `/i/$token` | `src/routes/i.$token.tsx` |
 | `/mcp` | `src/routes/mcp.ts` |
@@ -133,6 +137,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/viz` | `src/routes/_authenticated/admin/countries.$code.viz.tsx` |
 | `/_authenticated/admin/country/$code` | `src/routes/_authenticated/admin/country.$code.tsx` |
 | `/_authenticated/admin/documents` | `src/routes/_authenticated/admin/documents.tsx` |
+| `/_authenticated/admin/events` | `src/routes/_authenticated/admin/events.tsx` |
 | `/_authenticated/admin/github` | `src/routes/_authenticated/admin/github.tsx` |
 | `/_authenticated/admin/indices` | `src/routes/_authenticated/admin/indices.tsx` |
 | `/_authenticated/admin/invitations` | `src/routes/_authenticated/admin/invitations.tsx` |
@@ -217,6 +222,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/api/public/v2/compare` | `src/routes/api/public/v2/compare.ts` |
 | `/api/public/v2/countries` | `src/routes/api/public/v2/countries.ts` |
 | `/api/public/v2/countries/$code/$resource` | `src/routes/api/public/v2/countries.$code.$resource.ts` |
+| `/api/public/v2/events` | `src/routes/api/public/v2/events.ts` |
 | `/api/public/v2/indices` | `src/routes/api/public/v2/indices.ts` |
 | `/api/public/v2/indices/$index` | `src/routes/api/public/v2/indices.$index.ts` |
 | `/api/public/v2/search` | `src/routes/api/public/v2/search.ts` |

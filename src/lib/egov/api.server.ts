@@ -694,6 +694,18 @@ const RESOURCES: Record<ApiScope, Handler> = {
     return m.getCountryIndices(id.country, new URL(req.url).searchParams.get("edition"));
   },
 
+  // Published GDP Events held in this country (registrations never exposed).
+  events: async (sb, id) => {
+    const { data } = await db(sb)
+      .from("events")
+      .select("slug,title,tagline,summary,format,theme,city,venue,starts_at,ends_at,registration_close,capacity,hosts,is_placeholder")
+      .eq("country_code", id.country)
+      .eq("status", "published")
+      .order("starts_at")
+      .limit(LIMIT);
+    return data ?? [];
+  },
+
   media_sources: async (sb, id) => {
     const m = await import("@/lib/public-data/media");
     const { data: feeds } = await db(sb)

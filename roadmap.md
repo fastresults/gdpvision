@@ -63,3 +63,9 @@
 
 - [x] Refine all ten public Chamber names and copy around clear economic value; verify homepage and shared op-ed presentation.
 - [x] GDP Advisor partner API v2, admin keys and OAuth MCP
+
+- [x] Replace crowded top bar with grouped mega-menu, phone menu and matching footer
+- [x] GDP Events section (/events, event pages, host page) in its own design system
+- [x] Event registration with capacity, waitlist, duplicate and cut-off rules; admin events manager; partner API and MCP events
+- [ ] Registration confirmation and admin alert emails — blocked: needs a sender email domain
+- [ ] Replace sample events, dates, venues and photos with real ones — waiting on the owner

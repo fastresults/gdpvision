@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BusinessCaseRouteImport } from './routes/business-case'
+import { Route as EventsRouteImport } from './routes/events'
 import { Route as KioskRouteImport } from './routes/kiosk'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PresentRouteImport } from './routes/present'
@@ -30,6 +31,9 @@ import { Route as BusinessCaseBriefRouteImport } from './routes/business-case_.b
 import { Route as BusinessCaseCalculatorRouteImport } from './routes/business-case_.calculator'
 import { Route as DTokenRouteImport } from './routes/d.$token'
 import { Route as ETokenRouteImport } from './routes/e.$token'
+import { Route as EventsIndexRouteImport } from './routes/events.index'
+import { Route as EventsSlugRouteImport } from './routes/events.$slug'
+import { Route as EventsHostRouteImport } from './routes/events.host'
 import { Route as FTokenRouteImport } from './routes/f.$token'
 import { Route as ITokenRouteImport } from './routes/i.$token'
 import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
@@ -44,6 +48,7 @@ import { Route as AuthenticatedAdminActivityRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminBrainRouteImport } from './routes/_authenticated/admin/brain'
 import { Route as AuthenticatedAdminCorpusAuditRouteImport } from './routes/_authenticated/admin/corpus-audit'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
+import { Route as AuthenticatedAdminEventsRouteImport } from './routes/_authenticated/admin/events'
 import { Route as AuthenticatedAdminGithubRouteImport } from './routes/_authenticated/admin/github'
 import { Route as AuthenticatedAdminIndicesRouteImport } from './routes/_authenticated/admin/indices'
 import { Route as AuthenticatedAdminInvitationsRouteImport } from './routes/_authenticated/admin/invitations'
@@ -119,6 +124,7 @@ import { Route as ApiPublicHooksSourceStatsRouteImport } from './routes/api/publ
 import { Route as ApiPublicV1HandshakeRouteImport } from './routes/api/public/v1/handshake'
 import { Route as ApiPublicV2CompareRouteImport } from './routes/api/public/v2/compare'
 import { Route as ApiPublicV2CountriesRouteImport } from './routes/api/public/v2/countries'
+import { Route as ApiPublicV2EventsRouteImport } from './routes/api/public/v2/events'
 import { Route as ApiPublicV2IndicesRouteImport } from './routes/api/public/v2/indices'
 import { Route as ApiPublicV2SearchRouteImport } from './routes/api/public/v2/search'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
@@ -201,6 +207,11 @@ const AuthRoute = AuthRouteImport.update({
 const BusinessCaseRoute = BusinessCaseRouteImport.update({
   id: '/business-case',
   path: '/business-case',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KioskRoute = KioskRouteImport.update({
@@ -291,6 +302,21 @@ const ETokenRoute = ETokenRouteImport.update({
   path: '/e/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventsIndexRoute = EventsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EventsRoute,
+} as any)
+const EventsSlugRoute = EventsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => EventsRoute,
+} as any)
+const EventsHostRoute = EventsHostRouteImport.update({
+  id: '/host',
+  path: '/host',
+  getParentRoute: () => EventsRoute,
+} as any)
 const FTokenRoute = FTokenRouteImport.update({
   id: '/f/$token',
   path: '/f/$token',
@@ -362,6 +388,12 @@ const AuthenticatedAdminDocumentsRoute =
   AuthenticatedAdminDocumentsRouteImport.update({
     id: '/documents',
     path: '/documents',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminEventsRoute =
+  AuthenticatedAdminEventsRouteImport.update({
+    id: '/events',
+    path: '/events',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminGithubRoute =
@@ -802,6 +834,11 @@ const ApiPublicV2CountriesRoute = ApiPublicV2CountriesRouteImport.update({
   path: '/api/public/v2/countries',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV2EventsRoute = ApiPublicV2EventsRouteImport.update({
+  id: '/api/public/v2/events',
+  path: '/api/public/v2/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicV2IndicesRoute = ApiPublicV2IndicesRouteImport.update({
   id: '/api/public/v2/indices',
   path: '/api/public/v2/indices',
@@ -1190,6 +1227,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/business-case': typeof BusinessCaseRoute
+  '/events': typeof EventsRouteWithChildren
   '/kiosk': typeof KioskRouteWithChildren
   '/mcp': typeof McpRoute
   '/present': typeof PresentRoute
@@ -1207,12 +1245,15 @@ export interface FileRoutesByFullPath {
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
   '/e/$token': typeof ETokenRoute
+  '/events/$slug': typeof EventsSlugRoute
+  '/events/host': typeof EventsHostRoute
   '/f/$token': typeof FTokenRoute
   '/i/$token': typeof ITokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/p/$token': typeof PTokenRoute
   '/s/$token': typeof STokenRoute
+  '/events/': typeof EventsIndexRoute
   '/kiosk/': typeof KioskIndexRoute
   '/op-eds/': typeof OpEdsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -1220,6 +1261,7 @@ export interface FileRoutesByFullPath {
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/admin/events': typeof AuthenticatedAdminEventsRoute
   '/admin/github': typeof AuthenticatedAdminGithubRoute
   '/admin/indices': typeof AuthenticatedAdminIndicesRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
@@ -1290,6 +1332,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
+  '/api/public/v2/events': typeof ApiPublicV2EventsRoute
   '/api/public/v2/indices': typeof ApiPublicV2IndicesRouteWithChildren
   '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -1378,12 +1421,15 @@ export interface FileRoutesByTo {
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
   '/e/$token': typeof ETokenRoute
+  '/events/$slug': typeof EventsSlugRoute
+  '/events/host': typeof EventsHostRoute
   '/f/$token': typeof FTokenRoute
   '/i/$token': typeof ITokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/p/$token': typeof PTokenRoute
   '/s/$token': typeof STokenRoute
+  '/events': typeof EventsIndexRoute
   '/kiosk': typeof KioskIndexRoute
   '/op-eds': typeof OpEdsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -1391,6 +1437,7 @@ export interface FileRoutesByTo {
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/admin/events': typeof AuthenticatedAdminEventsRoute
   '/admin/github': typeof AuthenticatedAdminGithubRoute
   '/admin/indices': typeof AuthenticatedAdminIndicesRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
@@ -1461,6 +1508,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
+  '/api/public/v2/events': typeof ApiPublicV2EventsRoute
   '/api/public/v2/indices': typeof ApiPublicV2IndicesRouteWithChildren
   '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -1533,6 +1581,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/business-case': typeof BusinessCaseRoute
+  '/events': typeof EventsRouteWithChildren
   '/kiosk': typeof KioskRouteWithChildren
   '/mcp': typeof McpRoute
   '/present': typeof PresentRoute
@@ -1550,12 +1599,15 @@ export interface FileRoutesById {
   '/business-case_/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
   '/e/$token': typeof ETokenRoute
+  '/events/$slug': typeof EventsSlugRoute
+  '/events/host': typeof EventsHostRoute
   '/f/$token': typeof FTokenRoute
   '/i/$token': typeof ITokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/p/$token': typeof PTokenRoute
   '/s/$token': typeof STokenRoute
+  '/events/': typeof EventsIndexRoute
   '/kiosk/': typeof KioskIndexRoute
   '/op-eds/': typeof OpEdsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -1563,6 +1615,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/_authenticated/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/_authenticated/admin/events': typeof AuthenticatedAdminEventsRoute
   '/_authenticated/admin/github': typeof AuthenticatedAdminGithubRoute
   '/_authenticated/admin/indices': typeof AuthenticatedAdminIndicesRoute
   '/_authenticated/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
@@ -1633,6 +1686,7 @@ export interface FileRoutesById {
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
+  '/api/public/v2/events': typeof ApiPublicV2EventsRoute
   '/api/public/v2/indices': typeof ApiPublicV2IndicesRouteWithChildren
   '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -1710,6 +1764,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/business-case'
+    | '/events'
     | '/kiosk'
     | '/mcp'
     | '/present'
@@ -1727,12 +1782,15 @@ export interface FileRouteTypes {
     | '/business-case/calculator'
     | '/d/$token'
     | '/e/$token'
+    | '/events/$slug'
+    | '/events/host'
     | '/f/$token'
     | '/i/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/p/$token'
     | '/s/$token'
+    | '/events/'
     | '/kiosk/'
     | '/op-eds/'
     | '/.lovable/oauth/consent'
@@ -1740,6 +1798,7 @@ export interface FileRouteTypes {
     | '/admin/brain'
     | '/admin/corpus-audit'
     | '/admin/documents'
+    | '/admin/events'
     | '/admin/github'
     | '/admin/indices'
     | '/admin/invitations'
@@ -1810,6 +1869,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/handshake'
     | '/api/public/v2/compare'
     | '/api/public/v2/countries'
+    | '/api/public/v2/events'
     | '/api/public/v2/indices'
     | '/api/public/v2/search'
     | '/kiosk/api/public/presentation-pdf'
@@ -1898,12 +1958,15 @@ export interface FileRouteTypes {
     | '/business-case/calculator'
     | '/d/$token'
     | '/e/$token'
+    | '/events/$slug'
+    | '/events/host'
     | '/f/$token'
     | '/i/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/p/$token'
     | '/s/$token'
+    | '/events'
     | '/kiosk'
     | '/op-eds'
     | '/.lovable/oauth/consent'
@@ -1911,6 +1974,7 @@ export interface FileRouteTypes {
     | '/admin/brain'
     | '/admin/corpus-audit'
     | '/admin/documents'
+    | '/admin/events'
     | '/admin/github'
     | '/admin/indices'
     | '/admin/invitations'
@@ -1981,6 +2045,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/handshake'
     | '/api/public/v2/compare'
     | '/api/public/v2/countries'
+    | '/api/public/v2/events'
     | '/api/public/v2/indices'
     | '/api/public/v2/search'
     | '/kiosk/api/public/presentation-pdf'
@@ -2052,6 +2117,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/business-case'
+    | '/events'
     | '/kiosk'
     | '/mcp'
     | '/present'
@@ -2069,12 +2135,15 @@ export interface FileRouteTypes {
     | '/business-case_/calculator'
     | '/d/$token'
     | '/e/$token'
+    | '/events/$slug'
+    | '/events/host'
     | '/f/$token'
     | '/i/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/p/$token'
     | '/s/$token'
+    | '/events/'
     | '/kiosk/'
     | '/op-eds/'
     | '/.lovable/oauth/consent'
@@ -2082,6 +2151,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/brain'
     | '/_authenticated/admin/corpus-audit'
     | '/_authenticated/admin/documents'
+    | '/_authenticated/admin/events'
     | '/_authenticated/admin/github'
     | '/_authenticated/admin/indices'
     | '/_authenticated/admin/invitations'
@@ -2152,6 +2222,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/handshake'
     | '/api/public/v2/compare'
     | '/api/public/v2/countries'
+    | '/api/public/v2/events'
     | '/api/public/v2/indices'
     | '/api/public/v2/search'
     | '/kiosk/api/public/presentation-pdf'
@@ -2229,6 +2300,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   BusinessCaseRoute: typeof BusinessCaseRoute
+  EventsRoute: typeof EventsRouteWithChildren
   KioskRoute: typeof KioskRouteWithChildren
   McpRoute: typeof McpRoute
   PresentRoute: typeof PresentRoute
@@ -2262,6 +2334,7 @@ export interface RootRouteChildren {
   ApiPublicV1HandshakeRoute: typeof ApiPublicV1HandshakeRoute
   ApiPublicV2CompareRoute: typeof ApiPublicV2CompareRoute
   ApiPublicV2CountriesRoute: typeof ApiPublicV2CountriesRouteWithChildren
+  ApiPublicV2EventsRoute: typeof ApiPublicV2EventsRoute
   ApiPublicV2IndicesRoute: typeof ApiPublicV2IndicesRouteWithChildren
   ApiPublicV2SearchRoute: typeof ApiPublicV2SearchRoute
   ApiPublicV1CountriesCodeResourceRoute: typeof ApiPublicV1CountriesCodeResourceRoute
@@ -2295,6 +2368,13 @@ declare module '@tanstack/react-router' {
       path: '/business-case'
       fullPath: '/business-case'
       preLoaderRoute: typeof BusinessCaseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kiosk': {
@@ -2416,6 +2496,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ETokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/events/': {
+      id: '/events/'
+      path: '/'
+      fullPath: '/events/'
+      preLoaderRoute: typeof EventsIndexRouteImport
+      parentRoute: typeof EventsRoute
+    }
+    '/events/$slug': {
+      id: '/events/$slug'
+      path: '/$slug'
+      fullPath: '/events/$slug'
+      preLoaderRoute: typeof EventsSlugRouteImport
+      parentRoute: typeof EventsRoute
+    }
+    '/events/host': {
+      id: '/events/host'
+      path: '/host'
+      fullPath: '/events/host'
+      preLoaderRoute: typeof EventsHostRouteImport
+      parentRoute: typeof EventsRoute
+    }
     '/f/$token': {
       id: '/f/$token'
       path: '/f/$token'
@@ -2512,6 +2613,13 @@ declare module '@tanstack/react-router' {
       path: '/documents'
       fullPath: '/admin/documents'
       preLoaderRoute: typeof AuthenticatedAdminDocumentsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/events': {
+      id: '/_authenticated/admin/events'
+      path: '/events'
+      fullPath: '/admin/events'
+      preLoaderRoute: typeof AuthenticatedAdminEventsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/github': {
@@ -3037,6 +3145,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/v2/countries'
       fullPath: '/api/public/v2/countries'
       preLoaderRoute: typeof ApiPublicV2CountriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v2/events': {
+      id: '/api/public/v2/events'
+      path: '/api/public/v2/events'
+      fullPath: '/api/public/v2/events'
+      preLoaderRoute: typeof ApiPublicV2EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/v2/indices': {
@@ -3684,6 +3799,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminBrainRoute: typeof AuthenticatedAdminBrainRoute
   AuthenticatedAdminCorpusAuditRoute: typeof AuthenticatedAdminCorpusAuditRoute
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
+  AuthenticatedAdminEventsRoute: typeof AuthenticatedAdminEventsRoute
   AuthenticatedAdminGithubRoute: typeof AuthenticatedAdminGithubRoute
   AuthenticatedAdminIndicesRoute: typeof AuthenticatedAdminIndicesRoute
   AuthenticatedAdminInvitationsRoute: typeof AuthenticatedAdminInvitationsRoute
@@ -3732,6 +3848,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminBrainRoute: AuthenticatedAdminBrainRoute,
     AuthenticatedAdminCorpusAuditRoute: AuthenticatedAdminCorpusAuditRoute,
     AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
+    AuthenticatedAdminEventsRoute: AuthenticatedAdminEventsRoute,
     AuthenticatedAdminGithubRoute: AuthenticatedAdminGithubRoute,
     AuthenticatedAdminIndicesRoute: AuthenticatedAdminIndicesRoute,
     AuthenticatedAdminInvitationsRoute: AuthenticatedAdminInvitationsRoute,
@@ -4004,6 +4121,21 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface EventsRouteChildren {
+  EventsSlugRoute: typeof EventsSlugRoute
+  EventsHostRoute: typeof EventsHostRoute
+  EventsIndexRoute: typeof EventsIndexRoute
+}
+
+const EventsRouteChildren: EventsRouteChildren = {
+  EventsSlugRoute: EventsSlugRoute,
+  EventsHostRoute: EventsHostRoute,
+  EventsIndexRoute: EventsIndexRoute,
+}
+
+const EventsRouteWithChildren =
+  EventsRoute._addFileChildren(EventsRouteChildren)
+
 interface KioskRouteChildren {
   KioskAdminRoute: typeof KioskAdminRoute
   KioskIndexRoute: typeof KioskIndexRoute
@@ -4051,6 +4183,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   BusinessCaseRoute: BusinessCaseRoute,
+  EventsRoute: EventsRouteWithChildren,
   KioskRoute: KioskRouteWithChildren,
   McpRoute: McpRoute,
   PresentRoute: PresentRoute,
@@ -4085,6 +4218,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicV1HandshakeRoute: ApiPublicV1HandshakeRoute,
   ApiPublicV2CompareRoute: ApiPublicV2CompareRoute,
   ApiPublicV2CountriesRoute: ApiPublicV2CountriesRouteWithChildren,
+  ApiPublicV2EventsRoute: ApiPublicV2EventsRoute,
   ApiPublicV2IndicesRoute: ApiPublicV2IndicesRouteWithChildren,
   ApiPublicV2SearchRoute: ApiPublicV2SearchRoute,
   ApiPublicV1CountriesCodeResourceRoute: ApiPublicV1CountriesCodeResourceRoute,

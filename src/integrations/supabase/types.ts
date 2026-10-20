@@ -3228,6 +3228,278 @@ export type Database = {
         }
         Relationships: []
       }
+      event_host_enquiries: {
+        Row: {
+          country: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          organisation: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          organisation?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          organisation?: string | null
+        }
+        Relationships: []
+      }
+      event_links: {
+        Row: {
+          event_id: string
+          id: string
+          kind: string
+          label: string | null
+          ref: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          kind: string
+          label?: string | null
+          ref: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_links_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_registrations: {
+        Row: {
+          attended: boolean
+          country: string | null
+          created_at: string
+          email: string
+          email_norm: string | null
+          event_id: string
+          id: string
+          name: string
+          needs: string | null
+          organisation: string | null
+          role: string | null
+          status: string
+        }
+        Insert: {
+          attended?: boolean
+          country?: string | null
+          created_at?: string
+          email: string
+          email_norm?: string | null
+          event_id: string
+          id?: string
+          name: string
+          needs?: string | null
+          organisation?: string | null
+          role?: string | null
+          status?: string
+        }
+        Update: {
+          attended?: boolean
+          country?: string | null
+          created_at?: string
+          email?: string
+          email_norm?: string | null
+          event_id?: string
+          id?: string
+          name?: string
+          needs?: string | null
+          organisation?: string | null
+          role?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_sessions: {
+        Row: {
+          description: string | null
+          event_id: string
+          id: string
+          position: number
+          speaker_names: string[]
+          starts_at: string | null
+          title: string
+        }
+        Insert: {
+          description?: string | null
+          event_id: string
+          id?: string
+          position?: number
+          speaker_names?: string[]
+          starts_at?: string | null
+          title: string
+        }
+        Update: {
+          description?: string | null
+          event_id?: string
+          id?: string
+          position?: number
+          speaker_names?: string[]
+          starts_at?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_sessions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_speakers: {
+        Row: {
+          event_id: string
+          id: string
+          name: string
+          organisation: string | null
+          photo_url: string | null
+          position: number
+          role: string | null
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          name: string
+          organisation?: string | null
+          photo_url?: string | null
+          position?: number
+          role?: string | null
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          name?: string
+          organisation?: string | null
+          photo_url?: string | null
+          position?: number
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_speakers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          body: string | null
+          capacity: number | null
+          city: string | null
+          colour: string
+          country_code: string | null
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          format: string
+          hero_url: string | null
+          hosts: string[]
+          id: string
+          is_placeholder: boolean
+          recording_url: string | null
+          registration_close: string | null
+          slug: string
+          starts_at: string
+          status: string
+          summary: string | null
+          tagline: string | null
+          theme: string | null
+          title: string
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          body?: string | null
+          capacity?: number | null
+          city?: string | null
+          colour?: string
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          format?: string
+          hero_url?: string | null
+          hosts?: string[]
+          id?: string
+          is_placeholder?: boolean
+          recording_url?: string | null
+          registration_close?: string | null
+          slug: string
+          starts_at: string
+          status?: string
+          summary?: string | null
+          tagline?: string | null
+          theme?: string | null
+          title: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          body?: string | null
+          capacity?: number | null
+          city?: string | null
+          colour?: string
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          format?: string
+          hero_url?: string | null
+          hosts?: string[]
+          id?: string
+          is_placeholder?: boolean
+          recording_url?: string | null
+          registration_close?: string | null
+          slug?: string
+          starts_at?: string
+          status?: string
+          summary?: string | null
+          tagline?: string | null
+          theme?: string | null
+          title?: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: []
+      }
       exports_documents: {
         Row: {
           html: string
@@ -12061,6 +12333,7 @@ export type Database = {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
       }
+      event_seats_taken: { Args: { _event_id: string }; Returns: number }
       find_story_cluster: {
         Args: { _country: string; _norm_title: string; _since: string }
         Returns: {
@@ -12192,6 +12465,18 @@ export type Database = {
           _visitor_hash: string
         }
         Returns: boolean
+      }
+      register_for_event: {
+        Args: {
+          _country: string
+          _email: string
+          _name: string
+          _needs: string
+          _organisation: string
+          _role: string
+          _slug: string
+        }
+        Returns: Json
       }
       replace_country_sectors: {
         Args: { _country_code: string; _rows: Json }

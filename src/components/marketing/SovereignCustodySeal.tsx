@@ -1,7 +1,7 @@
 import { useHoverIntent } from "@/hooks/useHoverIntent";
 import { useEffect, useRef, useState, type KeyboardEvent, useCallback } from "react";
 
-type Stage = "data" | "access" | "custody" | "release";
+type Stage = "evidence" | "access" | "custody" | "release";
 
 const STAGE_COPY: Record<Stage, { title: string; body: string }> = {
   evidence: {

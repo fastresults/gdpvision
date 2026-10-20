@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { FlowDiagramStage } from "./FlowDiagramStage";
 import { PlaybackStrip } from "./journeys/PlaybackStrip";
 
-type Path = "data" | "safeguards" | "money" | "delivery";
+type Path = "evidence" | "safeguards" | "money" | "delivery";
 type Band = 0 | 1 | 2 | 3 | 4;
 
 interface FlowNode {
@@ -654,7 +654,7 @@ export function DataDecisionFlow({ presentation = false }: { presentation?: bool
             {mode !== "scenario" ? (
               <div className="pt-2 text-[14px] text-ink-700">
                 {mode === "path"
-                  ? `Showing the ${PATH_LABEL[filter ?? "data"]} path`
+                  ? `Showing the ${PATH_LABEL[filter ?? "evidence"]} path`
                   : `Showing ${sel?.label} connections`}{" "}
               </div>
             ) : running ? (

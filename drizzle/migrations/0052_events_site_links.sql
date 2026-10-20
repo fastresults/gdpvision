@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS site_url text, ADD COLUMN IF NOT EXISTS registration_url text, ADD COLUMN IF NOT EXISTS imported_at timestamptz;

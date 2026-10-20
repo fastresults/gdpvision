@@ -3433,9 +3433,12 @@ export type Database = {
           hero_url: string | null
           hosts: string[]
           id: string
+          imported_at: string | null
           is_placeholder: boolean
           recording_url: string | null
           registration_close: string | null
+          registration_url: string | null
+          site_url: string | null
           slug: string
           starts_at: string
           status: string
@@ -3459,9 +3462,12 @@ export type Database = {
           hero_url?: string | null
           hosts?: string[]
           id?: string
+          imported_at?: string | null
           is_placeholder?: boolean
           recording_url?: string | null
           registration_close?: string | null
+          registration_url?: string | null
+          site_url?: string | null
           slug: string
           starts_at: string
           status?: string
@@ -3485,9 +3491,12 @@ export type Database = {
           hero_url?: string | null
           hosts?: string[]
           id?: string
+          imported_at?: string | null
           is_placeholder?: boolean
           recording_url?: string | null
           registration_close?: string | null
+          registration_url?: string | null
+          site_url?: string | null
           slug?: string
           starts_at?: string
           status?: string

@@ -41,7 +41,7 @@ export const getPublicEvent = createServerFn({ method: "GET" })
     const sb = publicClient();
     const { data: ev, error } = await sb
       .from("events")
-      .select(`${LIST_COLS}, body, recording_url`)
+      .select(`${LIST_COLS}, body, recording_url, site_url, registration_url`)
       .eq("slug", data.slug)
       .eq("status", "published")
       .maybeSingle();

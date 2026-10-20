@@ -172,7 +172,14 @@ function EventPage() {
         </div>
 
         <aside className="lg:sticky lg:top-28 lg:self-start">
-          {upcoming ? (
+          {upcoming && ev.registration_url ? (
+            <div className="rounded-3xl border-4 border-ev-ink bg-ev-paper p-6">
+              <h3 className="ev-display text-[36px]">Join this summit</h3>
+              <p className="mt-2 text-[15px]">Registration is handled on the official summit website.</p>
+              <a href={ev.registration_url} target="_blank" rel="noreferrer" className="ev-btn-primary mt-5">Register on the summit site <ArrowUpRight size={18} /></a>
+              {ev.site_url && <a href={ev.site_url} target="_blank" rel="noreferrer" className="mt-4 block text-[15px] font-bold underline">Visit summit site</a>}
+            </div>
+          ) : upcoming ? (
             <RegisterForm slug={ev.slug} open={regOpen} />
           ) : (
             <div className="rounded-3xl border-4 border-ev-ink bg-ev-paper p-6">

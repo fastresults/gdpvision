@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { saveIndexEvidence, verifyIndexEvidence } from "@/lib/indices/indices.functions";
+import { draftIndexEvidence } from "@/lib/indices/evidence.functions";
 import {
   listIndexEvidence,
   type EvidenceRow,
@@ -608,5 +609,56 @@ function L({
       <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-ink-500">{label}</span>
       {children}
     </label>
+  );
+}
+
+/** Drafts every active evidence indicator with AI, one indicator at a time, as unverified rows. */
+function DraftAll({ o }: { o: IndicesOverview }) {
+  const draft = useServerFn(draftIndexEvidence);
+  const qc = useQueryClient();
+  const inds = o.indicators.filter((i) => i.source_kind === "evidence" && i.status === "active");
+  const [busy, setBusy] = useState(false);
+  const [log, setLog] = useState<string[]>([]);
+  const run = async () => {
+    setBusy(true);
+    setLog([]);
+    let total = 0;
+    for (const [n, i] of inds.entries()) {
+      setLog((l) => [...l, `${n + 1}/${inds.length} ${i.index_code} · ${i.name}…`]);
+      try {
+        const r = await draft({ data: { indexCode: i.index_code as IndexCode, indicatorCode: i.code } });
+        total += r.drafted;
+        setLog((l) => [
+          ...l.slice(0, -1),
+          `${i.index_code} · ${i.name}: ${r.drafted} drafted${r.noSource.length ? `, no source found for ${r.noSource.length}` : ""}${r.skippedVerified ? `, ${r.skippedVerified} already verified` : ""}`,
+        ]);
+      } catch (e) {
+        setLog((l) => [...l.slice(0, -1), `${i.index_code} · ${i.name}: failed — ${(e as Error).message}`]);
+      }
+    }
+    setBusy(false);
+    toast.success(`${total} evidence drafts ready to verify`);
+    qc.invalidateQueries({ queryKey: ["index-evidence"] });
+    qc.invalidateQueries({ queryKey: ["indices-overview"] });
+  };
+  return (
+    <div className="mb-4 rounded border border-line-200 bg-paper-50 p-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" className="btn-secondary" disabled={busy} onClick={run}>
+          {busy ? "Drafting…" : `Draft evidence with AI (${inds.length} indicators)`}
+        </button>
+        <span className="text-xs text-ink-500">
+          Each draft needs a cited source and a quote, and stays unverified until a steward checks
+          it. States with no source found are left empty.
+        </span>
+      </div>
+      {log.length > 0 && (
+        <ul className="mt-2 max-h-48 overflow-auto text-xs text-ink-700">
+          {log.map((x, k) => (
+            <li key={k}>{x}</li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

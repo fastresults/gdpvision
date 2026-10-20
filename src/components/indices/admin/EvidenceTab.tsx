@@ -48,7 +48,10 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
       }),
   });
 
-  const evidenceInds = o.indicators.filter((i) => i.source_kind === "evidence");
+  // documentary indicators plus single-value API series whose gaps evidence may fill
+  const evidenceInds = o.indicators.filter(
+    (i) => i.source_kind === "evidence" || (i.source_kind === "wdi" && i.window_kind === "latest"),
+  );
   const names = useMemo(() => new Map(o.countries.map((c) => [c.code, c.name])), [o.countries]);
   const indMeta = useMemo(
     () => new Map(evidenceInds.map((i) => [`${i.index_code}.${i.code}`, i])),
@@ -133,6 +136,7 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
         </div>
 
         <div className="mt-4 space-y-3">
+          {state === "unverified" && q.data && <VerifyShown rows={q.data} />}
           {q.isLoading && <Empty>Loading…</Empty>}
           {q.error && <p className="text-sm text-red-700">{(q.error as Error).message}</p>}
           {q.data?.length === 0 && (
@@ -616,7 +620,11 @@ function L({
 function DraftAll({ o }: { o: IndicesOverview }) {
   const draft = useServerFn(draftIndexEvidence);
   const qc = useQueryClient();
-  const inds = o.indicators.filter((i) => i.source_kind === "evidence" && i.status === "active");
+  const inds = o.indicators.filter(
+    (i) =>
+      i.status === "active" &&
+      (i.source_kind === "evidence" || (i.source_kind === "wdi" && i.window_kind === "latest")),
+  );
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const run = async () => {
@@ -630,7 +638,7 @@ function DraftAll({ o }: { o: IndicesOverview }) {
         total += r.drafted;
         setLog((l) => [
           ...l.slice(0, -1),
-          `${i.index_code} · ${i.name}: ${r.drafted} drafted${r.noSource.length ? `, no source found for ${r.noSource.length}` : ""}${r.skippedVerified ? `, ${r.skippedVerified} already verified` : ""}`,
+          `${i.index_code} · ${i.name}: ${r.drafted} drafted${r.noSource.length ? `, no source found for ${r.noSource.length}` : ""}${r.skippedVerified ? `, ${r.skippedVerified} already have a value` : ""}`,
         ]);
       } catch (e) {
         setLog((l) => [...l.slice(0, -1), `${i.index_code} · ${i.name}: failed — ${(e as Error).message}`]);
@@ -659,6 +667,47 @@ function DraftAll({ o }: { o: IndicesOverview }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/** Verifies every row currently listed (after the steward has checked them), one at a time. */
+function VerifyShown({ rows }: { rows: EvidenceRow[] }) {
+  const verify = useServerFn(verifyIndexEvidence);
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const mine = rows.filter((r) => !r.verified && !r.entered_by_me);
+  if (!mine.length) return null;
+  const go = async () => {
+    if (
+      !window.confirm(
+        `Verify ${mine.length} listed values? Only do this after checking each source link and quote.`,
+      )
+    )
+      return;
+    setBusy(true);
+    let ok = 0;
+    for (const r of mine) {
+      try {
+        await verify({ data: { id: r.id } });
+        ok++;
+      } catch {
+        /* the two-person rule or a changed row: leave it for manual review */
+      }
+    }
+    setBusy(false);
+    toast.success(`${ok} of ${mine.length} verified. Start a run to score with them.`);
+    qc.invalidateQueries({ queryKey: ["index-evidence"] });
+    qc.invalidateQueries({ queryKey: ["indices-overview"] });
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <button type="button" className="btn-primary" disabled={busy} onClick={go}>
+        {busy ? "Verifying…" : `Verify all ${mine.length} listed`}
+      </button>
+      <span className="text-xs text-ink-500">
+        Filter by index or state first to check a smaller batch.
+      </span>
     </div>
   );
 }

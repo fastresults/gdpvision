@@ -176,9 +176,15 @@ export function OverviewTab({ o, goto }: { o: IndicesOverview; goto: Goto }) {
                 <p className="mt-1 text-xs text-ink-500">{s.question}</p>
                 <dl className="mt-4 grid grid-cols-3 gap-2">
                   <Stat
-                    label="Scored"
-                    value={st ? st.scored : "—"}
-                    sub={st ? `${st.not_scored} not` : undefined}
+                    label="States scored"
+                    value={st ? `${st.scored} of ${st.scored + st.not_scored}` : "—"}
+                    sub={
+                      st
+                        ? st.scored === 0
+                          ? "none yet — not a score of 0"
+                          : `${st.not_scored} not scored yet`
+                        : undefined
+                    }
                   />
                   <Stat label="Sextant" value={st ? fmt(st.median_sextant, 0) : "—"} sub="median" />
                   <Stat
@@ -187,6 +193,7 @@ export function OverviewTab({ o, goto }: { o: IndicesOverview; goto: Goto }) {
                     sub={pending ? `${pending} pending` : "all live"}
                   />
                 </dl>
+                <PillarBlockers o={o} indexCode={s.code} goto={goto} />
               </div>
             );
           })}
@@ -396,6 +403,55 @@ export function RunList({
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/**
+ * Why an index cannot score yet, pillar by pillar. A pillar needs two-thirds of its
+ * live inputs filled; evidence inputs only count once a person has verified them.
+ */
+function PillarBlockers({ o, indexCode, goto }: { o: IndicesOverview; indexCode: string; goto: Goto }) {
+  const n = o.countries.length;
+  const cov = new Map(
+    o.coverage.map((c) => [`${c.index_code}.${c.indicator_code}`, c]),
+  );
+  const rows = o.pillars
+    .filter((p) => p.index_code === indexCode)
+    .map((p) => {
+      const inds = o.indicators.filter((i) => i.index_code === indexCode && i.pillar_code === p.code);
+      const live = inds.filter((i) => i.status === "active");
+      const ev = live.filter((i) => i.source_kind === "evidence");
+      const verified = ev.reduce((s, i) => s + (cov.get(`${indexCode}.${i.code}`)?.verified_current ?? 0), 0);
+      const toVerify = ev.reduce((s, i) => s + (cov.get(`${indexCode}.${i.code}`)?.unverified ?? 0), 0);
+      const need = Math.ceil(live.length * 0.667 - 0.001);
+      const apiLive = live.length - ev.length;
+      let state: "ok" | "no_source" | "evidence";
+      if (!live.length || need > live.length) state = "no_source";
+      else if (apiLive >= need) state = "ok";
+      else state = verified >= (need - apiLive) * n ? "ok" : "evidence";
+      return { p, live: live.length, need, ev: ev.length, verified, toVerify, state };
+    });
+  const blocked = rows.filter((r) => r.state !== "ok");
+  if (!blocked.length) return null;
+  return (
+    <div className="mt-3 border-t border-line-100 pt-2 text-xs text-ink-700">
+      <p className="mb-1 font-medium text-ink-950">What stops states scoring</p>
+      <ul className="space-y-1">
+        {blocked.map((r) => (
+          <li key={r.p.code}>
+            <span className="capitalize">{r.p.name ?? r.p.code}</span>:{" "}
+            {r.state === "no_source"
+              ? "no live source for this pillar yet"
+              : `needs ${r.need} of ${r.live} inputs per state; ${r.ev} are documents — ${r.verified} verified, ${r.toVerify} waiting to verify`}
+          </li>
+        ))}
+      </ul>
+      {blocked.some((r) => r.state === "evidence") && (
+        <button type="button" className="btn-ghost mt-1" onClick={() => goto("evidence")}>
+          Verify evidence →
+        </button>
+      )}
     </div>
   );
 }

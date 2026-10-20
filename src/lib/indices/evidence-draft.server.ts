@@ -6,7 +6,7 @@
 // are saved UNVERIFIED (entered_by null, notes say "AI draft") so a steward must
 // confirm each one before a run counts it. Nothing is invented: a state with no
 // cited https source and quote is skipped and reported as "no source found".
-// Verified rows are never overwritten.
+// States that already have a value (draft or verified) are left alone.
 
 import { z } from "zod";
 import { perplexityFetch } from "@/lib/perplexity-agent";
@@ -29,14 +29,18 @@ export async function draftIndicatorEvidence(indexCode: string, indicatorCode: s
   const c = db(supabaseAdmin as AnyClient);
   const { data: ind, error: ie } = await c
     .from("index_indicators")
-    .select("index_code,code,name,unit,goal_best,goal_worst,source_org,source_url,status,source_kind")
+    .select(
+      "index_code,code,name,unit,goal_best,goal_worst,source_org,source_url,status,source_kind,window_kind",
+    )
     .eq("index_code", indexCode)
     .eq("code", indicatorCode)
     .maybeSingle();
   if (ie) throw new Error(ie.message);
   const i = ind as Record<string, unknown> | null;
-  if (!i || i.source_kind !== "evidence" || i.status !== "active")
-    throw new Error("Not an active evidence indicator.");
+  // documentary indicators, or single-value API series where evidence fills states the API skips
+  const gapFill = i?.source_kind === "wdi" && i?.window_kind === "latest";
+  if (!i || i.status !== "active" || (i.source_kind !== "evidence" && !gapFill))
+    throw new Error("Not an indicator evidence can fill.");
 
   const { data: crows } = await c.from("countries").select("code,name").not("iso3", "is", null).order("code");
   const countries = (crows ?? []) as Array<{ code: string; name: string }>;
@@ -44,50 +48,78 @@ export async function draftIndicatorEvidence(indexCode: string, indicatorCode: s
     .from("index_evidence")
     .select("country_code")
     .eq("index_code", indexCode)
-    .eq("indicator_code", indicatorCode)
-    .eq("verified", true);
+    .eq("indicator_code", indicatorCode);
   const skip = new Set(((done ?? []) as Array<{ country_code: string }>).map((r) => r.country_code));
+  if (gapFill) {
+    // only states the latest complete run had no usable API value for
+    const { data: lr } = await c
+      .from("index_runs")
+      .select("id")
+      .eq("status", "complete")
+      .neq("mode", "test")
+      .order("started_at", { ascending: false })
+      .limit(1);
+    const runId = (lr?.[0] as { id: string } | undefined)?.id;
+    if (runId) {
+      const { data: got } = await c
+        .from("index_inputs")
+        .select("country_code")
+        .eq("run_id", runId)
+        .eq("index_code", indexCode)
+        .eq("indicator_code", indicatorCode)
+        .not("score", "is", null);
+      for (const r of (got ?? []) as Array<{ country_code: string }>) skip.add(r.country_code);
+    }
+  }
   const todo = countries.filter((x) => !skip.has(x.code));
   if (!todo.length) return { drafted: 0, noSource: [] as string[], skippedVerified: skip.size };
 
   const key = process.env.PERPLEXITY_API_KEY;
   if (!key) throw new Error("PERPLEXITY_API_KEY not configured");
-  const prompt = `Indicator: ${i.name}
+  // small batches: one question about 22 states returns far fewer sourced answers
+  const ask = async (batch: typeof todo): Promise<DraftItem[]> => {
+    const prompt = `Indicator: ${i.name}
 Unit: ${i.unit} (best = ${i.goal_best}, worst = ${i.goal_worst})
 Preferred source: ${i.source_org}${i.source_url ? ` (${i.source_url})` : ""}
 
-For each jurisdiction below, find the most recent official value from a primary or authoritative published source.
-${todo.map((x) => `- ${x.code}: ${x.name}`).join("\n")}
+For each jurisdiction below, find the most recent official value from a primary or authoritative published source
+(government, central bank, regulator, or the named international body).
+${batch.map((x) => `- ${x.code}: ${x.name}`).join("\n")}
 
 Rules: never guess. If you cannot find a published source that states the value, return value null.
 document_url must be the https page or PDF that states the value; quote must be a short verbatim excerpt from it.
 period is the 4-digit year the value refers to.
 Return STRICT JSON array only: [{"country":"CODE","value":number|null,"period":"YYYY"|null,"document_title":string|null,"document_url":string|null,"document_date":"YYYY-MM-DD"|null,"publisher":string|null,"quote":string|null}]`;
-
-  const res = await perplexityFetch(
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "sonar-pro",
-        messages: [
-          { role: "system", content: "You are a careful public-records researcher. Strict JSON only. No prose." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0,
-      }),
-    },
-    90_000,
-  );
-  if (!res.ok) throw new Error(`research service ${res.status}`);
-  const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const m = (j.choices?.[0]?.message?.content ?? "").match(/\[[\s\S]*\]/);
-  let items: DraftItem[] = [];
-  try {
-    items = z.array(Item).parse(m ? JSON.parse(m[0]) : []) as DraftItem[];
-  } catch {
-    items = [];
-  }
+    try {
+      const res = await perplexityFetch(
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "sonar-pro",
+            messages: [
+              {
+                role: "system",
+                content: "You are a careful public-records researcher. Strict JSON only. No prose.",
+              },
+              { role: "user", content: prompt },
+            ],
+            temperature: 0,
+          }),
+        },
+        90_000,
+      );
+      if (!res.ok) return [];
+      const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+      const m = (j.choices?.[0]?.message?.content ?? "").match(/\[[\s\S]*\]/);
+      return z.array(Item).parse(m ? JSON.parse(m[0]) : []) as DraftItem[];
+    } catch {
+      return [];
+    }
+  };
+  const batches: (typeof todo)[] = [];
+  for (let k = 0; k < todo.length; k += 4) batches.push(todo.slice(k, k + 4));
+  const items = (await Promise.all(batches.map(ask))).flat();
 
   const codes = new Set(todo.map((x) => x.code));
   const now = new Date().toISOString();

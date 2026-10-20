@@ -22,6 +22,13 @@ This fits the cards better than plotting the pillars, because the colour then me
 - If no states are scored yet, the card shows an empty grey radar marked "No Sextant yet", never a red 0.
 - The colour is never the only signal: the number and band name are always shown.
 
+## Radar-scope animation
+- A soft beam in the Sextant colour sweeps clockwise around the chart, one full turn about every 6 seconds. It fades from the leading edge, like a radar scope.
+- When the page opens, the filled shape grows outward from the centre. Each spoke's end point lights up as the beam passes over it, then fades back slowly.
+- The four cards' beams start at slightly different times, so they don't move in lockstep.
+- When the device is set to reduce motion, the sweep is turned off and the chart appears fully drawn straight away.
+- Hovering the chart pauses the sweep, so its values are easy to read.
+
 ## Technical details
 - `getIndicesOverview` (review.functions.ts): for each index, add the median of each `sextant_parts` value across the scored rows of the latest complete run, next to `median_sextant`.
 - New `src/components/indices/admin/SextantRadar.tsx`: a 4-axis SVG with no new library, in the same style as `SignalRadarScope`.

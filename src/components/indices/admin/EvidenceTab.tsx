@@ -631,7 +631,7 @@ function DraftAll({ o }: { o: IndicesOverview }) {
         total += r.drafted;
         setLog((l) => [
           ...l.slice(0, -1),
-          `${i.index_code} · ${i.name}: ${r.drafted} drafted${r.noSource.length ? `, no source found for ${r.noSource.length}` : ""}${r.skippedVerified ? `, ${r.skippedVerified} already verified` : ""}`,
+          `${i.index_code} · ${i.name}: ${r.drafted} drafted${r.noSource.length ? `, no source found for ${r.noSource.length}` : ""}${r.skippedVerified ? `, ${r.skippedVerified} already have a value` : ""}`,
         ]);
       } catch (e) {
         setLog((l) => [...l.slice(0, -1), `${i.index_code} · ${i.name}: failed — ${(e as Error).message}`]);

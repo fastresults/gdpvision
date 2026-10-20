@@ -6,7 +6,7 @@
 // are saved UNVERIFIED (entered_by null, notes say "AI draft") so a steward must
 // confirm each one before a run counts it. Nothing is invented: a state with no
 // cited https source and quote is skipped and reported as "no source found".
-// Verified rows are never overwritten.
+// States that already have a value (draft or verified) are left alone.
 
 import { z } from "zod";
 import { perplexityFetch } from "@/lib/perplexity-agent";
@@ -44,8 +44,7 @@ export async function draftIndicatorEvidence(indexCode: string, indicatorCode: s
     .from("index_evidence")
     .select("country_code")
     .eq("index_code", indexCode)
-    .eq("indicator_code", indicatorCode)
-    .eq("verified", true);
+    .eq("indicator_code", indicatorCode);
   const skip = new Set(((done ?? []) as Array<{ country_code: string }>).map((r) => r.country_code));
   const todo = countries.filter((x) => !skip.has(x.code));
   if (!todo.length) return { drafted: 0, noSource: [] as string[], skippedVerified: skip.size };

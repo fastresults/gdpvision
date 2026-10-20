@@ -414,7 +414,7 @@ export function RunList({
 function PillarBlockers({ o, indexCode, goto }: { o: IndicesOverview; indexCode: string; goto: Goto }) {
   const n = o.countries.length;
   const cov = new Map(
-    (o.evidenceCoverage ?? []).map((c) => [`${c.index_code}.${c.indicator_code}`, c]),
+    o.coverage.map((c) => [`${c.index_code}.${c.indicator_code}`, c]),
   );
   const rows = o.pillars
     .filter((p) => p.index_code === indexCode)
@@ -429,7 +429,7 @@ function PillarBlockers({ o, indexCode, goto }: { o: IndicesOverview; indexCode:
       let state: "ok" | "no_source" | "evidence";
       if (!live.length || need > live.length) state = "no_source";
       else if (apiLive >= need) state = "ok";
-      else state = verified >= (need - apiLive) * n * 0.5 ? "ok" : "evidence";
+      else state = verified >= (need - apiLive) * n ? "ok" : "evidence";
       return { p, live: live.length, need, ev: ev.length, verified, toVerify, state };
     });
   const blocked = rows.filter((r) => r.state !== "ok");

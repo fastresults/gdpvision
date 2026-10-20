@@ -52,42 +52,50 @@ export async function draftIndicatorEvidence(indexCode: string, indicatorCode: s
 
   const key = process.env.PERPLEXITY_API_KEY;
   if (!key) throw new Error("PERPLEXITY_API_KEY not configured");
-  const prompt = `Indicator: ${i.name}
+  // small batches: one question about 22 states returns far fewer sourced answers
+  const ask = async (batch: typeof todo): Promise<DraftItem[]> => {
+    const prompt = `Indicator: ${i.name}
 Unit: ${i.unit} (best = ${i.goal_best}, worst = ${i.goal_worst})
 Preferred source: ${i.source_org}${i.source_url ? ` (${i.source_url})` : ""}
 
-For each jurisdiction below, find the most recent official value from a primary or authoritative published source.
-${todo.map((x) => `- ${x.code}: ${x.name}`).join("\n")}
+For each jurisdiction below, find the most recent official value from a primary or authoritative published source
+(government, central bank, regulator, or the named international body).
+${batch.map((x) => `- ${x.code}: ${x.name}`).join("\n")}
 
 Rules: never guess. If you cannot find a published source that states the value, return value null.
 document_url must be the https page or PDF that states the value; quote must be a short verbatim excerpt from it.
 period is the 4-digit year the value refers to.
 Return STRICT JSON array only: [{"country":"CODE","value":number|null,"period":"YYYY"|null,"document_title":string|null,"document_url":string|null,"document_date":"YYYY-MM-DD"|null,"publisher":string|null,"quote":string|null}]`;
-
-  const res = await perplexityFetch(
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "sonar-pro",
-        messages: [
-          { role: "system", content: "You are a careful public-records researcher. Strict JSON only. No prose." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0,
-      }),
-    },
-    90_000,
-  );
-  if (!res.ok) throw new Error(`research service ${res.status}`);
-  const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const m = (j.choices?.[0]?.message?.content ?? "").match(/\[[\s\S]*\]/);
-  let items: DraftItem[] = [];
-  try {
-    items = z.array(Item).parse(m ? JSON.parse(m[0]) : []) as DraftItem[];
-  } catch {
-    items = [];
-  }
+    try {
+      const res = await perplexityFetch(
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "sonar-pro",
+            messages: [
+              {
+                role: "system",
+                content: "You are a careful public-records researcher. Strict JSON only. No prose.",
+              },
+              { role: "user", content: prompt },
+            ],
+            temperature: 0,
+          }),
+        },
+        90_000,
+      );
+      if (!res.ok) return [];
+      const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+      const m = (j.choices?.[0]?.message?.content ?? "").match(/\[[\s\S]*\]/);
+      return z.array(Item).parse(m ? JSON.parse(m[0]) : []) as DraftItem[];
+    } catch {
+      return [];
+    }
+  };
+  const batches: (typeof todo)[] = [];
+  for (let k = 0; k < todo.length; k += 4) batches.push(todo.slice(k, k + 4));
+  const items = (await Promise.all(batches.map(ask))).flat();
 
   const codes = new Set(todo.map((x) => x.code));
   const now = new Date().toISOString();

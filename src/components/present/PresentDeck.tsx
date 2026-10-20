@@ -118,12 +118,12 @@ function DecisionEngineStep() {
           </Reveal>
           <Reveal delay={100}>
             <h2 className={cn(H2, "mt-2 text-[clamp(1.8rem,3.4vw,3rem)]")}>
-              How government turns national evidence into economic progress.
+              How government turns national data into economic progress.
             </h2>
           </Reveal>
           <Reveal delay={200}>
             <p className={cn(LEDE, "mt-1 text-[clamp(1rem,1.2vw,1.15rem)]")}>
-              Bring information together, protect sensitive records and turn evidence into approved action—with clear responsibility for delivery.
+              Bring information together, protect sensitive records and turn data into approved action—with clear responsibility for delivery.
             </p>
           </Reveal>
         </div>
@@ -156,7 +156,7 @@ function ChamberJourneyStep() {
       </Reveal>
       <Reveal delay={200}>
         <p className={cn(LEDE, "mt-3 text-[clamp(1rem,1.2vw,1.15rem)]")}>
-          Choose a situation facing government. Follow it into a Chamber—a connected digital workspace—and review the evidence, choices and actions it prepares for Cabinet and ministries.
+          Choose a situation facing government. Follow it into a Chamber—a connected digital workspace—and review the data, choices and actions it prepares for Cabinet and ministries.
         </p>
       </Reveal>
       <div
@@ -239,7 +239,7 @@ function EgovStep() {
             The Second Brain builds the nation's website, and keeps it current
           </h2>
           <p className={cn(LEDE, "mt-5")}>
-            The same verified evidence that briefs Cabinet feeds a public API. Chamber 09 turns it
+            The same trusted data that briefs Cabinet feeds a public API. Chamber 09 turns it
             into an eGov site that updates itself when the record changes. Shown here as a
             demonstration for Antigua and Barbuda.
           </p>
@@ -563,7 +563,7 @@ function PresentDeckContent() {
           </Reveal>
           <Reveal delay={100}>
             <h2 className={cn(H2, "mt-5 max-w-6xl")}>
-              Turn fragmented national evidence into decisions government can defend and deliver.
+              Turn fragmented national data into decisions government can defend and deliver.
             </h2>
           </Reveal>
           <div className="relative mt-14 grid gap-10 md:grid-cols-3 md:gap-8">
@@ -728,9 +728,9 @@ function PresentDeckContent() {
           <Reveal delay={240}>
             <p className={cn(LEDE, "mt-4 max-w-4xl text-[clamp(1rem,1.3vw,1.2rem)]")}>
               An advanced sovereign intelligence layer that connects live global sources with
-              protected national records. It organises evidence across the ten Chambers, carries the
+              protected national records. It organises data across the ten Chambers, carries the
               source, method, confidence and date of every figure, and keeps sensitive data under
-              government control—so Cabinet can work from evidence that is current, explainable and
+              government control—so Cabinet can work from trusted data that is current, explainable and
               ready for decision.
             </p>
           </Reveal>

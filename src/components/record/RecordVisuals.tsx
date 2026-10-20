@@ -20,8 +20,8 @@ const FLYWHEEL_DETAIL: Record<
   corpus: {
     label: "01 · Gather and grade",
     title: "The Corpus",
-    body: "Public statistics, budgets, reports and measures are read, cited, graded and kept current. Duplicate evidence is merged rather than counted twice.",
-    governance: "Only public evidence enters this stream; every figure keeps its source and grade.",
+    body: "Public statistics, budgets, reports and measures are read, cited, graded and kept current. Duplicate data is merged rather than counted twice.",
+    governance: "Only public data enters this stream; every figure keeps its source and grade.",
   },
   vault: {
     label: "02 · Protect and approve",
@@ -32,19 +32,19 @@ const FLYWHEEL_DETAIL: Record<
   brain: {
     label: "03 · Connect and remember",
     title: "The Second Brain",
-    body: "Evidence is connected across countries, ministries, sectors, programmes and past decisions so the state can find what it knows and see what is missing.",
-    governance: "Relationships add context; they never remove the source, grade or access rules of the underlying evidence.",
+    body: "Data is connected across countries, ministries, sectors, programmes and past decisions so the state can find what it knows and see what is missing.",
+    governance: "Relationships add context; they never remove the source, grade or access rules of the underlying data.",
   },
   record: {
     label: "04 · Govern once",
     title: "One National Record",
-    body: "Public evidence, approved findings and institutional memory resolve into one governed view for briefings, scenarios, investments and delivery.",
-    governance: "The view shows which evidence is public, restricted or approved, so unlike records are never confused.",
+    body: "Public data, approved findings and institutional memory resolve into one governed view for briefings, scenarios, investments and delivery.",
+    governance: "The view shows which data is public, restricted or approved, so unlike records are never confused.",
   },
   growth: {
     label: "05 · Act with confidence",
     title: "Conditions for durable growth",
-    body: "Leaders can prepare stronger investments, improve delivery, identify risks earlier and make productivity decisions from a shared evidence base.",
+    body: "Leaders can prepare stronger investments, improve delivery, identify risks earlier and make productivity decisions from a shared data base.",
     governance: "This is a pathway to better decisions—not a forecast or a promise that technology alone raises GDP.",
   },
 };
@@ -116,7 +116,7 @@ export function SovereignIntelligenceFlywheel({
   const detail = FLYWHEEL_DETAIL[active];
   const corpusMeta = stats
     ? `${nf(stats.sources)} sources · ${nf(stats.passages)} passages`
-    : "Cited public evidence";
+    : "Cited public data";
 
   const choose = (stage: FlywheelStage) => {
     setActive(stage);
@@ -185,7 +185,7 @@ export function SovereignIntelligenceFlywheel({
             stage="corpus"
             active={active}
             onActive={choose}
-            eyebrow="Public evidence"
+            eyebrow="Public data"
             title="Corpus"
             meta={corpusMeta}
             icon={<Archive className="h-4 w-4" />}
@@ -647,7 +647,7 @@ export function CustodyRings({
   onActive: (i: number | null) => void;
 }) {
   const rings = [
-    { r: 150, label: "Public evidence" },
+    { r: 150, label: "Public data" },
     { r: 104, label: "Government records" },
     { r: 58, label: "State-owned data" },
   ];
@@ -656,7 +656,7 @@ export function CustodyRings({
       viewBox="0 0 320 320"
       className="mx-auto block w-full max-w-[340px]"
       role="img"
-      aria-label="Three nested rings of evidence with state-owned data at the core"
+      aria-label="Three nested rings of data with state-owned data at the core"
     >
       {rings.map((ring, i) => (
         <g

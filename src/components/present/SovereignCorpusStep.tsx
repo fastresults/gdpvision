@@ -60,7 +60,7 @@ function CorpusCircuit() {
         viewBox={`0 0 ${W} ${H}`}
         className="block h-auto w-full"
         role="img"
-        aria-label="The national Corpus and ten interlocking GDPVision Chambers draw on live global feeds and sovereign records held in a government data center; officials switch each source on or off, producing evidence the government controls end to end."
+        aria-label="The national Corpus and ten interlocking GDPVision Chambers draw on live global feeds and sovereign records held in a government data center; officials switch each source on or off, producing data the government controls end to end."
       >
         <g className="prs-rise">
           <text x={BX - BR} y={18} className="prs-label" fill="var(--ink-500)">
@@ -175,7 +175,7 @@ function CorpusCircuit() {
             fontSize={17}
             fill="var(--ink-950)"
           >
-            Evidence the government controls, end to end
+            Data the government controls, end to end
           </text>
         </g>
       </svg>

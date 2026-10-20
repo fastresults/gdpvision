@@ -1,4 +1,4 @@
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface ChamberPanelProps {
@@ -30,6 +30,8 @@ export function ChamberPanel({
   screenshot,
   className,
 }: ChamberPanelProps) {
+  const [open, setOpen] = useState(false);
+  const bulletsId = useId();
   const frameRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const finePointer = useRef(false);
@@ -127,8 +129,29 @@ export function ChamberPanel({
           {outcome}
         </p>
 
-        <p className="mt-3 text-[15px] leading-relaxed text-ink-700">{purpose}</p>
-        <ul className="mt-5 space-y-2.5 text-[13.5px] leading-relaxed text-ink-700">
+        <p className="mt-3 text-[15px] leading-relaxed text-ink-700">
+          {purpose}{" "}
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={bulletsId}
+            onClick={() => setOpen((v) => !v)}
+            className="font-medium underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+            style={{ color: `var(${accentVar})` }}
+          >
+            {open ? "less" : "more..."}
+          </button>
+        </p>
+        <div
+          id={bulletsId}
+          className={cn(
+            "grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
+            open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+          )}
+          inert={!open}
+        >
+          <div className="overflow-hidden">
+        <ul className="pt-5 space-y-2.5 text-[13.5px] leading-relaxed text-ink-700">
           {bullets.map((b) => (
             <li key={b} className="flex gap-3">
               <span
@@ -140,6 +163,8 @@ export function ChamberPanel({
             </li>
           ))}
         </ul>
+          </div>
+        </div>
       </div>
     </article>
   );

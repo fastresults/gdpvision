@@ -289,13 +289,6 @@ export function MarketingHome() {
       {/* MEASURES --------------------------------------------------------- */}
       <IndexBand />
 
-      {/* PROBLEM ---------------------------------------------------------- */}
-      <section id="problem" className="border-b border-line-200">
-        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
-          <ExposureCarousel />
-        </div>
-      </section>
-
       {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
       <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
@@ -381,7 +374,7 @@ export function MarketingHome() {
               </div>
             </div>
           </div>
-          <div className="mt-10 grid gap-x-8 gap-y-6 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-x-8 gap-y-6 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2 lg:grid-cols-3 items-start">
             {CHAMBERS.map((c) => (
               <ChamberPanel key={c.index} {...c} />
             ))}
@@ -699,6 +692,13 @@ export function MarketingHome() {
             </div>
             <BriefingForm />
           </div>
+        </div>
+      </section>
+
+      {/* PROBLEM ---------------------------------------------------------- */}
+      <section id="problem" className="border-t border-line-200">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
+          <ExposureCarousel />
         </div>
       </section>
 

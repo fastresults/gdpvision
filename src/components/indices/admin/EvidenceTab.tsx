@@ -62,6 +62,7 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
           verified evidence. Each row shows how many of the {o.countries.length} states have a
           verified value recent enough to count (older ones are excluded as stale by a run).
         </p>
+        <DraftAll o={o} />
         <Coverage
           o={o}
           onAdd={(index_code, indicator_code) => setEditing({ index_code, indicator_code })}

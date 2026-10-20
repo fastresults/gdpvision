@@ -146,7 +146,7 @@ export function DecisionDividendEngine() {
             fill="var(--color-ink-700)"
             style={{ letterSpacing: "0.18em" }}
           >
-            EVIDENCE
+            DATA
           </text>
         </g>
 

@@ -48,7 +48,10 @@ export function EvidenceTab({ o }: { o: IndicesOverview }) {
       }),
   });
 
-  const evidenceInds = o.indicators.filter((i) => i.source_kind === "evidence");
+  // documentary indicators plus single-value API series whose gaps evidence may fill
+  const evidenceInds = o.indicators.filter(
+    (i) => i.source_kind === "evidence" || (i.source_kind === "wdi" && i.window_kind === "latest"),
+  );
   const names = useMemo(() => new Map(o.countries.map((c) => [c.code, c.name])), [o.countries]);
   const indMeta = useMemo(
     () => new Map(evidenceInds.map((i) => [`${i.index_code}.${i.code}`, i])),

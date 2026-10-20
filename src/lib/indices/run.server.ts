@@ -281,7 +281,15 @@ export async function runIndices(opts: {
       }
       const key = `${ind.source_kind}:${ind.source_code}`;
       if (!seriesCache.has(key)) seriesCache.set(key, fetchWithFallback(ind));
-      return seriesCache.get(key)!;
+      // A state the API does not publish can be filled from verified evidence for the same
+      // indicator (e.g. a national statistics office figure). Single-value windows only.
+      const gaps = evidence.ok ? evidence.byIndicator.get(`${ind.index_code}.${ind.code}`) : undefined;
+      if (!gaps?.size || ind.window_kind !== "latest") return seriesCache.get(key)!;
+      return seriesCache.get(key)!.then((res) => {
+        const byCountry = new Map(res.byCountry);
+        for (const [cc, v] of gaps) if (!byCountry.has(cc)) byCountry.set(cc, v);
+        return { ...res, byCountry };
+      });
     };
     // two series at a time, with a short pause between batches, to stay polite to the APIs
     for (let i = 0; i < active.length; i += 2) {

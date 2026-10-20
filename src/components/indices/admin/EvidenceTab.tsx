@@ -663,3 +663,44 @@ function DraftAll({ o }: { o: IndicesOverview }) {
     </div>
   );
 }
+
+/** Verifies every row currently listed (after the steward has checked them), one at a time. */
+function VerifyShown({ rows }: { rows: EvidenceRow[] }) {
+  const verify = useServerFn(verifyIndexEvidence);
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const mine = rows.filter((r) => !r.verified && !r.entered_by_me);
+  if (!mine.length) return null;
+  const go = async () => {
+    if (
+      !window.confirm(
+        `Verify ${mine.length} listed values? Only do this after checking each source link and quote.`,
+      )
+    )
+      return;
+    setBusy(true);
+    let ok = 0;
+    for (const r of mine) {
+      try {
+        await verify({ data: { id: r.id } });
+        ok++;
+      } catch {
+        /* the two-person rule or a changed row: leave it for manual review */
+      }
+    }
+    setBusy(false);
+    toast.success(`${ok} of ${mine.length} verified. Start a run to score with them.`);
+    qc.invalidateQueries({ queryKey: ["index-evidence"] });
+    qc.invalidateQueries({ queryKey: ["indices-overview"] });
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <button type="button" className="btn-primary" disabled={busy} onClick={go}>
+        {busy ? "Verifying…" : `Verify all ${mine.length} listed`}
+      </button>
+      <span className="text-xs text-ink-500">
+        Filter by index or state first to check a smaller batch.
+      </span>
+    </div>
+  );
+}

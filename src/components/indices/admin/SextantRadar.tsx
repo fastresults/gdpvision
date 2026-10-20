@@ -65,8 +65,8 @@ export function SextantRadar({
         }
       `}</style>
       <svg
-        viewBox={`0 0 ${size} ${size}`}
-        className={`sx-${uid} h-auto w-full max-w-[180px]`}
+        viewBox={`-34 0 ${size + 68} ${size}`}
+        className={`sx-${uid} h-auto w-full max-w-[220px]`}
         role="img"
         aria-label={
           empty

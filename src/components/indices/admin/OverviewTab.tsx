@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { clearTestReleases, runIndicesNow } from "@/lib/indices/indices.functions";
 import type { IndicesOverview } from "@/lib/indices/review.functions";
+import { SextantRadar } from "./SextantRadar";
 import {
   Eyebrow,
   Section,
@@ -159,7 +160,7 @@ export function OverviewTab({ o, goto }: { o: IndicesOverview; goto: Goto }) {
         }
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {o.specs.map((s) => {
+          {o.specs.map((s, idx) => {
             const inds = o.indicators.filter((i) => i.index_code === s.code);
             const active = inds.filter((i) => i.status === "active").length;
             const pending = inds.length - active;
@@ -174,7 +175,14 @@ export function OverviewTab({ o, goto }: { o: IndicesOverview; goto: Goto }) {
                 </div>
                 <h3 className="mt-1 font-serif text-lg leading-tight">{s.name}</h3>
                 <p className="mt-1 text-xs text-ink-500">{s.question}</p>
-                <dl className="mt-4 grid grid-cols-3 gap-2">
+                <div className="mt-4">
+                  <SextantRadar
+                    score={st?.median_sextant ?? null}
+                    parts={st?.median_sextant != null ? (o.sextantParts?.[s.code] ?? null) : null}
+                    delay={idx * 700}
+                  />
+                </div>
+                <dl className="mt-4 grid grid-cols-2 gap-2">
                   <Stat
                     label="States scored"
                     value={st ? `${st.scored} of ${st.scored + st.not_scored}` : "—"}
@@ -186,7 +194,6 @@ export function OverviewTab({ o, goto }: { o: IndicesOverview; goto: Goto }) {
                         : undefined
                     }
                   />
-                  <Stat label="Sextant" value={st ? fmt(st.median_sextant, 0) : "—"} sub="median" />
                   <Stat
                     label="Indicators"
                     value={active}

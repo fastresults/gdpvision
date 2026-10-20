@@ -91,6 +91,11 @@ export interface IndicesOverview {
     } | null;
   }>;
   evidence: { unverified: number; verified: number };
+  /** median of each Sextant part per index, for the latest complete non-test run */
+  sextantParts: Record<
+    string,
+    { availability: number; timeliness: number; grade_quality: number; source_health: number }
+  >;
   /** per evidence indicator: states with a verified value still within its age tolerance, and the rest */
   coverage: Array<{
     index_code: string;
@@ -207,8 +212,38 @@ export const getIndicesOverview = createServerFn({ method: "GET" })
       };
     });
 
+    const lastRun = runRows.find((r) => r.status === "complete" && r.mode !== "test");
+    const sextantParts: IndicesOverview["sextantParts"] = {};
+    if (lastRun) {
+      const { data: sc } = await c
+        .from("index_scores")
+        .select("index_code,sextant_parts")
+        .eq("run_id", lastRun.id);
+      const med = (xs: number[]) => {
+        const a = [...xs].sort((x, y) => x - y);
+        if (!a.length) return 0;
+        const m = Math.floor(a.length / 2);
+        return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+      };
+      const by = new Map<string, Array<Record<string, number>>>();
+      for (const r of (sc ?? []) as Array<{ index_code: string; sextant_parts: Record<string, number> | null }>) {
+        if (!r.sextant_parts) continue;
+        by.set(r.index_code, [...(by.get(r.index_code) ?? []), r.sextant_parts]);
+      }
+      for (const [k, rows] of by) {
+        const pick = (f: string) => med(rows.map((x) => Number(x[f] ?? 0)));
+        sextantParts[k] = {
+          availability: pick("availability"),
+          timeliness: pick("timeliness"),
+          grade_quality: pick("grade_quality"),
+          source_health: pick("source_health"),
+        };
+      }
+    }
+
     return {
       me: { userId: ctx.userId, isAdmin },
+      sextantParts,
       specs: (specs.data ?? []) as IndicesOverview["specs"],
       pillars: (pillars.data ?? []) as IndicesOverview["pillars"],
       indicators: ((inds.data ?? []) as IndicatorMeta[]).map((i) => ({

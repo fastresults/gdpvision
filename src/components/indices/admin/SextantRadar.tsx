@@ -132,7 +132,7 @@ export function SextantRadar({
           </g>
         )}
         {AXES.map((a, i) => {
-          const k = i % 2 ? 1.45 : 1.18;
+          const k = i % 2 ? 1.1 : 1.18;
           const x = q(c + R * k * Math.cos(ang(i)));
           const y = q(c + R * k * Math.sin(ang(i)));
           return (
@@ -140,7 +140,7 @@ export function SextantRadar({
               key={a.key}
               x={x}
               y={y + 2}
-              textAnchor="middle"
+              textAnchor={i === 1 ? "start" : i === 3 ? "end" : "middle"}
               className="fill-ink-500 font-mono"
               fontSize="6.5"
               letterSpacing="0.5"

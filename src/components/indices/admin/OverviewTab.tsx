@@ -176,9 +176,15 @@ export function OverviewTab({ o, goto }: { o: IndicesOverview; goto: Goto }) {
                 <p className="mt-1 text-xs text-ink-500">{s.question}</p>
                 <dl className="mt-4 grid grid-cols-3 gap-2">
                   <Stat
-                    label="Scored"
-                    value={st ? st.scored : "—"}
-                    sub={st ? `${st.not_scored} not` : undefined}
+                    label="States scored"
+                    value={st ? `${st.scored} of ${st.scored + st.not_scored}` : "—"}
+                    sub={
+                      st
+                        ? st.scored === 0
+                          ? "none yet — not a score of 0"
+                          : `${st.not_scored} not scored yet`
+                        : undefined
+                    }
                   />
                   <Stat label="Sextant" value={st ? fmt(st.median_sextant, 0) : "—"} sub="median" />
                   <Stat
@@ -187,6 +193,7 @@ export function OverviewTab({ o, goto }: { o: IndicesOverview; goto: Goto }) {
                     sub={pending ? `${pending} pending` : "all live"}
                   />
                 </dl>
+                <PillarBlockers o={o} indexCode={s.code} goto={goto} />
               </div>
             );
           })}

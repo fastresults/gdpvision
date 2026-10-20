@@ -102,7 +102,7 @@ export function RegionMap({ code, countryName, layers, flows = [], flowPartners 
   code: string; countryName: string; layers: SovereignEyeLayer[]; flows?: SovereignEyeFlow[]; flowPartners?: SovereignEyeFlowPartner[];
   onResearchPartners?: () => void; researchingPartners?: boolean;
   kpis?: SovereignEyeKpi[]; sectors?: SovereignEyeSector[];
-  data?: SovereignEyeEvidence; live?: SovereignEyeLiveFeed; focusedLayerId: string; pinnedFeature?: MapFeature | null; onPin?: (feature: MapFeature | null) => void; onEvidence?: () => void;
+  evidence?: SovereignEyeEvidence; live?: SovereignEyeLiveFeed; focusedLayerId: string; pinnedFeature?: MapFeature | null; onPin?: (feature: MapFeature | null) => void; onEvidence?: () => void;
   initialMode?: "regional" | "global" | "globe";
 }) {
   const [mapMode, setMapMode] = useState<"regional" | "global" | "globe">(initialMode);

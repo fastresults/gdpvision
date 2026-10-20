@@ -37,7 +37,7 @@ function perspective(
     summary,
     comparison: source,
     trend: reading,
-    members: data,
+    members: evidence,
     relevance,
     caution,
     labels: LABELS,

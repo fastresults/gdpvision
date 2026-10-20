@@ -180,7 +180,11 @@ function Coverage({
   o: IndicesOverview;
   onAdd: (index: IndexCode, indicator: string) => void;
 }) {
-  const inds = o.indicators.filter((i) => i.source_kind === "evidence" && i.status === "active");
+  const inds = o.indicators.filter(
+    (i) =>
+      i.status === "active" &&
+      (i.source_kind === "evidence" || (i.source_kind === "wdi" && i.window_kind === "latest")),
+  );
   if (!inds.length) return <Empty>No active evidence indicators.</Empty>;
   const cov = new Map(o.coverage.map((c) => [`${c.index_code}.${c.indicator_code}`, c]));
   return (
@@ -617,7 +621,11 @@ function L({
 function DraftAll({ o }: { o: IndicesOverview }) {
   const draft = useServerFn(draftIndexEvidence);
   const qc = useQueryClient();
-  const inds = o.indicators.filter((i) => i.source_kind === "evidence" && i.status === "active");
+  const inds = o.indicators.filter(
+    (i) =>
+      i.status === "active" &&
+      (i.source_kind === "evidence" || (i.source_kind === "wdi" && i.window_kind === "latest")),
+  );
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const run = async () => {

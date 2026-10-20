@@ -29,14 +29,18 @@ export async function draftIndicatorEvidence(indexCode: string, indicatorCode: s
   const c = db(supabaseAdmin as AnyClient);
   const { data: ind, error: ie } = await c
     .from("index_indicators")
-    .select("index_code,code,name,unit,goal_best,goal_worst,source_org,source_url,status,source_kind")
+    .select(
+      "index_code,code,name,unit,goal_best,goal_worst,source_org,source_url,status,source_kind,window_kind",
+    )
     .eq("index_code", indexCode)
     .eq("code", indicatorCode)
     .maybeSingle();
   if (ie) throw new Error(ie.message);
   const i = ind as Record<string, unknown> | null;
-  if (!i || i.source_kind !== "evidence" || i.status !== "active")
-    throw new Error("Not an active evidence indicator.");
+  // documentary indicators, or single-value API series where evidence fills states the API skips
+  const gapFill = i?.source_kind === "wdi" && i?.window_kind === "latest";
+  if (!i || i.status !== "active" || (i.source_kind !== "evidence" && !gapFill))
+    throw new Error("Not an indicator evidence can fill.");
 
   const { data: crows } = await c.from("countries").select("code,name").not("iso3", "is", null).order("code");
   const countries = (crows ?? []) as Array<{ code: string; name: string }>;
@@ -46,6 +50,27 @@ export async function draftIndicatorEvidence(indexCode: string, indicatorCode: s
     .eq("index_code", indexCode)
     .eq("indicator_code", indicatorCode);
   const skip = new Set(((done ?? []) as Array<{ country_code: string }>).map((r) => r.country_code));
+  if (gapFill) {
+    // only states the latest complete run had no usable API value for
+    const { data: lr } = await c
+      .from("index_runs")
+      .select("id")
+      .eq("status", "complete")
+      .neq("mode", "test")
+      .order("started_at", { ascending: false })
+      .limit(1);
+    const runId = (lr?.[0] as { id: string } | undefined)?.id;
+    if (runId) {
+      const { data: got } = await c
+        .from("index_inputs")
+        .select("country_code")
+        .eq("run_id", runId)
+        .eq("index_code", indexCode)
+        .eq("indicator_code", indicatorCode)
+        .not("score", "is", null);
+      for (const r of (got ?? []) as Array<{ country_code: string }>) skip.add(r.country_code);
+    }
+  }
   const todo = countries.filter((x) => !skip.has(x.code));
   if (!todo.length) return { drafted: 0, noSource: [] as string[], skippedVerified: skip.size };
 

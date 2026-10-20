@@ -132,7 +132,7 @@ export function SextantRadar({
           </g>
         )}
         {AXES.map((a, i) => {
-          const [x, y] = pt(i, 128);
+          const [x, y] = pt(i, i % 2 ? 150 : 124);
           return (
             <text
               key={a.key}

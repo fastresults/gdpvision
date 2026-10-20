@@ -115,17 +115,17 @@ export function ChamberPanel({
             className="block h-[2px] w-8"
             style={{ background: `var(${accentVar})` }}
           />
-          <p className="mt-3.5 font-serif text-[19px] leading-snug text-ink-950 sm:text-[21px]">
-            {outcome}
-          </p>
+          <h3
+            className="mt-3.5 font-serif text-[23px] leading-tight sm:text-[27px]"
+            style={{ color: `var(${accentVar})` }}
+          >
+            {title}
+          </h3>
         </div>
 
-        <h3
-          className="mt-4 font-serif text-[23px] leading-tight sm:text-[27px]"
-          style={{ color: `var(${accentVar})` }}
-        >
-          {title}
-        </h3>
+        <p className="mt-4 font-serif text-[19px] leading-snug text-ink-950 sm:text-[21px]">
+          {outcome}
+        </p>
 
         <p className="mt-3 text-[15px] leading-relaxed text-ink-700">{purpose}</p>
         <ul className="mt-5 space-y-2.5 text-[13.5px] leading-relaxed text-ink-700">

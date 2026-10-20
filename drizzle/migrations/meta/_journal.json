@@ -351,6 +351,20 @@
       "when": 1792451869094,
       "tag": "0049_indices_one_running_run_apply",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792537015715,
+      "tag": "0050_gdp_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1792537154362,
+      "tag": "0051_gdp_events_seed",
+      "breakpoints": true
     }
   ]
 }

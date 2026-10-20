@@ -256,3 +256,22 @@ export async function readIndexEdition(id: PartnerIdentity, index: string, editi
   const codes = allowedCodes(id, countries);
   return m.getIndexEdition(index, edition, codes, Boolean(id.testIndices));
 }
+
+
+/** Published GDP Events (regional, not per country). Registrations are never exposed. */
+export async function readPublicEvents(id: PartnerIdentity, opts: { upcomingOnly?: boolean } = {}) {
+  if (!id.scopes.includes("events")) throw httpError(403, 'This key does not include "events".');
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let q = supabaseAdmin
+    .from("events")
+    .select(
+      "slug, title, tagline, summary, format, theme, country_code, city, venue, starts_at, ends_at, registration_close, capacity, hosts, recording_url, is_placeholder, event_sessions(position, starts_at, title, description, speaker_names), event_speakers(position, name, role, organisation), event_links(kind, ref, label)",
+    )
+    .eq("status", "published")
+    .order("starts_at");
+  if (opts.upcomingOnly) q = q.gte("starts_at", new Date().toISOString());
+  const { data, error } = await q;
+  if (error) throw httpError(500, error.message);
+  const rows = (data ?? []).map((e) => ({ ...e, url: `https://gdpvision.com/events/${e.slug}` }));
+  return { count: rows.length, data: rows };
+}

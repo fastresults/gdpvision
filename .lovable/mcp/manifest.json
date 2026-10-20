@@ -263,6 +263,31 @@
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
+      },
+      {
+        "name": "list_events",
+        "title": "List GDP Events",
+        "description": "Published GDP Events (summits, roundtables, briefings) with dates, venue, format, theme and linked Second Brain items. Registrations are never included.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "upcoming_only": {
+              "type": "boolean"
+            },
+            "country": {
+              "type": "string",
+              "pattern": "^[A-Za-z]{2,4}$"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
       }
     ]
   }

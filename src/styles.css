@@ -133,6 +133,17 @@
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --font-display: var(--font-serif);
+
+  /* GDP Events — second design system, scoped to .theme-events */
+  --color-ev-sea: var(--ev-sea);
+  --color-ev-coral: var(--ev-coral);
+  --color-ev-mango: var(--ev-mango);
+  --color-ev-palm: var(--ev-palm);
+  --color-ev-night: var(--ev-night);
+  --color-ev-paper: var(--ev-paper);
+  --color-ev-ink: var(--ev-ink);
+  --font-ev-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --font-ev-body: "Figtree", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -2191,4 +2202,74 @@
   .is-on .prs-plate {
     animation: none;
   }
+}
+
+
+/* ===================== GDP Events — "Bold civic festival" ===================== */
+:root {
+  --ev-sea: oklch(0.62 0.13 200);
+  --ev-coral: oklch(0.68 0.19 30);
+  --ev-mango: oklch(0.85 0.17 85);
+  --ev-palm: oklch(0.58 0.15 150);
+  --ev-night: oklch(0.24 0.06 260);
+  --ev-paper: oklch(0.985 0.012 90);
+  --ev-ink: oklch(0.2 0.04 260);
+}
+.theme-events {
+  background: var(--ev-paper);
+  color: var(--ev-ink);
+  font-family: var(--font-ev-body);
+}
+.ev-display {
+  font-family: var(--font-ev-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 0.88;
+}
+@utility ev-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.85rem 1.5rem;
+  font-family: var(--font-ev-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 1.05rem;
+  transition: transform 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+  &:hover:not(:disabled) { transform: translateY(-2px) rotate(-1deg); box-shadow: 0 8px 0 -2px var(--ev-ink); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:focus-visible { outline: 3px solid var(--ev-mango); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { transition: none; &:hover:not(:disabled) { transform: none; } }
+}
+@utility ev-btn-primary {
+  @apply ev-btn;
+  background-color: var(--ev-coral);
+  color: var(--ev-ink);
+}
+@utility ev-btn-dark {
+  @apply ev-btn;
+  background-color: var(--ev-night);
+  color: var(--ev-paper);
+}
+@utility ev-btn-outline {
+  @apply ev-btn;
+  background-color: transparent;
+  color: currentColor;
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+@keyframes ev-rise {
+  from { opacity: 0; transform: translateY(28px) rotate(-1.5deg); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ev-marquee { to { transform: translateX(-50%); } }
+.ev-rise { animation: ev-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ev-marquee { animation: ev-marquee 40s linear infinite; }
+.ev-tile { transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease; }
+.ev-tile:hover { transform: translateY(-6px) rotate(-0.6deg); box-shadow: 10px 12px 0 0 var(--ev-ink); }
+@media (prefers-reduced-motion: reduce) {
+  .ev-rise, .ev-marquee { animation: none; }
+  .ev-tile, .ev-tile:hover { transition: none; transform: none; }
 }

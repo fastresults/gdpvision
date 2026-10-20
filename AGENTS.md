@@ -1,6 +1,6 @@
 # AGENTS.md — GDPVision navigation index
 
-Read this first, then the matching `docs/map/<domain>.md` (`chambers`, `onboarding`, `corpus`, `routes`, `server-fns`, `tables`). Full ref: `docs/map/agents-full-reference.md`.
+Read this first, then the matching `docs/map/<domain>.md` . Full ref: `docs/map/agents-full-reference.md`.
 
 Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 · Supabase (Lovable Cloud) · AI SDK via Lovable AI Gateway.
 
@@ -12,11 +12,12 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 
 - **Decision presentation copy**: keep scenario title keys and route edges stable; derive stage inputs from route source nodes rather than parsing display captions, so plain-language copy changes cannot break journey lookup or evidence assembly.
 
+- **Events/nav**: `/events` alone uses `.theme-events` + `ev-*` tokens (photos allowed), so the two styles never mix; public nav comes only from `NAV_GROUPS`.
 - **Buttons**: `btn-primary`/`btn-secondary`/`btn-ghost`/`btn-accent` from `src/styles.css`; never inline `bg-ink-* text-paper-*`. Only `@theme inline` colour tokens exist.
 - **Measuring-body logos**: use static official assets via `src/assets/measuring-bodies/*.asset.json`, with provenance in `sources.md` and a fixed contain-fit slot in `IndexBand`; this keeps institutional identity accurate without runtime lookup or layout shifts.
-- **JSON in UI**: `<PrettyJson>` from `@/components/data/PrettyJson`; raw `JSON.stringify` in JSX only in a `<textarea>` or collapsed `<details>`.
+- **JSON in UI**: `<PrettyJson>`; raw `JSON.stringify` only in `<textarea>`/collapsed `<details>`.
 - **Illustrations**: monochrome engraved graphite via `<Illustration>`; variants `mark`/`spot`/`aside`/`rule`, one per section, never full-bleed. Exceptions: marketing hero, and the `/present` closing `plate`. Spec: `docs/illustration-contract.md`.
-- **Header logo**: every header Wordmark link/button calls `scrollToTop()` from `@/lib/utils`.
+- **Header logo**: Wordmark links call `scrollToTop()`.
 - **Second brain no-dup**: every ingest/commit path upserts on a normalized key (`docs/map/corpus.md`).
 - **Explain**: derived figures use `<Explain>` + registered rationale, never bare tooltips. Homepage and Brief share `proposedInputForCountry`.
 - **Public tables**: every `CREATE TABLE public.*` has GRANTs + RLS + policies in the same migration.

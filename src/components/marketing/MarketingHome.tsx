@@ -167,7 +167,7 @@ export function MarketingHome() {
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
             <h1 className="mt-6 font-serif text-[42px] leading-[1.08] tracking-tight text-ink-950 sm:mt-8 sm:text-[56px] sm:leading-[1.05] md:text-[88px]">
-              Test a national economic decision before you commit.
+              Sovereign Intelligence for Emerging Economies
             </h1>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-700 sm:mt-6 md:text-[17px]">
               GDPVision gives Presidents, Prime Ministers and Cabinets one trusted picture of the

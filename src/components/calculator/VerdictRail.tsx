@@ -19,7 +19,7 @@ export function VerdictRail({
   onStance,
   onDownload,
   busy,
-  data,
+  evidence,
   onEvidence,
 }: {
   result: ValueResult;

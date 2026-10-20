@@ -37,7 +37,7 @@ const NODES: FlowNode[] = [
     what: "National accounts, trade, prices and labour figures from official and international sources.",
     feeds: "The national data library, with source references.",
     gdp: "Gives government a shared starting point, with sources it can check.",
-    paths: ["data"],
+    paths: ["evidence"],
   },
   {
     id: "ministries",
@@ -46,7 +46,7 @@ const NODES: FlowNode[] = [
     what: "Mandates, programmes and the current minister for every ministry.",
     feeds: "The national data library and Ministry Growth & Delivery workspace.",
     gdp: "Shows which ministry is responsible for each economic priority.",
-    paths: ["data", "delivery"],
+    paths: ["evidence", "delivery"],
   },
   {
     id: "kpis",
@@ -55,7 +55,7 @@ const NODES: FlowNode[] = [
     what: "Targets and latest values the government tracks.",
     feeds: "The Ledger, Cabinet Room and the National Record.",
     gdp: "Makes progress measurable instead of anecdotal.",
-    paths: ["data", "delivery"],
+    paths: ["evidence", "delivery"],
   },
   {
     id: "flows",
@@ -64,7 +64,7 @@ const NODES: FlowNode[] = [
     what: "Where money enters and leaves the economy — investment, fiscal spending, imports.",
     feeds: "National data, policy scenarios and investment planning.",
     gdp: "Shows where money leaves the economy and where local production or investment could add value.",
-    paths: ["data", "money"],
+    paths: ["evidence", "money"],
   },
   {
     id: "manifestos",
@@ -73,7 +73,7 @@ const NODES: FlowNode[] = [
     what: "Party promises and the government's formal mandate.",
     feeds: "The Mandate Compact and Narrative chambers.",
     gdp: "Ties decisions to what citizens voted for.",
-    paths: ["data"],
+    paths: ["evidence"],
   },
   {
     id: "peers",
@@ -82,7 +82,7 @@ const NODES: FlowNode[] = [
     what: "Comparison with 22 regional nations, refreshed monthly.",
     feeds: "The national data library and country comparisons.",
     gdp: "Shows what neighbours already achieve — realistic ambition.",
-    paths: ["data"],
+    paths: ["evidence"],
   },
   {
     id: "private",
@@ -92,7 +92,7 @@ const NODES: FlowNode[] = [
     feeds: "The Sovereign Vault only.",
     gdp: "Lets private data improve decisions without leaving national control.",
     href: "/vault",
-    paths: ["data", "safeguards"],
+    paths: ["evidence", "safeguards"],
   },
 
   {
@@ -103,7 +103,7 @@ const NODES: FlowNode[] = [
     feeds: "All ten Chambers.",
     gdp: "Helps ministries compare sources and resolve conflicting figures before deciding.",
     href: "/record",
-    paths: ["data", "safeguards"],
+    paths: ["evidence", "safeguards"],
   },
   {
     id: "vault",
@@ -113,7 +113,7 @@ const NODES: FlowNode[] = [
     feeds: "Approved findings only — to the Chambers.",
     gdp: "Adds private data to decisions while the data stays in the country.",
     href: "/vault",
-    paths: ["safeguards", "data"],
+    paths: ["safeguards", "evidence"],
   },
   {
     id: "safeguards",
@@ -133,7 +133,7 @@ const NODES: FlowNode[] = [
     what: "The economy on one page — ask any question and see why a number is what it is.",
     feeds: "Scenarios, Cabinet Room, Decision Brief.",
     gdp: "Faster diagnosis of where growth is stalling.",
-    paths: ["data"],
+    paths: ["evidence"],
   },
   {
     id: "c02",
@@ -173,7 +173,7 @@ const NODES: FlowNode[] = [
     what: "Explore policies with simulated citizen and business profiles, and study the skills a leadership role needs.",
     feeds: "Narrative and Cabinet Room.",
     gdp: "Highlights possible concerns before launch; simulated responses are not a public survey.",
-    paths: ["data"],
+    paths: ["evidence"],
   },
   {
     id: "c05",
@@ -234,7 +234,7 @@ const NODES: FlowNode[] = [
     feeds: "Cabinet decisions.",
     gdp: "Ministers decide with the full picture on one page.",
     href: "/business-case/brief",
-    paths: ["data", "safeguards"],
+    paths: ["evidence", "safeguards"],
   },
   {
     id: "cabinet",
@@ -299,7 +299,7 @@ const NODES: FlowNode[] = [
     feeds: "Back into the national data library.",
     gdp: "Recorded results help government improve the next decision.",
     href: "/record",
-    paths: ["delivery", "data"],
+    paths: ["delivery", "evidence"],
   },
 ];
 

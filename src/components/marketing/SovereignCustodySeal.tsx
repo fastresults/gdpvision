@@ -139,7 +139,7 @@ export function SovereignCustodySeal() {
           </text>
         </g>
 
-        <g className="scs-evidence" {...stageProps("data")}>
+        <g className="scs-evidence" {...stageProps("evidence")}>
           <text x="15" y="72" className="font-mono" fontSize="7" fill="var(--color-ink-500)">
             NATIONAL DATA
           </text>

@@ -15,7 +15,7 @@ export function FramingCard({
   value,
   proposed,
   regional,
-  data,
+  evidence,
   onInspectEvidence,
   onChange,
 }: {

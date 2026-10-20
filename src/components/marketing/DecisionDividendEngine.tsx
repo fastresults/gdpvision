@@ -110,7 +110,7 @@ export function DecisionDividendEngine() {
           strokeDasharray="2 5"
         />
 
-        <g className="dde-evidence" {...stageProps("data")}>
+        <g className="dde-evidence" {...stageProps("evidence")}>
           <path
             d="M22 85 H93 M30 102 H101 M18 119 H88 M34 136 H104 M24 153 H91 M38 170 H99"
             stroke="var(--color-ink-700)"

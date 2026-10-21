@@ -86,7 +86,7 @@ async function readSse(body: ReadableStream<Uint8Array>): Promise<string> {
 export async function extractSummit(pages: Page[]): Promise<Extracted> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Lovable AI is not configured.");
-  const corpus = pages.map((p) => `=== PAGE ${p.url} ===\n${p.markdown.slice(0, 14000)}`).join("\n\n").slice(0, 120000);
+  const corpus = pages.map((p) => `=== PAGE ${p.url} ===\n${p.markdown.slice(0, Math.max(14000, Math.floor(110000 / pages.length)))}`).join("\n\n").slice(0, 120000);
   const prompt = `You read every page of one summit website. Extract ONLY facts the pages state. Use "" or [] for anything not stated — never guess, never fill in from general knowledge.
 - starts_on/ends_on: ISO date YYYY-MM-DD only when the site states the full date; else "".
 - country_iso3: ISO 3166 alpha-3 of the host venue country, only if stated.

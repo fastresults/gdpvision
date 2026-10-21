@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { listPublicEvents } from "@/lib/events/events.functions";
+import { listPublicEvents, listPublicSeries } from "@/lib/events/events.functions";
 import { isUpcoming, FORMAT_LABEL } from "@/lib/events/rules";
-import { Countdown, EventTile, formatEventDate, PlaceholderBadge } from "@/components/events/EventParts";
+import { COLOUR_BG, COLOUR_TEXT, Countdown, EventTile, formatEventDate, PlaceholderBadge } from "@/components/events/EventParts";
 import { cn } from "@/lib/utils";
 
 const eventsQuery = queryOptions({ queryKey: ["events", "public"], queryFn: () => listPublicEvents() });
+const seriesQuery = queryOptions({ queryKey: ["events", "series"], queryFn: () => listPublicSeries() });
 
 const TITLE = "GDP Events — summits, roundtables and briefings";
 const DESCRIPTION =
@@ -23,12 +24,13 @@ export const Route = createFileRoute("/events/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(eventsQuery),
+  loader: ({ context }) => Promise.all([context.queryClient.ensureQueryData(eventsQuery), context.queryClient.ensureQueryData(seriesQuery)]),
   component: EventsIndex,
 });
 
 function EventsIndex() {
   const { data: events } = useSuspenseQuery(eventsQuery);
+  const { data: series } = useSuspenseQuery(seriesQuery);
   const [format, setFormat] = useState<string>("all");
   const [theme, setTheme] = useState<string>("all");
 
@@ -80,6 +82,31 @@ function EventsIndex() {
           ))}
         </div>
       </div>
+
+      {/* SERIES */}
+      <section id="series" className="mx-auto max-w-[1400px] scroll-mt-24 px-5 pt-16 md:px-8">
+        <h2 className="ev-display text-[64px] md:text-[88px]">The summits</h2>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {series.map((s) => {
+            const eds = events.filter((e) => e.series_id === s.id);
+            const nextEd = eds.find((e) => isUpcoming(e));
+            return (
+              <Link
+                key={s.slug}
+                to="/events/series/$slug"
+                params={{ slug: s.slug }}
+                className={cn("ev-tile flex min-h-[200px] flex-col justify-between rounded-3xl border-4 border-ev-ink p-5", COLOUR_BG[s.colour], COLOUR_TEXT[s.colour])}
+              >
+                <div className="text-[12px] font-bold uppercase tracking-wider opacity-80">{s.short_name} · {s.sector}</div>
+                <h3 className="ev-display text-[30px] leading-[0.95]">{s.name}</h3>
+                <div className="text-[13px] font-semibold">
+                  {nextEd ? `Next: ${formatEventDate(nextEd.starts_at)}` : eds.length ? `${eds.length} edition${eds.length > 1 ? "s" : ""}` : "Announcing soon"}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
       {/* UPCOMING */}
       <section id="upcoming" className="mx-auto max-w-[1400px] scroll-mt-24 px-5 py-16 md:px-8">

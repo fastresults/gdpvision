@@ -23,7 +23,7 @@ const NAV = [
   { to: "/admin/partner-keys", label: "Partner API" },
   { to: "/admin/indices", label: "Caribbean Indices" },
   { to: "/admin/media-scan", label: "Media scan" },
-  { to: "/admin/events", label: "Events" },
+  { to: "/events-admin", label: "Events Admin" },
   { to: "/admin/proforma", label: "Pro forma" },
   { to: "/admin", label: "Users" },
   { to: "/admin/invitations", label: "Invitations" },

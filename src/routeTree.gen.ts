@@ -23,6 +23,7 @@ import { Route as VaultRouteImport } from './routes/vault'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedConsoleRouteImport } from './routes/_authenticated/console'
+import { Route as AuthenticatedEventsAdminRouteRouteImport } from './routes/_authenticated/events-admin/route'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedInstrumentRouteRouteImport } from './routes/_authenticated/instrument/route'
 import { Route as AuthenticatedNarrativeRouteRouteImport } from './routes/_authenticated/narrative/route'
@@ -66,6 +67,13 @@ import { Route as AuthenticatedConfigIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedCounselIndexRouteImport } from './routes/_authenticated/counsel/index'
 import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
 import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authenticated/counsel/mobile'
+import { Route as AuthenticatedEventsAdminIndexRouteImport } from './routes/_authenticated/events-admin/index'
+import { Route as AuthenticatedEventsAdminEnquiriesRouteImport } from './routes/_authenticated/events-admin/enquiries'
+import { Route as AuthenticatedEventsAdminEventsRouteImport } from './routes/_authenticated/events-admin/events'
+import { Route as AuthenticatedEventsAdminProgrammeRouteImport } from './routes/_authenticated/events-admin/programme'
+import { Route as AuthenticatedEventsAdminRegistrationsRouteImport } from './routes/_authenticated/events-admin/registrations'
+import { Route as AuthenticatedEventsAdminSeriesRouteImport } from './routes/_authenticated/events-admin/series'
+import { Route as AuthenticatedEventsAdminSyncRouteImport } from './routes/_authenticated/events-admin/sync'
 import { Route as AuthenticatedInstrumentIndexRouteImport } from './routes/_authenticated/instrument/index'
 import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
 import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes/_authenticated/instrument/stewardship'
@@ -76,6 +84,7 @@ import { Route as AuthenticatedNarrativeCoverageRouteImport } from './routes/_au
 import { Route as AuthenticatedNarrativeIngestRouteImport } from './routes/_authenticated/narrative/ingest'
 import { Route as AuthenticatedNarrativeQueueRouteImport } from './routes/_authenticated/narrative/queue'
 import { Route as AuthenticatedOnboardingCountryRouteImport } from './routes/_authenticated/onboarding/country'
+import { Route as EventsSeriesSlugRouteImport } from './routes/events.series.$slug'
 import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
 import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
 import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
@@ -260,6 +269,12 @@ const AuthenticatedConsoleRoute = AuthenticatedConsoleRouteImport.update({
   path: '/console',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEventsAdminRouteRoute =
+  AuthenticatedEventsAdminRouteRouteImport.update({
+    id: '/events-admin',
+    path: '/events-admin',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
   id: '/home',
   path: '/home',
@@ -497,6 +512,48 @@ const AuthenticatedCounselMobileRoute =
     path: '/counsel/mobile',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEventsAdminIndexRoute =
+  AuthenticatedEventsAdminIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedEventsAdminRouteRoute,
+  } as any)
+const AuthenticatedEventsAdminEnquiriesRoute =
+  AuthenticatedEventsAdminEnquiriesRouteImport.update({
+    id: '/enquiries',
+    path: '/enquiries',
+    getParentRoute: () => AuthenticatedEventsAdminRouteRoute,
+  } as any)
+const AuthenticatedEventsAdminEventsRoute =
+  AuthenticatedEventsAdminEventsRouteImport.update({
+    id: '/events',
+    path: '/events',
+    getParentRoute: () => AuthenticatedEventsAdminRouteRoute,
+  } as any)
+const AuthenticatedEventsAdminProgrammeRoute =
+  AuthenticatedEventsAdminProgrammeRouteImport.update({
+    id: '/programme',
+    path: '/programme',
+    getParentRoute: () => AuthenticatedEventsAdminRouteRoute,
+  } as any)
+const AuthenticatedEventsAdminRegistrationsRoute =
+  AuthenticatedEventsAdminRegistrationsRouteImport.update({
+    id: '/registrations',
+    path: '/registrations',
+    getParentRoute: () => AuthenticatedEventsAdminRouteRoute,
+  } as any)
+const AuthenticatedEventsAdminSeriesRoute =
+  AuthenticatedEventsAdminSeriesRouteImport.update({
+    id: '/series',
+    path: '/series',
+    getParentRoute: () => AuthenticatedEventsAdminRouteRoute,
+  } as any)
+const AuthenticatedEventsAdminSyncRoute =
+  AuthenticatedEventsAdminSyncRouteImport.update({
+    id: '/sync',
+    path: '/sync',
+    getParentRoute: () => AuthenticatedEventsAdminRouteRoute,
+  } as any)
 const AuthenticatedInstrumentIndexRoute =
   AuthenticatedInstrumentIndexRouteImport.update({
     id: '/',
@@ -557,6 +614,11 @@ const AuthenticatedOnboardingCountryRoute =
     path: '/onboarding/country',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const EventsSeriesSlugRoute = EventsSeriesSlugRouteImport.update({
+  id: '/series/$slug',
+  path: '/series/$slug',
+  getParentRoute: () => EventsRoute,
+} as any)
 const KioskApiKioskDataRoute = KioskApiKioskDataRouteImport.update({
   id: '/api/kiosk-data',
   path: '/api/kiosk-data',
@@ -1235,6 +1297,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/vault': typeof VaultRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/events-admin': typeof AuthenticatedEventsAdminRouteRouteWithChildren
   '/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -1274,6 +1337,12 @@ export interface FileRoutesByFullPath {
   '/concierge/new': typeof AuthenticatedConciergeNewRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
+  '/events-admin/enquiries': typeof AuthenticatedEventsAdminEnquiriesRoute
+  '/events-admin/events': typeof AuthenticatedEventsAdminEventsRoute
+  '/events-admin/programme': typeof AuthenticatedEventsAdminProgrammeRoute
+  '/events-admin/registrations': typeof AuthenticatedEventsAdminRegistrationsRoute
+  '/events-admin/series': typeof AuthenticatedEventsAdminSeriesRoute
+  '/events-admin/sync': typeof AuthenticatedEventsAdminSyncRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
@@ -1282,6 +1351,7 @@ export interface FileRoutesByFullPath {
   '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/onboarding/country': typeof AuthenticatedOnboardingCountryRoute
+  '/events/series/$slug': typeof EventsSeriesSlugRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -1291,6 +1361,7 @@ export interface FileRoutesByFullPath {
   '/concierge/': typeof AuthenticatedConciergeIndexRoute
   '/config/': typeof AuthenticatedConfigIndexRoute
   '/counsel/': typeof AuthenticatedCounselIndexRoute
+  '/events-admin/': typeof AuthenticatedEventsAdminIndexRoute
   '/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
@@ -1450,6 +1521,12 @@ export interface FileRoutesByTo {
   '/concierge/new': typeof AuthenticatedConciergeNewRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
+  '/events-admin/enquiries': typeof AuthenticatedEventsAdminEnquiriesRoute
+  '/events-admin/events': typeof AuthenticatedEventsAdminEventsRoute
+  '/events-admin/programme': typeof AuthenticatedEventsAdminProgrammeRoute
+  '/events-admin/registrations': typeof AuthenticatedEventsAdminRegistrationsRoute
+  '/events-admin/series': typeof AuthenticatedEventsAdminSeriesRoute
+  '/events-admin/sync': typeof AuthenticatedEventsAdminSyncRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
@@ -1458,6 +1535,7 @@ export interface FileRoutesByTo {
   '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/onboarding/country': typeof AuthenticatedOnboardingCountryRoute
+  '/events/series/$slug': typeof EventsSeriesSlugRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -1467,6 +1545,7 @@ export interface FileRoutesByTo {
   '/concierge': typeof AuthenticatedConciergeIndexRoute
   '/config': typeof AuthenticatedConfigIndexRoute
   '/counsel': typeof AuthenticatedCounselIndexRoute
+  '/events-admin': typeof AuthenticatedEventsAdminIndexRoute
   '/instrument': typeof AuthenticatedInstrumentIndexRoute
   '/narrative': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
@@ -1589,6 +1668,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/vault': typeof VaultRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/_authenticated/events-admin': typeof AuthenticatedEventsAdminRouteRouteWithChildren
   '/_authenticated/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -1628,6 +1708,12 @@ export interface FileRoutesById {
   '/_authenticated/concierge/new': typeof AuthenticatedConciergeNewRoute
   '/_authenticated/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/_authenticated/counsel/mobile': typeof AuthenticatedCounselMobileRoute
+  '/_authenticated/events-admin/enquiries': typeof AuthenticatedEventsAdminEnquiriesRoute
+  '/_authenticated/events-admin/events': typeof AuthenticatedEventsAdminEventsRoute
+  '/_authenticated/events-admin/programme': typeof AuthenticatedEventsAdminProgrammeRoute
+  '/_authenticated/events-admin/registrations': typeof AuthenticatedEventsAdminRegistrationsRoute
+  '/_authenticated/events-admin/series': typeof AuthenticatedEventsAdminSeriesRoute
+  '/_authenticated/events-admin/sync': typeof AuthenticatedEventsAdminSyncRoute
   '/_authenticated/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/_authenticated/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/_authenticated/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
@@ -1636,6 +1722,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/_authenticated/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/_authenticated/onboarding/country': typeof AuthenticatedOnboardingCountryRoute
+  '/events/series/$slug': typeof EventsSeriesSlugRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -1645,6 +1732,7 @@ export interface FileRoutesById {
   '/_authenticated/concierge/': typeof AuthenticatedConciergeIndexRoute
   '/_authenticated/config/': typeof AuthenticatedConfigIndexRoute
   '/_authenticated/counsel/': typeof AuthenticatedCounselIndexRoute
+  '/_authenticated/events-admin/': typeof AuthenticatedEventsAdminIndexRoute
   '/_authenticated/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/_authenticated/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/_authenticated/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
@@ -1772,6 +1860,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/vault'
     | '/admin'
+    | '/events-admin'
     | '/instrument'
     | '/narrative'
     | '/.well-known/oauth-protected-resource'
@@ -1811,6 +1900,12 @@ export interface FileRouteTypes {
     | '/concierge/new'
     | '/counsel/archive'
     | '/counsel/mobile'
+    | '/events-admin/enquiries'
+    | '/events-admin/events'
+    | '/events-admin/programme'
+    | '/events-admin/registrations'
+    | '/events-admin/series'
+    | '/events-admin/sync'
     | '/instrument/exposure'
     | '/instrument/stewardship'
     | '/narrative/brain'
@@ -1819,6 +1914,7 @@ export interface FileRouteTypes {
     | '/narrative/ingest'
     | '/narrative/queue'
     | '/onboarding/country'
+    | '/events/series/$slug'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -1828,6 +1924,7 @@ export interface FileRouteTypes {
     | '/concierge/'
     | '/config/'
     | '/counsel/'
+    | '/events-admin/'
     | '/instrument/'
     | '/narrative/'
     | '/admin/audits/keying'
@@ -1987,6 +2084,12 @@ export interface FileRouteTypes {
     | '/concierge/new'
     | '/counsel/archive'
     | '/counsel/mobile'
+    | '/events-admin/enquiries'
+    | '/events-admin/events'
+    | '/events-admin/programme'
+    | '/events-admin/registrations'
+    | '/events-admin/series'
+    | '/events-admin/sync'
     | '/instrument/exposure'
     | '/instrument/stewardship'
     | '/narrative/brain'
@@ -1995,6 +2098,7 @@ export interface FileRouteTypes {
     | '/narrative/ingest'
     | '/narrative/queue'
     | '/onboarding/country'
+    | '/events/series/$slug'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -2004,6 +2108,7 @@ export interface FileRouteTypes {
     | '/concierge'
     | '/config'
     | '/counsel'
+    | '/events-admin'
     | '/instrument'
     | '/narrative'
     | '/admin/audits/keying'
@@ -2125,6 +2230,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/vault'
     | '/_authenticated/admin'
+    | '/_authenticated/events-admin'
     | '/_authenticated/instrument'
     | '/_authenticated/narrative'
     | '/.well-known/oauth-protected-resource'
@@ -2164,6 +2270,12 @@ export interface FileRouteTypes {
     | '/_authenticated/concierge/new'
     | '/_authenticated/counsel/archive'
     | '/_authenticated/counsel/mobile'
+    | '/_authenticated/events-admin/enquiries'
+    | '/_authenticated/events-admin/events'
+    | '/_authenticated/events-admin/programme'
+    | '/_authenticated/events-admin/registrations'
+    | '/_authenticated/events-admin/series'
+    | '/_authenticated/events-admin/sync'
     | '/_authenticated/instrument/exposure'
     | '/_authenticated/instrument/stewardship'
     | '/_authenticated/narrative/brain'
@@ -2172,6 +2284,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/ingest'
     | '/_authenticated/narrative/queue'
     | '/_authenticated/onboarding/country'
+    | '/events/series/$slug'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -2181,6 +2294,7 @@ export interface FileRouteTypes {
     | '/_authenticated/concierge/'
     | '/_authenticated/config/'
     | '/_authenticated/counsel/'
+    | '/_authenticated/events-admin/'
     | '/_authenticated/instrument/'
     | '/_authenticated/narrative/'
     | '/_authenticated/admin/audits/keying'
@@ -2438,6 +2552,13 @@ declare module '@tanstack/react-router' {
       path: '/console'
       fullPath: '/console'
       preLoaderRoute: typeof AuthenticatedConsoleRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/events-admin': {
+      id: '/_authenticated/events-admin'
+      path: '/events-admin'
+      fullPath: '/events-admin'
+      preLoaderRoute: typeof AuthenticatedEventsAdminRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/home': {
@@ -2741,6 +2862,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCounselMobileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/events-admin/': {
+      id: '/_authenticated/events-admin/'
+      path: '/'
+      fullPath: '/events-admin/'
+      preLoaderRoute: typeof AuthenticatedEventsAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedEventsAdminRouteRoute
+    }
+    '/_authenticated/events-admin/enquiries': {
+      id: '/_authenticated/events-admin/enquiries'
+      path: '/enquiries'
+      fullPath: '/events-admin/enquiries'
+      preLoaderRoute: typeof AuthenticatedEventsAdminEnquiriesRouteImport
+      parentRoute: typeof AuthenticatedEventsAdminRouteRoute
+    }
+    '/_authenticated/events-admin/events': {
+      id: '/_authenticated/events-admin/events'
+      path: '/events'
+      fullPath: '/events-admin/events'
+      preLoaderRoute: typeof AuthenticatedEventsAdminEventsRouteImport
+      parentRoute: typeof AuthenticatedEventsAdminRouteRoute
+    }
+    '/_authenticated/events-admin/programme': {
+      id: '/_authenticated/events-admin/programme'
+      path: '/programme'
+      fullPath: '/events-admin/programme'
+      preLoaderRoute: typeof AuthenticatedEventsAdminProgrammeRouteImport
+      parentRoute: typeof AuthenticatedEventsAdminRouteRoute
+    }
+    '/_authenticated/events-admin/registrations': {
+      id: '/_authenticated/events-admin/registrations'
+      path: '/registrations'
+      fullPath: '/events-admin/registrations'
+      preLoaderRoute: typeof AuthenticatedEventsAdminRegistrationsRouteImport
+      parentRoute: typeof AuthenticatedEventsAdminRouteRoute
+    }
+    '/_authenticated/events-admin/series': {
+      id: '/_authenticated/events-admin/series'
+      path: '/series'
+      fullPath: '/events-admin/series'
+      preLoaderRoute: typeof AuthenticatedEventsAdminSeriesRouteImport
+      parentRoute: typeof AuthenticatedEventsAdminRouteRoute
+    }
+    '/_authenticated/events-admin/sync': {
+      id: '/_authenticated/events-admin/sync'
+      path: '/sync'
+      fullPath: '/events-admin/sync'
+      preLoaderRoute: typeof AuthenticatedEventsAdminSyncRouteImport
+      parentRoute: typeof AuthenticatedEventsAdminRouteRoute
+    }
     '/_authenticated/instrument/': {
       id: '/_authenticated/instrument/'
       path: '/'
@@ -2810,6 +2980,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/onboarding/country'
       preLoaderRoute: typeof AuthenticatedOnboardingCountryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/events/series/$slug': {
+      id: '/events/series/$slug'
+      path: '/series/$slug'
+      fullPath: '/events/series/$slug'
+      preLoaderRoute: typeof EventsSeriesSlugRouteImport
+      parentRoute: typeof EventsRoute
     }
     '/kiosk/api/kiosk-data': {
       id: '/kiosk/api/kiosk-data'
@@ -3924,6 +4101,35 @@ const AuthenticatedAdminRouteRouteWithChildren =
     AuthenticatedAdminRouteRouteChildren,
   )
 
+interface AuthenticatedEventsAdminRouteRouteChildren {
+  AuthenticatedEventsAdminEnquiriesRoute: typeof AuthenticatedEventsAdminEnquiriesRoute
+  AuthenticatedEventsAdminEventsRoute: typeof AuthenticatedEventsAdminEventsRoute
+  AuthenticatedEventsAdminProgrammeRoute: typeof AuthenticatedEventsAdminProgrammeRoute
+  AuthenticatedEventsAdminRegistrationsRoute: typeof AuthenticatedEventsAdminRegistrationsRoute
+  AuthenticatedEventsAdminSeriesRoute: typeof AuthenticatedEventsAdminSeriesRoute
+  AuthenticatedEventsAdminSyncRoute: typeof AuthenticatedEventsAdminSyncRoute
+  AuthenticatedEventsAdminIndexRoute: typeof AuthenticatedEventsAdminIndexRoute
+}
+
+const AuthenticatedEventsAdminRouteRouteChildren: AuthenticatedEventsAdminRouteRouteChildren =
+  {
+    AuthenticatedEventsAdminEnquiriesRoute:
+      AuthenticatedEventsAdminEnquiriesRoute,
+    AuthenticatedEventsAdminEventsRoute: AuthenticatedEventsAdminEventsRoute,
+    AuthenticatedEventsAdminProgrammeRoute:
+      AuthenticatedEventsAdminProgrammeRoute,
+    AuthenticatedEventsAdminRegistrationsRoute:
+      AuthenticatedEventsAdminRegistrationsRoute,
+    AuthenticatedEventsAdminSeriesRoute: AuthenticatedEventsAdminSeriesRoute,
+    AuthenticatedEventsAdminSyncRoute: AuthenticatedEventsAdminSyncRoute,
+    AuthenticatedEventsAdminIndexRoute: AuthenticatedEventsAdminIndexRoute,
+  }
+
+const AuthenticatedEventsAdminRouteRouteWithChildren =
+  AuthenticatedEventsAdminRouteRoute._addFileChildren(
+    AuthenticatedEventsAdminRouteRouteChildren,
+  )
+
 interface AuthenticatedInstrumentRouteRouteChildren {
   AuthenticatedInstrumentExposureRoute: typeof AuthenticatedInstrumentExposureRoute
   AuthenticatedInstrumentStewardshipRoute: typeof AuthenticatedInstrumentStewardshipRoute
@@ -4072,6 +4278,7 @@ const AuthenticatedConsoleRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
+  AuthenticatedEventsAdminRouteRoute: typeof AuthenticatedEventsAdminRouteRouteWithChildren
   AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
   AuthenticatedNarrativeRouteRoute: typeof AuthenticatedNarrativeRouteRouteWithChildren
   AuthenticatedConsoleRoute: typeof AuthenticatedConsoleRouteWithChildren
@@ -4090,6 +4297,8 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
+  AuthenticatedEventsAdminRouteRoute:
+    AuthenticatedEventsAdminRouteRouteWithChildren,
   AuthenticatedInstrumentRouteRoute:
     AuthenticatedInstrumentRouteRouteWithChildren,
   AuthenticatedNarrativeRouteRoute:
@@ -4125,12 +4334,14 @@ interface EventsRouteChildren {
   EventsSlugRoute: typeof EventsSlugRoute
   EventsHostRoute: typeof EventsHostRoute
   EventsIndexRoute: typeof EventsIndexRoute
+  EventsSeriesSlugRoute: typeof EventsSeriesSlugRoute
 }
 
 const EventsRouteChildren: EventsRouteChildren = {
   EventsSlugRoute: EventsSlugRoute,
   EventsHostRoute: EventsHostRoute,
   EventsIndexRoute: EventsIndexRoute,
+  EventsSeriesSlugRoute: EventsSeriesSlugRoute,
 }
 
 const EventsRouteWithChildren =

@@ -23,7 +23,8 @@ export type EventCardData = {
   slug: string;
   title: string;
   tagline: string | null;
-  starts_at: string;
+  starts_at: string | null;
+  date_tba?: boolean;
   city: string | null;
   venue: string | null;
   format: string;
@@ -33,11 +34,19 @@ export type EventCardData = {
   is_placeholder: boolean;
 };
 
-export function formatEventDate(iso: string, opts: Intl.DateTimeFormatOptions = {}) {
+export function formatEventDate(iso: string | null, opts: Intl.DateTimeFormatOptions = {}) {
+  if (!iso) return "Dates to be announced";
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", ...opts }).format(new Date(iso));
 }
 
-export function DateBlock({ iso, className }: { iso: string; className?: string }) {
+export function DateBlock({ iso, className }: { iso: string | null; className?: string }) {
+  if (!iso)
+    return (
+      <div className={cn("ev-display text-center leading-none", className)}>
+        <div className="text-[36px]">TBA</div>
+        <div className="mt-1 text-[12px] opacity-70">Dates soon</div>
+      </div>
+    );
   const d = new Date(iso);
   return (
     <div className={cn("ev-display text-center leading-none", className)}>
@@ -109,7 +118,7 @@ export function EventTile({ ev, index = 0, large = false }: { ev: EventCardData;
 }
 
 /** Live countdown to an event start; static when reduced motion is preferred. */
-export function Countdown({ iso }: { iso: string }) {
+export function Countdown({ iso }: { iso: string | null }) {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     setNow(Date.now());
@@ -117,7 +126,7 @@ export function Countdown({ iso }: { iso: string }) {
     const id = window.setInterval(() => setNow(Date.now()), reduce ? 60_000 : 1000);
     return () => window.clearInterval(id);
   }, []);
-  if (now == null) return null;
+  if (now == null || !iso) return null;
   const diff = Math.max(0, new Date(iso).getTime() - now);
   const parts = [
     { v: Math.floor(diff / 86_400_000), l: "days" },

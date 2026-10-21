@@ -7,6 +7,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
+import { sortByDate } from "./rules";
 
 function publicClient() {
   const url = process.env["SUPABASE_URL"];
@@ -26,14 +27,36 @@ function publicClient() {
 }
 
 const LIST_COLS =
-  "id, slug, title, tagline, summary, format, theme, country_code, city, venue, starts_at, ends_at, registration_close, capacity, hero_url, colour, hosts, is_placeholder" as const;
+  "id, slug, title, tagline, summary, format, theme, country_code, city, venue, starts_at, ends_at, registration_close, capacity, hero_url, colour, hosts, is_placeholder, date_tba, series_id, edition_label, site_url" as const;
 
 export const listPublicEvents = createServerFn({ method: "GET" }).handler(async () => {
   const sb = publicClient();
-  const { data, error } = await sb.from("events").select(LIST_COLS).eq("status", "published").order("starts_at");
+  const { data, error } = await sb.from("events").select(LIST_COLS).eq("status", "published").eq("archived", false);
+  if (error) throw new Error(error.message);
+  return sortByDate(data ?? []);
+});
+
+export const listPublicSeries = createServerFn({ method: "GET" }).handler(async () => {
+  const sb = publicClient();
+  const { data, error } = await sb.from("event_series").select("id, slug, name, short_name, site_url, sector, colour, logo_url, summary, position").order("position");
   if (error) throw new Error(error.message);
   return data ?? [];
 });
+
+export const getPublicSeries = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => z.object({ slug: z.string().min(1).max(80) }).parse(d))
+  .handler(async ({ data }) => {
+    const sb = publicClient();
+    const { data: series, error } = await sb.from("event_series").select("id, slug, name, short_name, site_url, sector, colour, logo_url, summary").eq("slug", data.slug).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!series) return null;
+    const { data: evs } = await sb.from("events").select(LIST_COLS).eq("series_id", series.id).eq("status", "published").eq("archived", false);
+    const ids = (evs ?? []).map((e) => e.id);
+    const { data: media } = ids.length
+      ? await sb.from("event_media").select("event_id, kind, url, caption, credit, position").in("event_id", ids).order("position")
+      : { data: [] as { event_id: string; kind: string; url: string; caption: string | null; credit: string | null; position: number }[] };
+    return { series, events: sortByDate(evs ?? []), media: media ?? [] };
+  });
 
 export const getPublicEvent = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ slug: z.string().min(1).max(160) }).parse(d))
@@ -41,17 +64,18 @@ export const getPublicEvent = createServerFn({ method: "GET" })
     const sb = publicClient();
     const { data: ev, error } = await sb
       .from("events")
-      .select(`${LIST_COLS}, body, recording_url, site_url, registration_url`)
+      .select(`${LIST_COLS}, body, recording_url, registration_url`)
       .eq("slug", data.slug)
       .eq("status", "published")
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!ev) return null;
-    const [sessions, speakers, links, taken] = await Promise.all([
+    const [sessions, speakers, links, taken, partners] = await Promise.all([
       sb.from("event_sessions").select("id, position, starts_at, title, description, speaker_names").eq("event_id", ev.id).order("position"),
       sb.from("event_speakers").select("id, position, name, role, organisation, photo_url").eq("event_id", ev.id).order("position"),
       sb.from("event_links").select("id, kind, ref, label").eq("event_id", ev.id),
       sb.rpc("event_seats_taken", { _event_id: ev.id }),
+      sb.from("event_partners").select("id, name, tier, logo_url, url, position").eq("event_id", ev.id).order("position"),
     ]);
     return {
       event: ev,
@@ -59,6 +83,7 @@ export const getPublicEvent = createServerFn({ method: "GET" })
       speakers: speakers.data ?? [],
       links: links.data ?? [],
       taken: (taken.data as number | null) ?? 0,
+      partners: partners.data ?? [],
     };
   });
 

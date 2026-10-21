@@ -372,6 +372,13 @@
       "when": 1792538742527,
       "tag": "0052_events_site_links",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792539806984,
+      "tag": "0053_events_series_admin",
+      "breakpoints": true
     }
   ]
 }

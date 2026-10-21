@@ -18,6 +18,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/events/` | `src/routes/events.index.tsx` |
 | `/events/$slug` | `src/routes/events.$slug.tsx` |
 | `/events/host` | `src/routes/events.host.tsx` |
+| `/events/series/$slug` | `src/routes/events.series.$slug.tsx` |
 | `/f/$token` | `src/routes/f.$token.tsx` |
 | `/i/$token` | `src/routes/i.$token.tsx` |
 | `/mcp` | `src/routes/mcp.ts` |
@@ -51,6 +52,14 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/counsel/` | `src/routes/_authenticated/counsel/index.tsx` |
 | `/_authenticated/counsel/archive` | `src/routes/_authenticated/counsel/archive.tsx` |
 | `/_authenticated/counsel/mobile` | `src/routes/_authenticated/counsel/mobile.tsx` |
+| `/_authenticated/events-admin` | `src/routes/_authenticated/events-admin/route.tsx` |
+| `/_authenticated/events-admin/` | `src/routes/_authenticated/events-admin/index.tsx` |
+| `/_authenticated/events-admin/enquiries` | `src/routes/_authenticated/events-admin/enquiries.tsx` |
+| `/_authenticated/events-admin/events` | `src/routes/_authenticated/events-admin/events.tsx` |
+| `/_authenticated/events-admin/programme` | `src/routes/_authenticated/events-admin/programme.tsx` |
+| `/_authenticated/events-admin/registrations` | `src/routes/_authenticated/events-admin/registrations.tsx` |
+| `/_authenticated/events-admin/series` | `src/routes/_authenticated/events-admin/series.tsx` |
+| `/_authenticated/events-admin/sync` | `src/routes/_authenticated/events-admin/sync.tsx` |
 | `/_authenticated/home` | `src/routes/_authenticated/home.tsx` |
 | `/_authenticated/onboarding/country` | `src/routes/_authenticated/onboarding/country.tsx` |
 

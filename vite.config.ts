@@ -39,5 +39,16 @@ export default defineConfig({
   },
   vite: {
     plugins: [stripInvalidDefines, mcpPlugin()],
+    // Pre-bundle deps Vite otherwise discovers late; a mid-session re-optimise leaves open tabs
+    // with two React copies ("Cannot read properties of null (reading 'use')" → blank screen).
+    optimizeDeps: {
+      include: [
+        "@tanstack/router-core",
+        "@tanstack/router-core/isServer",
+        "@tanstack/router-core/ssr/client",
+        "@tanstack/history",
+        "seroval",
+      ],
+    },
   },
 });

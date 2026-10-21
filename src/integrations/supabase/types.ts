@@ -3384,6 +3384,7 @@ export type Database = {
           needs: string | null
           organisation: string | null
           role: string | null
+          source: string | null
           status: string
         }
         Insert: {
@@ -3400,6 +3401,7 @@ export type Database = {
           needs?: string | null
           organisation?: string | null
           role?: string | null
+          source?: string | null
           status?: string
         }
         Update: {
@@ -3416,6 +3418,7 @@ export type Database = {
           needs?: string | null
           organisation?: string | null
           role?: string | null
+          source?: string | null
           status?: string
         }
         Relationships: [

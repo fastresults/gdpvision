@@ -9,7 +9,7 @@ export function RouteRetryError({ error, reset, crumbs }: ErrorComponentProps & 
   const router = useRouter();
   const message = error instanceof Error ? error.message : "Something went wrong loading this page.";
   return (
-    <SuperAdminShell crumbs={crumbs as never}>
+    <SuperAdminShell crumbs={crumbs}>
       <div className="max-w-xl space-y-3">
         <p className="text-sm text-signal-negative">{message}</p>
         <button

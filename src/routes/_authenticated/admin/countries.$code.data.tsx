@@ -102,10 +102,8 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/data
     if (!(status as any).country) throw notFound();
   },
   component: DataDashboard,
-  errorComponent: ({ error }) => (
-    <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Data" }]}>
-      <p className="text-sm text-signal-negative">{(error as Error).message}</p>
-    </SuperAdminShell>
+  errorComponent: (props) => (
+    <RouteRetryError {...props} crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Data" }]} />
   ),
   notFoundComponent: () => (
     <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }]}>

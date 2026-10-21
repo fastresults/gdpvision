@@ -170,10 +170,8 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/onbo
     if (!(status as any).country) throw notFound();
   },
   component: OnboardWizard,
-  errorComponent: ({ error }) => (
-    <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Onboard" }]}>
-      <p className="text-sm text-red-600">{(error as Error).message}</p>
-    </SuperAdminShell>
+  errorComponent: (props) => (
+    <RouteRetryError {...props} crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Onboard" }]} />
   ),
   notFoundComponent: () => (
     <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Not found" }]}>

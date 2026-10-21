@@ -24,10 +24,8 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/viz"
     if (!(status as any).country) throw notFound();
   },
   component: VizPage,
-  errorComponent: ({ error }) => (
-    <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "GDP Visualizations" }]}>
-      <p className="text-sm text-signal-negative">{(error as Error).message}</p>
-    </SuperAdminShell>
+  errorComponent: (props) => (
+    <RouteRetryError {...props} crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "GDP Visualizations" }]} />
   ),
   notFoundComponent: () => (
     <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }]}>

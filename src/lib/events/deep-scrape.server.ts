@@ -1,6 +1,7 @@
 // Server-only: deep read of a summit website (every same-site page) + AI extraction
 // + idempotent apply to the edition and the Second Brain (memory_objects).
 import { fillBlank, partnerKey, pickPages, sessionKey, speakerKey, uniqueBy } from "./deep-scrape-rules";
+import { SERIES_SECTOR } from "./brain-sync-rules";
 
 const FC = "https://api.firecrawl.dev/v2";
 const MODEL = "openai/gpt-6-astra";
@@ -106,10 +107,7 @@ ${corpus}`;
   return JSON.parse(await readSse(res.body)) as Extracted;
 }
 
-const SECTOR: Record<string, string> = {
-  "blue-economy": "blue_economy", cgdps: "cross", cadis: "digital", chis: "housing", cafs: "agriculture",
-  ceis: "energy", cbis: "commerce", chwis: "health", cis: "finance",
-};
+const SECTOR = SERIES_SECTOR;
 const iso = (d: string) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T12:00:00Z` : null);
 const https = (u: string) => (/^https:\/\//.test(u) ? u : null);
 

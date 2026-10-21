@@ -28,7 +28,7 @@ function SyncRow({ id, name, site, last }: { id: string; name: string; site: str
   const apply = useServerFn(adminSyncApply);
   const qc = useQueryClient();
   const [picked, setPicked] = useState<Record<string, boolean>>({});
-  const pm = useMutation({ mutationFn: () => preview({ data: { series_id: id } }), onSuccess: () => setPicked({}) });
+  const pm = useMutation({ mutationFn: () => preview({ data: { series_id: id } }), onSuccess: () => { setPicked({}); void qc.invalidateQueries({ queryKey: ["admin", "event-series"] }); } });
   const am = useMutation({
     mutationFn: () => {
       const r = pm.data!;

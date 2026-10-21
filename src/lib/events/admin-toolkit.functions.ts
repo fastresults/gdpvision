@@ -229,6 +229,8 @@ export const adminSyncPreview = createServerFn({ method: "POST" })
     const res = await fetch(series.site_url, { headers: { "User-Agent": "GDPVision-Events-Sync/1.0" } });
     if (!res.ok) return { ok: false as const, error: `The summit website answered ${res.status}.` };
     const found = readSite(await res.text());
+    // Ignore generic share images hosted elsewhere; only the summit's own photos count.
+    try { if (found.image && new URL(found.image).host !== new URL(series.site_url).host) found.image = null; } catch { found.image = null; }
     const { data: ev } = await sb.from("events").select("id, title, summary, hero_url, starts_at, date_tba").eq("series_id", series.id).eq("archived", false).order("starts_at", { ascending: false, nullsFirst: true }).limit(1).maybeSingle();
     const { data: snap } = await sb.from("event_site_snapshots").insert({ series_id: series.id, extracted: found }).select("id").single();
     await sb.from("event_series").update({ last_synced_at: new Date().toISOString() }).eq("id", series.id);

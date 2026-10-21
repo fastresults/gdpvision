@@ -15,7 +15,7 @@ This guide needs no coding. Follow the steps in order. Each part says which proj
 
 ## Part C: Issue the key (in GDPVision)
 7. Open the GDPVision site and sign in as an admin.
-8. Go to **Admin**, then **Partner API**.
+8. Go straight to **gdpvision.com/admin/partner-keys**. Or open the admin area at **gdpvision.com/admin** and click **Partner API** in the admin menu.
 9. In the "Issue a key" box, click **Set up for GDP Events site** (top-right corner). The form fills itself in.
 10. In **Allowed website origins**, paste the address from step 6.
 11. Click **Issue key**.

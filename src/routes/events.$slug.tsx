@@ -89,7 +89,7 @@ function EventPage() {
           <h1 className="ev-display ev-rise mt-3 max-w-[16ch] text-[64px] md:text-[120px]">{ev.title}</h1>
           {ev.tagline && <p className="mt-5 max-w-2xl text-[20px] font-semibold">{ev.tagline}</p>}
           <div className="mt-8 flex flex-wrap items-center gap-6 text-[15px] font-semibold">
-            <span className="flex items-center gap-2"><CalendarDays size={18} /> {formatEventDate(ev.starts_at, { weekday: "short" })}{ev.ends_at && formatEventDate(ev.ends_at) !== formatEventDate(ev.starts_at) ? ` – ${formatEventDate(ev.ends_at)}` : ""}</span>
+            <span className="flex items-center gap-2"><CalendarDays size={18} /> {formatEventDate(ev.starts_at, ev.starts_at ? { weekday: "short" } : {})}{ev.ends_at && ev.starts_at && formatEventDate(ev.ends_at) !== formatEventDate(ev.starts_at) ? ` – ${formatEventDate(ev.ends_at)}` : ""}</span>
             {(ev.venue || ev.city) && <span className="flex items-center gap-2"><MapPin size={18} /> {[ev.venue, ev.city].filter(Boolean).join(", ")}</span>}
             {left != null && upcoming && <span className="flex items-center gap-2"><Users size={18} /> {left > 0 ? `${left} places left` : "Full · waitlist open"}</span>}
           </div>

@@ -3290,9 +3290,90 @@ export type Database = {
           },
         ]
       }
+      event_media: {
+        Row: {
+          caption: string | null
+          created_at: string
+          credit: string | null
+          event_id: string
+          id: string
+          kind: string
+          position: number
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          credit?: string | null
+          event_id: string
+          id?: string
+          kind?: string
+          position?: number
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          credit?: string | null
+          event_id?: string
+          id?: string
+          kind?: string
+          position?: number
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_media_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_partners: {
+        Row: {
+          event_id: string
+          id: string
+          logo_url: string | null
+          name: string
+          position: number
+          tier: string | null
+          url: string | null
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          position?: number
+          tier?: string | null
+          url?: string | null
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          position?: number
+          tier?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_partners_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_registrations: {
         Row: {
           attended: boolean
+          checked_in_at: string | null
+          checkin_token: string
           country: string | null
           created_at: string
           email: string
@@ -3307,6 +3388,8 @@ export type Database = {
         }
         Insert: {
           attended?: boolean
+          checked_in_at?: string | null
+          checkin_token?: string
           country?: string | null
           created_at?: string
           email: string
@@ -3321,6 +3404,8 @@ export type Database = {
         }
         Update: {
           attended?: boolean
+          checked_in_at?: string | null
+          checkin_token?: string
           country?: string | null
           created_at?: string
           email?: string
@@ -3342,6 +3427,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      event_series: {
+        Row: {
+          colour: string
+          created_at: string
+          id: string
+          last_synced_at: string | null
+          logo_url: string | null
+          name: string
+          position: number
+          sector: string | null
+          short_name: string | null
+          site_url: string
+          slug: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          colour?: string
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          logo_url?: string | null
+          name: string
+          position?: number
+          sector?: string | null
+          short_name?: string | null
+          site_url: string
+          slug: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          colour?: string
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          logo_url?: string | null
+          name?: string
+          position?: number
+          sector?: string | null
+          short_name?: string | null
+          site_url?: string
+          slug?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       event_sessions: {
         Row: {
@@ -3377,6 +3510,38 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_site_snapshots: {
+        Row: {
+          applied: boolean
+          extracted: Json
+          fetched_at: string
+          id: string
+          series_id: string
+        }
+        Insert: {
+          applied?: boolean
+          extracted?: Json
+          fetched_at?: string
+          id?: string
+          series_id: string
+        }
+        Update: {
+          applied?: boolean
+          extracted?: Json
+          fetched_at?: string
+          id?: string
+          series_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_site_snapshots_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "event_series"
             referencedColumns: ["id"]
           },
         ]
@@ -3421,6 +3586,7 @@ export type Database = {
       }
       events: {
         Row: {
+          archived: boolean
           body: string | null
           capacity: number | null
           city: string | null
@@ -3428,6 +3594,8 @@ export type Database = {
           country_code: string | null
           created_at: string
           created_by: string | null
+          date_tba: boolean
+          edition_label: string | null
           ends_at: string | null
           format: string
           hero_url: string | null
@@ -3438,9 +3606,10 @@ export type Database = {
           recording_url: string | null
           registration_close: string | null
           registration_url: string | null
+          series_id: string | null
           site_url: string | null
           slug: string
-          starts_at: string
+          starts_at: string | null
           status: string
           summary: string | null
           tagline: string | null
@@ -3450,6 +3619,7 @@ export type Database = {
           venue: string | null
         }
         Insert: {
+          archived?: boolean
           body?: string | null
           capacity?: number | null
           city?: string | null
@@ -3457,6 +3627,8 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           created_by?: string | null
+          date_tba?: boolean
+          edition_label?: string | null
           ends_at?: string | null
           format?: string
           hero_url?: string | null
@@ -3467,9 +3639,10 @@ export type Database = {
           recording_url?: string | null
           registration_close?: string | null
           registration_url?: string | null
+          series_id?: string | null
           site_url?: string | null
           slug: string
-          starts_at: string
+          starts_at?: string | null
           status?: string
           summary?: string | null
           tagline?: string | null
@@ -3479,6 +3652,7 @@ export type Database = {
           venue?: string | null
         }
         Update: {
+          archived?: boolean
           body?: string | null
           capacity?: number | null
           city?: string | null
@@ -3486,6 +3660,8 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           created_by?: string | null
+          date_tba?: boolean
+          edition_label?: string | null
           ends_at?: string | null
           format?: string
           hero_url?: string | null
@@ -3496,9 +3672,10 @@ export type Database = {
           recording_url?: string | null
           registration_close?: string | null
           registration_url?: string | null
+          series_id?: string | null
           site_url?: string | null
           slug?: string
-          starts_at?: string
+          starts_at?: string | null
           status?: string
           summary?: string | null
           tagline?: string | null
@@ -3507,7 +3684,15 @@ export type Database = {
           updated_at?: string
           venue?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "event_series"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       exports_documents: {
         Row: {
@@ -12342,6 +12527,7 @@ export type Database = {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
       }
+      event_check_in: { Args: { _token: string }; Returns: Json }
       event_seats_taken: { Args: { _event_id: string }; Returns: number }
       find_story_cluster: {
         Args: { _country: string; _norm_title: string; _since: string }

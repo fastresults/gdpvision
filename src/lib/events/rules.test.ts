@@ -20,3 +20,26 @@ describe("GDP Events registration rules", () => {
     expect(normaliseEmail("  Jane@Gov.AG ")).toBe(normaliseEmail("jane@gov.ag"));
   });
 });
+
+import { sortByDate, findExistingEdition, checkInDecision } from "./rules";
+
+describe("summit series rules", () => {
+  it("sorts events with dates to be announced last", () => {
+    const out = sortByDate([
+      { slug: "chwis-2027", starts_at: null },
+      { slug: "cbis-2027", starts_at: "2027-09-28T00:00:00Z" },
+      { slug: "cgdps-2026", starts_at: "2026-11-11T00:00:00Z" },
+    ]);
+    expect(out.map((e) => e.slug)).toEqual(["cgdps-2026", "cbis-2027", "chwis-2027"]);
+  });
+  it("re-importing an edition finds the existing event instead of creating a copy", () => {
+    const rows = [{ id: "a", series_slug: "cgdps", edition_label: "2026" }];
+    expect(findExistingEdition(rows, "CGDPS", " 2026 ")?.id).toBe("a");
+    expect(findExistingEdition(rows, "cgdps", "2027")).toBeUndefined();
+  });
+  it("checks a delegate in only once", () => {
+    expect(checkInDecision({ status: "confirmed", checked_in_at: null })).toBe("ok");
+    expect(checkInDecision({ status: "confirmed", checked_in_at: "2026-11-11T09:00:00Z" })).toBe("already");
+    expect(checkInDecision({ status: "cancelled", checked_in_at: null })).toBe("cancelled");
+  });
+});

@@ -18,8 +18,9 @@ export const adminListEvents = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { data, error } = await context.supabase
       .from("events")
-      .select("*, event_links(id, kind, ref, label), event_registrations(id, status)")
-      .order("starts_at", { ascending: false });
+      .select("*, event_series(slug, short_name), event_links(id, kind, ref, label), event_registrations(id, status)")
+      .eq("archived", false)
+      .order("starts_at", { ascending: true, nullsFirst: false });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
@@ -37,7 +38,13 @@ const EventInput = z.object({
   country_code: z.string().trim().max(4).nullable().optional(),
   city: z.string().trim().max(120).nullable().optional(),
   venue: z.string().trim().max(200).nullable().optional(),
-  starts_at: z.string().min(10),
+  starts_at: z.string().min(10).nullable(),
+  date_tba: z.boolean().optional(),
+  series_id: z.string().uuid().nullable().optional(),
+  edition_label: z.string().trim().max(40).nullable().optional(),
+  site_url: z.string().trim().url().max(500).nullable().optional(),
+  registration_url: z.string().trim().url().max(500).nullable().optional(),
+  archived: z.boolean().optional(),
   ends_at: z.string().nullable().optional(),
   registration_close: z.string().nullable().optional(),
   capacity: z.number().int().min(0).nullable().optional(),
@@ -51,6 +58,7 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => EventInput.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
+    if (!data.starts_at && !data.date_tba) throw new Error("Set a start date, or tick “Dates to be announced”.");
     const row = { ...data, updated_at: new Date().toISOString(), created_by: data.id ? undefined : context.userId };
     const { data: saved, error } = await context.supabase.from("events").upsert(row, { onConflict: "id" }).select("id").single();
     if (error) throw new Error(error.message);

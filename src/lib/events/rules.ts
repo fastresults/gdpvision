@@ -5,10 +5,12 @@ export type RegistrationWindow = "open" | "closed";
 
 /** Registration closes at the cut-off, or at the start time when no cut-off is set. */
 export function registrationWindow(
-  ev: { starts_at: string; registration_close: string | null },
+  ev: { starts_at: string | null; registration_close: string | null },
   now: Date = new Date(),
 ): RegistrationWindow {
-  const close = new Date(ev.registration_close ?? ev.starts_at).getTime();
+  const at = ev.registration_close ?? ev.starts_at;
+  if (!at) return "open"; // dates to be announced: open for interest
+  const close = new Date(at).getTime();
   return now.getTime() > close ? "closed" : "open";
 }
 
@@ -28,8 +30,39 @@ export function normaliseEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-export function isUpcoming(ev: { starts_at: string; ends_at: string | null }, now: Date = new Date()) {
-  return new Date(ev.ends_at ?? ev.starts_at).getTime() >= now.getTime();
+export function isUpcoming(ev: { starts_at: string | null; ends_at: string | null }, now: Date = new Date()) {
+  const at = ev.ends_at ?? ev.starts_at;
+  if (!at) return true; // dates to be announced count as upcoming
+  return new Date(at).getTime() >= now.getTime();
+}
+
+/** Chronological order; events whose dates are still to be announced sort last. */
+export function sortByDate<T extends { starts_at: string | null }>(list: T[]): T[] {
+  return [...list].sort((a, b) => {
+    if (!a.starts_at && !b.starts_at) return 0;
+    if (!a.starts_at) return 1;
+    if (!b.starts_at) return -1;
+    return a.starts_at.localeCompare(b.starts_at);
+  });
+}
+
+/** Imports match an existing edition on series + edition, so re-importing updates instead of copying. */
+export function importKey(seriesSlug: string, edition: string): string {
+  return `${seriesSlug.trim().toLowerCase()}::${edition.trim().toLowerCase()}`;
+}
+export function findExistingEdition<T extends { series_slug: string; edition_label: string | null }>(
+  rows: T[],
+  seriesSlug: string,
+  edition: string,
+): T | undefined {
+  const k = importKey(seriesSlug, edition);
+  return rows.find((r) => r.edition_label != null && importKey(r.series_slug, r.edition_label) === k);
+}
+
+/** Check-in is one-time: a second scan reports the earlier time rather than overwriting it. */
+export function checkInDecision(r: { status: string; checked_in_at: string | null }): "ok" | "already" | "cancelled" {
+  if (r.status === "cancelled") return "cancelled";
+  return r.checked_in_at ? "already" : "ok";
 }
 
 export const EVENT_COLOURS = ["sea", "coral", "mango", "palm", "night"] as const;

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { adminListSeries, adminSyncApply, adminSyncPreview } from "@/lib/events/admin-toolkit.functions";
+import { adminDeepScrape, adminListSeries, adminSyncApply, adminSyncPreview } from "@/lib/events/admin-toolkit.functions";
 
 export const Route = createFileRoute("/_authenticated/events-admin/sync")({
   head: () => ({ meta: [{ title: "Site sync — Events Admin" }, { name: "description", content: "Refresh editions from each summit website." }, { property: "og:title", content: "Site sync — Events Admin" }, { property: "og:description", content: "Refresh from summit websites." }] }),
@@ -37,6 +37,9 @@ function SyncRow({ id, name, site, last }: { id: string; name: string; site: str
     },
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ["admin", "events"] }); pm.reset(); },
   });
+  const deep = useServerFn(adminDeepScrape);
+  const dm = useMutation({ mutationFn: () => deep({ data: { series_id: id } }), onSuccess: () => { void qc.invalidateQueries({ queryKey: ["admin", "event-series"] }); } });
+  const d = dm.data;
   const r = pm.data;
   return (
     <section className="rounded-2xl border-4 border-ev-ink bg-paper-0 p-5">
@@ -49,7 +52,22 @@ function SyncRow({ id, name, site, last }: { id: string; name: string; site: str
         <button type="button" className="ev-btn-dark !py-2 !text-[14px]" disabled={pm.isPending} onClick={() => pm.mutate()}>
           {pm.isPending ? "Reading…" : "Refresh from site"}
         </button>
+        <button type="button" className="ev-btn-dark !py-2 !text-[14px]" disabled={dm.isPending} onClick={() => dm.mutate()}>
+          {dm.isPending ? "Reading every page…" : "Deep scrape"}
+        </button>
       </div>
+      {d && !d.ok && <p className="mt-3 text-signal-red">{d.error}</p>}
+      {d && d.ok && (
+        <div className="mt-4 rounded-xl border-2 border-ev-ink p-3 text-[14px]">
+          <p className="font-bold">
+            Read {d.found.pages} pages · {d.found.sessions} sessions · {d.found.speakers} speakers · {d.found.partners} partners · {d.found.photos} photos · {d.brain_records} Second Brain records updated
+          </p>
+          {d.found.conflicts.length > 0 && (
+            <ul className="mt-2 list-disc pl-5">{d.found.conflicts.map((c) => <li key={c}>{c}</li>)}</ul>
+          )}
+          <p className="mt-2 text-[12px] opacity-70">Only empty fields are filled; nothing already set is overwritten. Re-runs update, never duplicate.</p>
+        </div>
+      )}
       {pm.error && <p className="mt-3 text-signal-red">{(pm.error as Error).message}</p>}
       {r && !r.ok && <p className="mt-3 text-signal-red">{r.error}</p>}
       {r && r.ok && (

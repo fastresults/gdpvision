@@ -1,5 +1,5 @@
 // @domain events
-// @tables event_series, events, event_sessions, event_speakers, event_partners, event_media, event_registrations, event_site_snapshots
+// @tables event_series, events, event_sessions, event_speakers, event_partners, event_media, event_registrations, event_site_snapshots, memory_objects
 // @ui src/routes/_authenticated/events-admin/route.tsx
 
 // Events Admin toolkit: dashboard, series, programme (agenda/speakers/partners/media), check-in and site sync.
@@ -271,6 +271,34 @@ export const adminDeepScrape = createServerFn({ method: "POST" })
     try {
       const r = await deepScrapeSeries(supabaseAdmin, data.series_id, true);
       return { ok: true as const, found: r.found, brain_records: Number((r as { applied?: { brain_records?: number } }).applied?.brain_records ?? 0) };
+    } catch (e) {
+      return { ok: false as const, error: (e as Error).message };
+    }
+  });
+
+// ---------- Second Brain sync (one click: everything in Events Admin → Second Brain) ----------
+export const adminBrainStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const sb: any = context.supabase;
+    const kinds = ["event", "event_topic", "event_speaker", "event_partner"];
+    const counts = await Promise.all(kinds.map((k) => sb.from("memory_objects").select("id", { count: "exact", head: true }).eq("kind", k).eq("visibility", "public")));
+    const { data: last } = await sb.from("memory_objects").select("updated_at").in("kind", kinds).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    return {
+      summits: counts[0].count ?? 0, topics: counts[1].count ?? 0, speakers: counts[2].count ?? 0, partners: counts[3].count ?? 0,
+      last_updated: (last?.updated_at as string | undefined) ?? null,
+    };
+  });
+
+export const adminSyncBrain = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { syncEventsToBrain } = await import("./brain-sync.server");
+    try {
+      return { ok: true as const, ...(await syncEventsToBrain(supabaseAdmin)) };
     } catch (e) {
       return { ok: false as const, error: (e as Error).message };
     }

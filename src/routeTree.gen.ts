@@ -160,6 +160,8 @@ import { Route as AuthenticatedConsoleCodeChamberChamberRouteImport } from './ro
 import { Route as AuthenticatedConsoleCodeRequestNewRouteImport } from './routes/_authenticated/console.$code.request.new'
 import { Route as AuthenticatedConsoleCodeRequestsIndexRouteImport } from './routes/_authenticated/console.$code.requests.index'
 import { Route as AuthenticatedConsoleCodeRequestsIdRouteImport } from './routes/_authenticated/console.$code.requests.$id'
+import { Route as ApiPublicV2EventsSlugRouteImport } from './routes/api/public/v2/events.$slug'
+import { Route as ApiPublicV2EventsSeriesRouteImport } from './routes/api/public/v2/events.series'
 import { Route as ApiPublicV2IndicesIndexRouteImport } from './routes/api/public/v2/indices.$index'
 import { Route as AuthenticatedAdminCountriesCodeCabinetIndexRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.index'
 import { Route as AuthenticatedAdminCountriesCodeEgovPrdIdRouteImport } from './routes/_authenticated/admin/countries.$code.egov_.$prdId'
@@ -181,6 +183,9 @@ import { Route as AuthenticatedAdminCountriesCodeSectorPlanIdRouteImport } from 
 import { Route as AuthenticatedAdminCountriesCodeStudioIndexRouteImport } from './routes/_authenticated/admin/countries.$code.studio.index'
 import { Route as ApiPublicV1CountriesCodeResourceRouteImport } from './routes/api/public/v1/countries.$code.$resource'
 import { Route as ApiPublicV2CountriesCodeResourceRouteImport } from './routes/api/public/v2/countries.$code.$resource'
+import { Route as ApiPublicV2EventsSlugContextRouteImport } from './routes/api/public/v2/events.$slug.context'
+import { Route as ApiPublicV2EventsSlugMediaRouteImport } from './routes/api/public/v2/events.$slug.media'
+import { Route as ApiPublicV2EventsSlugRegisterRouteImport } from './routes/api/public/v2/events.$slug.register'
 import { Route as AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.agenda.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.minutes.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.session.$sid'
@@ -1055,6 +1060,16 @@ const AuthenticatedConsoleCodeRequestsIdRoute =
     path: '/$code/requests/$id',
     getParentRoute: () => AuthenticatedConsoleRoute,
   } as any)
+const ApiPublicV2EventsSlugRoute = ApiPublicV2EventsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ApiPublicV2EventsRoute,
+} as any)
+const ApiPublicV2EventsSeriesRoute = ApiPublicV2EventsSeriesRouteImport.update({
+  id: '/series',
+  path: '/series',
+  getParentRoute: () => ApiPublicV2EventsRoute,
+} as any)
 const ApiPublicV2IndicesIndexRoute = ApiPublicV2IndicesIndexRouteImport.update({
   id: '/$index',
   path: '/$index',
@@ -1179,6 +1194,24 @@ const ApiPublicV2CountriesCodeResourceRoute =
     id: '/$code/$resource',
     path: '/$code/$resource',
     getParentRoute: () => ApiPublicV2CountriesRoute,
+  } as any)
+const ApiPublicV2EventsSlugContextRoute =
+  ApiPublicV2EventsSlugContextRouteImport.update({
+    id: '/context',
+    path: '/context',
+    getParentRoute: () => ApiPublicV2EventsSlugRoute,
+  } as any)
+const ApiPublicV2EventsSlugMediaRoute =
+  ApiPublicV2EventsSlugMediaRouteImport.update({
+    id: '/media',
+    path: '/media',
+    getParentRoute: () => ApiPublicV2EventsSlugRoute,
+  } as any)
+const ApiPublicV2EventsSlugRegisterRoute =
+  ApiPublicV2EventsSlugRegisterRouteImport.update({
+    id: '/register',
+    path: '/register',
+    getParentRoute: () => ApiPublicV2EventsSlugRoute,
   } as any)
 const AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute =
   AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport.update({
@@ -1403,7 +1436,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
-  '/api/public/v2/events': typeof ApiPublicV2EventsRoute
+  '/api/public/v2/events': typeof ApiPublicV2EventsRouteWithChildren
   '/api/public/v2/indices': typeof ApiPublicV2IndicesRouteWithChildren
   '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -1435,6 +1468,8 @@ export interface FileRoutesByFullPath {
   '/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
+  '/api/public/v2/events/$slug': typeof ApiPublicV2EventsSlugRouteWithChildren
+  '/api/public/v2/events/series': typeof ApiPublicV2EventsSeriesRoute
   '/api/public/v2/indices/$index': typeof ApiPublicV2IndicesIndexRoute
   '/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
   '/admin/countries/$code/egov/$prdId': typeof AuthenticatedAdminCountriesCodeEgovPrdIdRoute
@@ -1451,6 +1486,9 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/sector/$planId': typeof AuthenticatedAdminCountriesCodeSectorPlanIdRoute
   '/api/public/v1/countries/$code/$resource': typeof ApiPublicV1CountriesCodeResourceRoute
   '/api/public/v2/countries/$code/$resource': typeof ApiPublicV2CountriesCodeResourceRoute
+  '/api/public/v2/events/$slug/context': typeof ApiPublicV2EventsSlugContextRoute
+  '/api/public/v2/events/$slug/media': typeof ApiPublicV2EventsSlugMediaRoute
+  '/api/public/v2/events/$slug/register': typeof ApiPublicV2EventsSlugRegisterRoute
   '/admin/countries/$code/cabinet/': typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
   '/admin/countries/$code/narrative/': typeof AuthenticatedAdminCountriesCodeNarrativeIndexRoute
   '/admin/countries/$code/personas/': typeof AuthenticatedAdminCountriesCodePersonasIndexRoute
@@ -1587,7 +1625,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
-  '/api/public/v2/events': typeof ApiPublicV2EventsRoute
+  '/api/public/v2/events': typeof ApiPublicV2EventsRouteWithChildren
   '/api/public/v2/indices': typeof ApiPublicV2IndicesRouteWithChildren
   '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -1614,6 +1652,8 @@ export interface FileRoutesByTo {
   '/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
+  '/api/public/v2/events/$slug': typeof ApiPublicV2EventsSlugRouteWithChildren
+  '/api/public/v2/events/series': typeof ApiPublicV2EventsSeriesRoute
   '/api/public/v2/indices/$index': typeof ApiPublicV2IndicesIndexRoute
   '/console/$code/requests': typeof AuthenticatedConsoleCodeRequestsIndexRoute
   '/admin/countries/$code/egov/$prdId': typeof AuthenticatedAdminCountriesCodeEgovPrdIdRoute
@@ -1630,6 +1670,9 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/sector/$planId': typeof AuthenticatedAdminCountriesCodeSectorPlanIdRoute
   '/api/public/v1/countries/$code/$resource': typeof ApiPublicV1CountriesCodeResourceRoute
   '/api/public/v2/countries/$code/$resource': typeof ApiPublicV2CountriesCodeResourceRoute
+  '/api/public/v2/events/$slug/context': typeof ApiPublicV2EventsSlugContextRoute
+  '/api/public/v2/events/$slug/media': typeof ApiPublicV2EventsSlugMediaRoute
+  '/api/public/v2/events/$slug/register': typeof ApiPublicV2EventsSlugRegisterRoute
   '/admin/countries/$code/cabinet': typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
   '/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeIndexRoute
   '/admin/countries/$code/personas': typeof AuthenticatedAdminCountriesCodePersonasIndexRoute
@@ -1774,7 +1817,7 @@ export interface FileRoutesById {
   '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/api/public/v2/compare': typeof ApiPublicV2CompareRoute
   '/api/public/v2/countries': typeof ApiPublicV2CountriesRouteWithChildren
-  '/api/public/v2/events': typeof ApiPublicV2EventsRoute
+  '/api/public/v2/events': typeof ApiPublicV2EventsRouteWithChildren
   '/api/public/v2/indices': typeof ApiPublicV2IndicesRouteWithChildren
   '/api/public/v2/search': typeof ApiPublicV2SearchRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -1806,6 +1849,8 @@ export interface FileRoutesById {
   '/_authenticated/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/_authenticated/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/_authenticated/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
+  '/api/public/v2/events/$slug': typeof ApiPublicV2EventsSlugRouteWithChildren
+  '/api/public/v2/events/series': typeof ApiPublicV2EventsSeriesRoute
   '/api/public/v2/indices/$index': typeof ApiPublicV2IndicesIndexRoute
   '/_authenticated/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
   '/_authenticated/admin/countries/$code/egov_/$prdId': typeof AuthenticatedAdminCountriesCodeEgovPrdIdRoute
@@ -1822,6 +1867,9 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/sector_/$planId': typeof AuthenticatedAdminCountriesCodeSectorPlanIdRoute
   '/api/public/v1/countries/$code/$resource': typeof ApiPublicV1CountriesCodeResourceRoute
   '/api/public/v2/countries/$code/$resource': typeof ApiPublicV2CountriesCodeResourceRoute
+  '/api/public/v2/events/$slug/context': typeof ApiPublicV2EventsSlugContextRoute
+  '/api/public/v2/events/$slug/media': typeof ApiPublicV2EventsSlugMediaRoute
+  '/api/public/v2/events/$slug/register': typeof ApiPublicV2EventsSlugRegisterRoute
   '/_authenticated/admin/countries/$code/cabinet/': typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
   '/_authenticated/admin/countries/$code/narrative/': typeof AuthenticatedAdminCountriesCodeNarrativeIndexRoute
   '/_authenticated/admin/countries/$code/personas/': typeof AuthenticatedAdminCountriesCodePersonasIndexRoute
@@ -1998,6 +2046,8 @@ export interface FileRouteTypes {
     | '/console/$code/chamber/$chamber'
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
+    | '/api/public/v2/events/$slug'
+    | '/api/public/v2/events/series'
     | '/api/public/v2/indices/$index'
     | '/console/$code/requests/'
     | '/admin/countries/$code/egov/$prdId'
@@ -2014,6 +2064,9 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/sector/$planId'
     | '/api/public/v1/countries/$code/$resource'
     | '/api/public/v2/countries/$code/$resource'
+    | '/api/public/v2/events/$slug/context'
+    | '/api/public/v2/events/$slug/media'
+    | '/api/public/v2/events/$slug/register'
     | '/admin/countries/$code/cabinet/'
     | '/admin/countries/$code/narrative/'
     | '/admin/countries/$code/personas/'
@@ -2177,6 +2230,8 @@ export interface FileRouteTypes {
     | '/console/$code/chamber/$chamber'
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
+    | '/api/public/v2/events/$slug'
+    | '/api/public/v2/events/series'
     | '/api/public/v2/indices/$index'
     | '/console/$code/requests'
     | '/admin/countries/$code/egov/$prdId'
@@ -2193,6 +2248,9 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/sector/$planId'
     | '/api/public/v1/countries/$code/$resource'
     | '/api/public/v2/countries/$code/$resource'
+    | '/api/public/v2/events/$slug/context'
+    | '/api/public/v2/events/$slug/media'
+    | '/api/public/v2/events/$slug/register'
     | '/admin/countries/$code/cabinet'
     | '/admin/countries/$code/narrative'
     | '/admin/countries/$code/personas'
@@ -2368,6 +2426,8 @@ export interface FileRouteTypes {
     | '/_authenticated/console/$code/chamber/$chamber'
     | '/_authenticated/console/$code/request/new'
     | '/_authenticated/console/$code/requests/$id'
+    | '/api/public/v2/events/$slug'
+    | '/api/public/v2/events/series'
     | '/api/public/v2/indices/$index'
     | '/_authenticated/console/$code/requests/'
     | '/_authenticated/admin/countries/$code/egov_/$prdId'
@@ -2384,6 +2444,9 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/sector_/$planId'
     | '/api/public/v1/countries/$code/$resource'
     | '/api/public/v2/countries/$code/$resource'
+    | '/api/public/v2/events/$slug/context'
+    | '/api/public/v2/events/$slug/media'
+    | '/api/public/v2/events/$slug/register'
     | '/_authenticated/admin/countries/$code/cabinet/'
     | '/_authenticated/admin/countries/$code/narrative/'
     | '/_authenticated/admin/countries/$code/personas/'
@@ -2448,7 +2511,7 @@ export interface RootRouteChildren {
   ApiPublicV1HandshakeRoute: typeof ApiPublicV1HandshakeRoute
   ApiPublicV2CompareRoute: typeof ApiPublicV2CompareRoute
   ApiPublicV2CountriesRoute: typeof ApiPublicV2CountriesRouteWithChildren
-  ApiPublicV2EventsRoute: typeof ApiPublicV2EventsRoute
+  ApiPublicV2EventsRoute: typeof ApiPublicV2EventsRouteWithChildren
   ApiPublicV2IndicesRoute: typeof ApiPublicV2IndicesRouteWithChildren
   ApiPublicV2SearchRoute: typeof ApiPublicV2SearchRoute
   ApiPublicV1CountriesCodeResourceRoute: typeof ApiPublicV1CountriesCodeResourceRoute
@@ -3513,6 +3576,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConsoleCodeRequestsIdRouteImport
       parentRoute: typeof AuthenticatedConsoleRoute
     }
+    '/api/public/v2/events/$slug': {
+      id: '/api/public/v2/events/$slug'
+      path: '/$slug'
+      fullPath: '/api/public/v2/events/$slug'
+      preLoaderRoute: typeof ApiPublicV2EventsSlugRouteImport
+      parentRoute: typeof ApiPublicV2EventsRoute
+    }
+    '/api/public/v2/events/series': {
+      id: '/api/public/v2/events/series'
+      path: '/series'
+      fullPath: '/api/public/v2/events/series'
+      preLoaderRoute: typeof ApiPublicV2EventsSeriesRouteImport
+      parentRoute: typeof ApiPublicV2EventsRoute
+    }
     '/api/public/v2/indices/$index': {
       id: '/api/public/v2/indices/$index'
       path: '/$index'
@@ -3659,6 +3736,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/v2/countries/$code/$resource'
       preLoaderRoute: typeof ApiPublicV2CountriesCodeResourceRouteImport
       parentRoute: typeof ApiPublicV2CountriesRoute
+    }
+    '/api/public/v2/events/$slug/context': {
+      id: '/api/public/v2/events/$slug/context'
+      path: '/context'
+      fullPath: '/api/public/v2/events/$slug/context'
+      preLoaderRoute: typeof ApiPublicV2EventsSlugContextRouteImport
+      parentRoute: typeof ApiPublicV2EventsSlugRoute
+    }
+    '/api/public/v2/events/$slug/media': {
+      id: '/api/public/v2/events/$slug/media'
+      path: '/media'
+      fullPath: '/api/public/v2/events/$slug/media'
+      preLoaderRoute: typeof ApiPublicV2EventsSlugMediaRouteImport
+      parentRoute: typeof ApiPublicV2EventsSlugRoute
+    }
+    '/api/public/v2/events/$slug/register': {
+      id: '/api/public/v2/events/$slug/register'
+      path: '/register'
+      fullPath: '/api/public/v2/events/$slug/register'
+      preLoaderRoute: typeof ApiPublicV2EventsSlugRegisterRouteImport
+      parentRoute: typeof ApiPublicV2EventsSlugRoute
     }
     '/_authenticated/admin/countries/$code/cabinet/agenda/$sid': {
       id: '/_authenticated/admin/countries/$code/cabinet/agenda/$sid'
@@ -4378,6 +4476,36 @@ const ApiPublicV2CountriesRouteChildren: ApiPublicV2CountriesRouteChildren = {
 const ApiPublicV2CountriesRouteWithChildren =
   ApiPublicV2CountriesRoute._addFileChildren(ApiPublicV2CountriesRouteChildren)
 
+interface ApiPublicV2EventsSlugRouteChildren {
+  ApiPublicV2EventsSlugContextRoute: typeof ApiPublicV2EventsSlugContextRoute
+  ApiPublicV2EventsSlugMediaRoute: typeof ApiPublicV2EventsSlugMediaRoute
+  ApiPublicV2EventsSlugRegisterRoute: typeof ApiPublicV2EventsSlugRegisterRoute
+}
+
+const ApiPublicV2EventsSlugRouteChildren: ApiPublicV2EventsSlugRouteChildren = {
+  ApiPublicV2EventsSlugContextRoute: ApiPublicV2EventsSlugContextRoute,
+  ApiPublicV2EventsSlugMediaRoute: ApiPublicV2EventsSlugMediaRoute,
+  ApiPublicV2EventsSlugRegisterRoute: ApiPublicV2EventsSlugRegisterRoute,
+}
+
+const ApiPublicV2EventsSlugRouteWithChildren =
+  ApiPublicV2EventsSlugRoute._addFileChildren(
+    ApiPublicV2EventsSlugRouteChildren,
+  )
+
+interface ApiPublicV2EventsRouteChildren {
+  ApiPublicV2EventsSlugRoute: typeof ApiPublicV2EventsSlugRouteWithChildren
+  ApiPublicV2EventsSeriesRoute: typeof ApiPublicV2EventsSeriesRoute
+}
+
+const ApiPublicV2EventsRouteChildren: ApiPublicV2EventsRouteChildren = {
+  ApiPublicV2EventsSlugRoute: ApiPublicV2EventsSlugRouteWithChildren,
+  ApiPublicV2EventsSeriesRoute: ApiPublicV2EventsSeriesRoute,
+}
+
+const ApiPublicV2EventsRouteWithChildren =
+  ApiPublicV2EventsRoute._addFileChildren(ApiPublicV2EventsRouteChildren)
+
 interface ApiPublicV2IndicesRouteChildren {
   ApiPublicV2IndicesIndexRoute: typeof ApiPublicV2IndicesIndexRoute
 }
@@ -4429,7 +4557,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicV1HandshakeRoute: ApiPublicV1HandshakeRoute,
   ApiPublicV2CompareRoute: ApiPublicV2CompareRoute,
   ApiPublicV2CountriesRoute: ApiPublicV2CountriesRouteWithChildren,
-  ApiPublicV2EventsRoute: ApiPublicV2EventsRoute,
+  ApiPublicV2EventsRoute: ApiPublicV2EventsRouteWithChildren,
   ApiPublicV2IndicesRoute: ApiPublicV2IndicesRouteWithChildren,
   ApiPublicV2SearchRoute: ApiPublicV2SearchRoute,
   ApiPublicV1CountriesCodeResourceRoute: ApiPublicV1CountriesCodeResourceRoute,

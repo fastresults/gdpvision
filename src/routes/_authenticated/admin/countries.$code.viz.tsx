@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
+import { RouteRetryError } from "@/components/admin/RouteRetryError";
 import { GdpVizStudio } from "@/components/viz/GdpVizStudio";
 import { getOnboardingStatus } from "@/lib/country-onboarding/agents.functions";
 
@@ -24,10 +25,8 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/viz"
     if (!(status as any).country) throw notFound();
   },
   component: VizPage,
-  errorComponent: ({ error }) => (
-    <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "GDP Visualizations" }]}>
-      <p className="text-sm text-signal-negative">{(error as Error).message}</p>
-    </SuperAdminShell>
+  errorComponent: (props) => (
+    <RouteRetryError {...props} crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "GDP Visualizations" }]} />
   ),
   notFoundComponent: () => (
     <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }]}>

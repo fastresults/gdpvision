@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
+import { RouteRetryError } from "@/components/admin/RouteRetryError";
 import { DataStoresPanel } from "@/components/country-data/DataStoresPanel";
 import { ChambersLauncher } from "@/components/country/ChambersLauncher";
 import { PrettyJson } from "@/components/data/PrettyJson";
@@ -170,10 +171,8 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/onbo
     if (!(status as any).country) throw notFound();
   },
   component: OnboardWizard,
-  errorComponent: ({ error }) => (
-    <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Onboard" }]}>
-      <p className="text-sm text-red-600">{(error as Error).message}</p>
-    </SuperAdminShell>
+  errorComponent: (props) => (
+    <RouteRetryError {...props} crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Onboard" }]} />
   ),
   notFoundComponent: () => (
     <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Not found" }]}>

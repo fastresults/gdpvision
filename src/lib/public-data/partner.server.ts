@@ -344,7 +344,7 @@ export async function readEventContext(id: PartnerIdentity, slug: string) {
 }
 
 /** Recent public news signals for a summit's host country (30-day window). */
-export async function readEventMedia(id: PartnerIdentity, slug: string) {
+export async function readEventMedia(id: PartnerIdentity, slug: string, limit = 50) {
   needEvents(id);
   if (!id.scopes.includes("media")) throw httpError(403, 'This key does not include "media".');
   const ev = await editionBySlug(slug);
@@ -352,7 +352,8 @@ export async function readEventMedia(id: PartnerIdentity, slug: string) {
   const country = brainScope(ev.country_code);
   if (country === "REGION" || !canReadCountry(id, country)) return { country, count: 0, data: [] };
   const r = await readPublicResource(country, "media");
-  return { country, count: r.data.length, data: r.data, ...r.extra };
+  const data = r.data.slice(0, Math.min(Math.max(limit, 1), 200));
+  return { country, count: data.length, data, ...r.extra };
 }
 
 /** Register an attendee for a published edition on behalf of a partner site. */

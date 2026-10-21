@@ -10,7 +10,7 @@ export const Route = createFileRoute("/api/public/v2/events/$slug/media")({
       },
       GET: async ({ request, params }) => {
         const m = await import("@/lib/public-data/partner.server");
-        return m.withPartner(request, (id) => m.readEventMedia(id, String(params.slug)));
+        return m.withPartner(request, (id) => m.readEventMedia(id, String(params.slug), Number(new URL(request.url).searchParams.get("limit") ?? 50) || 50));
       },
     },
   },

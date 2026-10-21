@@ -66,6 +66,7 @@ function EventPage() {
   const { data } = useSuspenseQuery(detailQuery(slug));
   if (!data) return null;
   const { event: ev, sessions, speakers, links, taken } = data;
+  const partners = (data as { partners?: { id: string; name: string; tier: string | null; logo_url: string | null; url: string | null }[] }).partners ?? [];
   const regOpen = registrationWindow(ev) === "open";
   const left = placesLeft(ev.capacity, taken);
   const upcoming = isUpcoming(ev);
@@ -102,7 +103,13 @@ function EventPage() {
           {(ev.summary || ev.body) && (
             <section>
               {ev.summary && <p className="text-[22px] font-semibold leading-snug">{ev.summary}</p>}
-              {ev.body && <p className="mt-5 text-[17px] leading-relaxed">{ev.body}</p>}
+              {ev.body && (
+                <div className="mt-5 space-y-2 text-[17px] leading-relaxed">
+                  {ev.body.replace(/\*\*/g, "").split(/\n+/).filter((l) => l.trim()).map((l, i) => (
+                    <p key={i}>{l.replace(/^-\s+/, "• ")}</p>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
@@ -136,6 +143,30 @@ function EventPage() {
                     <div className="mt-1 text-[14px] font-semibold">{[sp.role, sp.organisation].filter(Boolean).join(" · ")}</div>
                   </li>
                 ))}
+              </ul>
+            </section>
+          )}
+
+          {partners.length > 0 && (
+            <section>
+              <h2 className="ev-display text-[56px]">Partners</h2>
+              <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                {partners.map((p) => {
+                  const inner = (
+                    <>
+                      <div className="flex h-16 items-center justify-center">
+                        {p.logo_url ? <img src={p.logo_url} alt={p.name} loading="lazy" className="max-h-16 max-w-full object-contain" /> : <span className="text-center text-[15px] font-bold">{p.name}</span>}
+                      </div>
+                      <div className="mt-3 text-center text-[13px] font-semibold">{p.name}</div>
+                      {p.tier && <div className="text-center text-[11px] font-bold uppercase tracking-wider opacity-60">{p.tier}</div>}
+                    </>
+                  );
+                  return (
+                    <li key={p.id} className="rounded-2xl border-4 border-ev-ink bg-ev-paper p-4">
+                      {p.url ? <a href={p.url} target="_blank" rel="noreferrer" className="block">{inner}</a> : inner}
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           )}

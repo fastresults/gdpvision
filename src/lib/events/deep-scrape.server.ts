@@ -134,10 +134,10 @@ export async function applySummit(sb: any, seriesId: string, x: Extracted, pages
   };
   if (!ev.starts_at && iso(x.starts_on)) { patch.starts_at = iso(x.starts_on); patch.ends_at = iso(x.ends_on) ?? iso(x.starts_on); patch.date_tba = false; }
   const body = [
-    x.themes.length ? `**Themes:** ${x.themes.join(", ")}` : "",
-    x.tickets.length ? `**Tickets:**\n${x.tickets.map((t) => `- ${t.name}${t.price ? ` — ${t.price}` : ""}${t.notes ? ` (${t.notes})` : ""}`).join("\n")}` : "",
-    x.faqs.length ? `**FAQ**\n${x.faqs.map((f) => `- **${f.question}** ${f.answer}`).join("\n")}` : "",
-    x.contact_email ? `**Contact:** ${x.contact_email}` : "",
+    x.themes.length ? `Themes: ${x.themes.join(", ")}` : "",
+    x.tickets.length ? `Tickets:\n${x.tickets.map((t) => `- ${t.name}${t.price ? ` — ${t.price}` : ""}${t.notes ? ` (${t.notes})` : ""}`).join("\n")}` : "",
+    x.faqs.length ? `FAQ\n${x.faqs.map((f) => `- ${f.question} ${f.answer}`).join("\n")}` : "",
+    x.contact_email ? `Contact: ${x.contact_email}` : "",
   ].filter(Boolean).join("\n\n");
   if (!ev.body && body) patch.body = body;
   await sb.from("events").update(patch).eq("id", ev.id);

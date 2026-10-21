@@ -31,9 +31,14 @@ const LIST_COLS =
 
 export const listPublicEvents = createServerFn({ method: "GET" }).handler(async () => {
   const sb = publicClient();
-  const { data, error } = await sb.from("events").select(LIST_COLS).eq("status", "published").eq("archived", false);
+  const [{ data, error }, { data: series }] = await Promise.all([
+    sb.from("events").select(LIST_COLS).eq("status", "published").eq("archived", false),
+    sb.from("event_series").select("id, site_url"),
+  ]);
   if (error) throw new Error(error.message);
-  return sortByDate(data ?? []);
+  // Cards link to the summit's own domain (e.g. cis27.com), not an archive sub-page.
+  const site = new Map((series ?? []).map((s) => [s.id, s.site_url]));
+  return sortByDate((data ?? []).map((e) => ({ ...e, site_url: (e.series_id && site.get(e.series_id)) || e.site_url })));
 });
 
 export const listPublicSeries = createServerFn({ method: "GET" }).handler(async () => {
@@ -55,7 +60,7 @@ export const getPublicSeries = createServerFn({ method: "GET" })
     const { data: media } = ids.length
       ? await sb.from("event_media").select("event_id, kind, url, caption, credit, position").in("event_id", ids).order("position")
       : { data: [] as { event_id: string; kind: string; url: string; caption: string | null; credit: string | null; position: number }[] };
-    return { series, events: sortByDate(evs ?? []), media: media ?? [] };
+    return { series, events: sortByDate((evs ?? []).map((e) => ({ ...e, site_url: series.site_url }))), media: media ?? [] };
   });
 
 export const getPublicEvent = createServerFn({ method: "GET" })

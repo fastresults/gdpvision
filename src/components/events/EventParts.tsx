@@ -32,6 +32,7 @@ export type EventCardData = {
   hero_url: string | null;
   colour: string;
   is_placeholder: boolean;
+  site_url?: string | null;
 };
 
 export function formatEventDate(iso: string | null, opts: Intl.DateTimeFormatOptions = {}) {
@@ -65,11 +66,33 @@ export function PlaceholderBadge() {
   );
 }
 
+/** Short display name for a summit website, e.g. "cis27.com". */
+export function siteHost(url: string) {
+  try { return new URL(url).host.replace(/^www\./, ""); } catch { return url; }
+}
+
+/** Opens the summit's own website in a new tab. Sits above stretched card links. */
+export function SiteLink({ url, name, className }: { url: string | null | undefined; name: string; className?: string }) {
+  if (!url) return null;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Visit the ${name} website at ${siteHost(url)} (opens in a new tab)`}
+      className={cn(
+        "relative z-10 inline-flex w-fit items-center gap-1.5 rounded-full border-[3px] border-ev-ink bg-ev-paper px-3 py-1 text-[13px] font-bold text-ev-ink transition-colors hover:bg-ev-ink hover:text-ev-paper",
+        className,
+      )}
+    >
+      Visit {siteHost(url)} <ArrowUpRight size={14} aria-hidden />
+    </a>
+  );
+}
+
 export function EventTile({ ev, index = 0, large = false }: { ev: EventCardData; index?: number; large?: boolean }) {
   return (
-    <Link
-      to="/events/$slug"
-      params={{ slug: ev.slug }}
+    <div
       className={cn(
         "ev-tile ev-rise group relative flex flex-col overflow-hidden rounded-3xl border-4 border-ev-ink",
         COLOUR_BG[ev.colour] ?? "bg-ev-sea",
@@ -100,20 +123,25 @@ export function EventTile({ ev, index = 0, large = false }: { ev: EventCardData;
             {FORMAT_LABEL[ev.format] ?? ev.format}
             {ev.theme ? ` · ${ev.theme}` : ""}
           </div>
-          <h3 className={cn("ev-display mt-2", large ? "text-[44px] md:text-[60px]" : "text-[36px]")}>{ev.title}</h3>
+          <h3 className={cn("ev-display mt-2", large ? "text-[44px] md:text-[60px]" : "text-[36px]")}>
+            <Link to="/events/$slug" params={{ slug: ev.slug }} className="after:absolute after:inset-0 after:content-['']">
+              {ev.title}
+            </Link>
+          </h3>
           {ev.tagline && <p className="mt-3 text-[15px] font-medium leading-snug">{ev.tagline}</p>}
           {(ev.city || ev.venue) && (
             <p className="mt-3 flex items-center gap-1.5 text-[13px] opacity-80">
               <MapPin size={14} /> {ev.city ?? ev.venue}
             </p>
           )}
+          <SiteLink url={ev.site_url} name={ev.title} className="mt-4" />
         </div>
         <ArrowUpRight
           size={28}
           className="shrink-0 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 motion-reduce:transition-none"
         />
       </div>
-    </Link>
+    </div>
   );
 }
 

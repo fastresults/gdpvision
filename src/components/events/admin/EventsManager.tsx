@@ -371,7 +371,7 @@ function Attendees({ ev, onClose }: { ev: Ev; onClose: () => void }) {
               {(regs.data ?? []).map((r) => (
                 <tr key={r.id} className="border-t border-line-100">
                   <td className="p-2"><div className="text-ink-950">{r.name}</div><div className="text-[12px] text-ink-500">{r.email}</div></td>
-                  <td className="p-2 text-ink-700">{[r.organisation, r.role, r.country].filter(Boolean).join(" · ")}</td>
+                  <td className="p-2 text-ink-700">{[r.organisation, r.role, r.country, r.source?.startsWith("partner:") ? "via GDP Events site" : null].filter(Boolean).join(" · ")}</td>
                   <td className="p-2 text-ink-700">{r.needs}</td>
                   <td className="p-2">
                     <select

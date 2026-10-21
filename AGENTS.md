@@ -22,6 +22,7 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 - **Explain**: derived figures use `<Explain>` + registered rationale, never bare tooltips. Homepage and Brief share `proposedInputForCountry`.
 - **Public tables**: every `CREATE TABLE public.*` has GRANTs + RLS + policies in the same migration.
 - **Server fns**: `createServerFn` in `src/lib/<domain>/*.functions.ts` with `@domain/@tables/@ui` header; `.server.ts` is server-only; admin client via `await import('@/integrations/supabase/client.server')` inside handlers.
+- **Query retry**: the router's QueryClient retries transient query failures (max 2) via `src/lib/query-retry.ts` and never retries permission/not-found errors; admin loader routes use `RouteRetryError` so a cold-start 500 recovers instead of stranding the page.
 - **Auth**: protected fns use `requireSupabaseAuth`; call from components (`useServerFn` + `useQuery`), never public loaders.
 - **Impersonation**: `useImpersonation()` → `viewAs.country_code` for super-admins.
 - **AI research**: go through the corpus gateway + fallback waterfall (`fallback.server.ts` → Perplexity → Gemini → infer); never call providers from components.

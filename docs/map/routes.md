@@ -232,6 +232,11 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/api/public/v2/countries` | `src/routes/api/public/v2/countries.ts` |
 | `/api/public/v2/countries/$code/$resource` | `src/routes/api/public/v2/countries.$code.$resource.ts` |
 | `/api/public/v2/events` | `src/routes/api/public/v2/events.ts` |
+| `/api/public/v2/events/$slug` | `src/routes/api/public/v2/events.$slug.ts` |
+| `/api/public/v2/events/$slug/context` | `src/routes/api/public/v2/events.$slug.context.ts` |
+| `/api/public/v2/events/$slug/media` | `src/routes/api/public/v2/events.$slug.media.ts` |
+| `/api/public/v2/events/$slug/register` | `src/routes/api/public/v2/events.$slug.register.ts` |
+| `/api/public/v2/events/series` | `src/routes/api/public/v2/events.series.ts` |
 | `/api/public/v2/indices` | `src/routes/api/public/v2/indices.ts` |
 | `/api/public/v2/indices/$index` | `src/routes/api/public/v2/indices.$index.ts` |
 | `/api/public/v2/search` | `src/routes/api/public/v2/search.ts` |

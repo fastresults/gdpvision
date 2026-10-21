@@ -70,7 +70,7 @@ function Desk({ eventId }: { eventId: string }) {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-t-2 border-ev-ink/10">
-                  <td className="p-3"><div className="font-semibold">{r.name}</div><div className="text-[12px] opacity-70">{r.email}{r.organisation ? ` · ${r.organisation}` : ""}</div></td>
+                  <td className="p-3"><div className="font-semibold">{r.name}</div><div className="text-[12px] opacity-70">{r.email}{r.organisation ? ` · ${r.organisation}` : ""}</div>{r.source?.startsWith("partner:") && <span className="mt-1 inline-block rounded-full border-2 border-ev-ink px-2 text-[11px] font-bold">via GDP Events site</span>}</td>
                   <td className="p-3">{r.status === "waitlist" ? "Waitlist" : "Confirmed"}</td>
                   <td className="p-3">{r.checked_in_at ? new Date(r.checked_in_at).toUTCString().slice(5, 22) : "—"}</td>
                   <td className="p-3 whitespace-nowrap text-right">

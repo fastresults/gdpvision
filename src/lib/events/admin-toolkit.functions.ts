@@ -193,7 +193,7 @@ export const adminListCheckins = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { data: rows, error } = await context.supabase
       .from("event_registrations")
-      .select("id, name, email, organisation, status, checkin_token, checked_in_at")
+      .select("id, name, email, organisation, status, checkin_token, checked_in_at, source")
       .eq("event_id", data.event_id)
       .neq("status", "cancelled")
       .order("name");

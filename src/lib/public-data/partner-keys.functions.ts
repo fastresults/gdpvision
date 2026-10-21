@@ -10,6 +10,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { API_SCOPES } from "@/lib/egov/api-keys.functions";
+import { PARTNER_EXTRA_SCOPES } from "./partner-scopes";
 import { db } from "@/lib/syndication/db";
 
 export interface PartnerKeyRow {
@@ -51,7 +52,7 @@ export const createPartnerKey = createServerFn({ method: "POST" })
         partner: z.string().trim().min(2).max(80),
         label: z.string().trim().min(2).max(120),
         countries: z.array(z.string().trim().toUpperCase().regex(/^(\*|[A-Z]{2,4})$/)).min(1).max(60),
-        scopes: z.array(z.enum(API_SCOPES)).min(1),
+        scopes: z.array(z.enum([...API_SCOPES, ...PARTNER_EXTRA_SCOPES])).min(1),
         allowedOrigins: z.array(z.string().trim().url().max(200)).max(10).default([]),
         expiresInDays: z.number().int().min(1).max(730).default(365),
       })

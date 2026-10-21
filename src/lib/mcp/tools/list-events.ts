@@ -6,7 +6,7 @@ export default defineTool({
   name: "list_events",
   title: "List GDP Events",
   description:
-    "Published GDP Events (summits, roundtables, briefings) with dates, venue, format, theme and linked Second Brain items. Registrations are never included.",
+    "Published GDP Events summit editions with series, dates, venue, speakers, partners, summit website and linked Second Brain items. Registrations are never included.",
   inputSchema: {
     upcoming_only: z.boolean().optional(),
     country: z.string().regex(/^[A-Za-z]{2,4}$/).optional(),
@@ -15,8 +15,9 @@ export default defineTool({
   handler: async ({ upcoming_only, country }, ctx) => {
     let q = userDb(ctx)
       .from("events")
-      .select("slug, title, tagline, format, theme, country_code, city, venue, starts_at, ends_at, is_placeholder, event_links(kind, ref, label)")
+      .select("slug, title, edition_label, tagline, format, theme, country_code, city, venue, starts_at, ends_at, registration_url, event_series(slug, name, site_url), event_speakers(name, role, organisation), event_partners(name, tier), event_links(kind, ref, label)")
       .eq("status", "published")
+      .eq("archived", false)
       .order("starts_at");
     if (upcoming_only) q = q.gte("starts_at", new Date().toISOString());
     if (country) q = q.eq("country_code", country.toUpperCase());

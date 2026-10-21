@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { API_SCOPES, API_SCOPE_LABEL } from "@/lib/egov/api-keys.functions";
+import { GDP_EVENTS_PRESET, PARTNER_EXTRA_LABEL, PARTNER_EXTRA_SCOPES } from "@/lib/public-data/partner-scopes";
 import { createPartnerKey, listPartnerKeys, revokePartnerKey } from "@/lib/public-data/partner-keys.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/partner-keys")({
@@ -42,7 +43,7 @@ function PartnerKeysPage() {
           partner,
           label,
           countries: countries.split(",").map((s) => s.trim()).filter(Boolean),
-          scopes: scopes as (typeof API_SCOPES)[number][],
+          scopes: scopes as ((typeof API_SCOPES)[number] | (typeof PARTNER_EXTRA_SCOPES)[number])[],
           allowedOrigins: origins.split(",").map((s) => s.trim()).filter(Boolean),
           expiresInDays: 365,
         },
@@ -89,6 +90,26 @@ function PartnerKeysPage() {
               </label>
             ))}
           </div>
+          <div className="flex flex-wrap gap-3 border-t border-line-200 pt-3">
+            <span className="text-[12px] text-ink-500">Partner-only:</span>
+            {PARTNER_EXTRA_SCOPES.map((s) => (
+              <label key={s} className="flex items-center gap-1.5 text-[13px] text-ink-700" title={PARTNER_EXTRA_LABEL[s]}>
+                <input
+                  type="checkbox"
+                  checked={scopes.includes(s)}
+                  onChange={(e) => setScopes((p) => (e.target.checked ? [...p, s] : p.filter((x) => x !== s)))}
+                />
+                {s}
+              </label>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => { setPartner("GDP Events"); setLabel("GDP Events website"); setCountries("*"); setScopes([...GDP_EVENTS_PRESET]); }}
+          >
+            Set up for GDP Events site
+          </button>
           <button type="button" className="btn-primary" disabled={make.isPending} onClick={() => make.mutate()}>
             {make.isPending ? "Issuing…" : "Issue key"}
           </button>

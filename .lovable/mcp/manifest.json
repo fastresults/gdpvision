@@ -267,7 +267,7 @@
       {
         "name": "list_events",
         "title": "List GDP Events",
-        "description": "Published GDP Events (summits, roundtables, briefings) with dates, venue, format, theme and linked Second Brain items. Registrations are never included.",
+        "description": "Published GDP Events summit editions with series, dates, venue, speakers, partners, summit website and linked Second Brain items. Registrations are never included.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,

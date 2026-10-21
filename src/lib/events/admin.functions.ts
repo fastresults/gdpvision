@@ -112,7 +112,7 @@ export const adminListRegistrations = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { data: rows, error } = await context.supabase
       .from("event_registrations")
-      .select("id, name, email, organisation, role, country, needs, status, attended, created_at")
+      .select("id, name, email, organisation, role, country, needs, status, attended, created_at, source")
       .eq("event_id", data.event_id)
       .order("created_at");
     if (error) throw new Error(error.message);

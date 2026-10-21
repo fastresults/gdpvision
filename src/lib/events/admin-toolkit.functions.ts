@@ -270,7 +270,7 @@ export const adminDeepScrape = createServerFn({ method: "POST" })
     const { deepScrapeSeries } = await import("./deep-scrape.server");
     try {
       const r = await deepScrapeSeries(supabaseAdmin, data.series_id, true);
-      return { ok: true as const, found: r.found, applied: (r as { applied?: unknown }).applied as Record<string, unknown> | undefined };
+      return { ok: true as const, found: r.found, brain_records: Number((r as { applied?: { brain_records?: number } }).applied?.brain_records ?? 0) };
     } catch (e) {
       return { ok: false as const, error: (e as Error).message };
     }

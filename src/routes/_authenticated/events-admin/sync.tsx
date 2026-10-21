@@ -60,7 +60,7 @@ function SyncRow({ id, name, site, last }: { id: string; name: string; site: str
       {d && d.ok && (
         <div className="mt-4 rounded-xl border-2 border-ev-ink p-3 text-[14px]">
           <p className="font-bold">
-            Read {d.found.pages} pages · {d.found.sessions} sessions · {d.found.speakers} speakers · {d.found.partners} partners · {d.found.photos} photos · {String(d.applied?.brain_records ?? 0)} Second Brain records updated
+            Read {d.found.pages} pages · {d.found.sessions} sessions · {d.found.speakers} speakers · {d.found.partners} partners · {d.found.photos} photos · {d.brain_records} Second Brain records updated
           </p>
           {d.found.conflicts.length > 0 && (
             <ul className="mt-2 list-disc pl-5">{d.found.conflicts.map((c) => <li key={c}>{c}</li>)}</ul>

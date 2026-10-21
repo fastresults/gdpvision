@@ -25,7 +25,7 @@ async function scrape(url: string, links = false): Promise<{ markdown: string; l
   const res = await fetch(`${FC}/scrape`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ url, formats: links ? ["markdown", "links"] : ["markdown"], onlyMainContent: false, waitFor: 2500 }),
+    body: JSON.stringify({ url, formats: links ? ["markdown", "links"] : ["markdown"], onlyMainContent: false, waitFor: 4000 }),
   });
   const t = await res.text();
   if (!res.ok) throw new Error(`Website reader ${res.status}: ${t.slice(0, 200)}`);

@@ -33,8 +33,12 @@ async function scrape(url: string, links = false): Promise<{ markdown: string; l
   return { markdown: j.data?.markdown ?? "", links: j.data?.links ?? [] };
 }
 
-export async function readWholeSite(home: string): Promise<Page[]> {
+export async function readWholeSite(start: string, single = false): Promise<Page[]> {
+  // Follow redirects (e.g. cis27.com → caribbeaninvestmentsummit.com) so same-site links are recognised.
+  let home = start;
+  try { const r = await fetch(start, { redirect: "follow" }); if (r.url) home = r.url.replace(/\/+$/, ""); } catch { /* keep start */ }
   const first = await scrape(home, true);
+  if (single) return [{ url: home, markdown: first.markdown }];
   const urls = pickPages(home, first.links).slice(1);
   const pages: Page[] = [{ url: home, markdown: first.markdown }];
   for (let i = 0; i < urls.length; i += 4) {
@@ -104,16 +108,18 @@ ${corpus}`;
 
 const SECTOR: Record<string, string> = {
   "blue-economy": "blue_economy", cgdps: "cross", cadis: "digital", chis: "housing", cafs: "agriculture",
-  ceis: "energy", cbis: "commerce", chwis: "health",
+  ceis: "energy", cbis: "commerce", chwis: "health", cis: "finance",
 };
 const iso = (d: string) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T12:00:00Z` : null);
 const https = (u: string) => (/^https:\/\//.test(u) ? u : null);
 
 /** Apply an extraction to the series' latest edition and the Second Brain. Idempotent. */
-export async function applySummit(sb: any, seriesId: string, x: Extracted, pages: Page[]) {
+export async function applySummit(sb: any, seriesId: string, x: Extracted, pages: Page[], eventId?: string) {
   const { data: series } = await sb.from("event_series").select("id, slug, name, site_url").eq("id", seriesId).single();
-  const { data: ev } = await sb.from("events").select("*").eq("series_id", seriesId).eq("archived", false)
-    .order("starts_at", { ascending: false, nullsFirst: true }).limit(1).maybeSingle();
+  const { data: ev } = eventId
+    ? await sb.from("events").select("*").eq("id", eventId).eq("series_id", seriesId).maybeSingle()
+    : await sb.from("events").select("*").eq("series_id", seriesId).eq("archived", false)
+        .order("starts_at", { ascending: false, nullsFirst: true }).limit(1).maybeSingle();
   if (!series || !ev) throw new Error("No edition found for this summit.");
 
   const patch: Record<string, unknown> = {
@@ -200,17 +206,18 @@ export async function applySummit(sb: any, seriesId: string, x: Extracted, pages
   return { event_slug: ev.slug, pages: pages.length, sessions_added: nS, speakers: nSp, partners: nP, photos: nM, brain_records: nB, conflicts: x.conflicts };
 }
 
-export async function deepScrapeSeries(sb: any, seriesId: string, apply: boolean) {
+/** Deep-read a series. With `edition`, read that edition's own page (e.g. an archive page) and apply to it. */
+export async function deepScrapeSeries(sb: any, seriesId: string, apply: boolean, edition?: { eventId: string; url: string }) {
   const { data: series } = await sb.from("event_series").select("id, site_url").eq("id", seriesId).single();
   if (!series) throw new Error("Series not found.");
-  const pages = await readWholeSite(series.site_url);
+  const pages = edition ? await readWholeSite(edition.url, true) : await readWholeSite(series.site_url);
   const extracted = await extractSummit(pages);
   const { data: snap } = await sb.from("event_site_snapshots").insert({ series_id: seriesId,
     extracted: { kind: "deep", pages: pages.map((p) => ({ url: p.url, chars: p.markdown.length })), data: extracted } }).select("id").single();
   await sb.from("event_series").update({ last_synced_at: new Date().toISOString() }).eq("id", seriesId);
   const counts = { pages: pages.length, sessions: extracted.sessions.length, speakers: extracted.speakers.length, partners: extracted.partners.length, photos: extracted.images.length, conflicts: extracted.conflicts };
   if (!apply) return { snapshot_id: snap?.id as string, found: counts, extracted };
-  const result = await applySummit(sb, seriesId, extracted, pages);
+  const result = await applySummit(sb, seriesId, extracted, pages, edition?.eventId);
   await sb.from("event_site_snapshots").update({ applied: true }).eq("id", snap?.id);
   return { snapshot_id: snap?.id as string, found: counts, applied: result };
 }

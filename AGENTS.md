@@ -26,9 +26,8 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 - **Auth**: protected fns use `requireSupabaseAuth`; call from components (`useServerFn` + `useQuery`), never public loaders.
 - **Impersonation**: `useImpersonation()` → `viewAs.country_code` for super-admins.
 - **AI research**: go through the corpus gateway + fallback waterfall (`fallback.server.ts` → Perplexity → Gemini → infer); never call providers from components.
+- **Briefing**: `/present` layout and viewer-preload rules live in `src/components/present/AGENTS.md`.
 - **Briefing data**: `/present` gives public visitors only aggregate counts or anonymous shape (`getCorpusSnapshot`, `getCountryBrainShape`), never titles or text; real rows only for signed-in admins via protected fns. `CorpusMark` is the default Second Brain drawing in briefing circuits; the sovereign-corpus circuit intentionally uses the compact Elevating GDP puzzle mark.
-- **Briefing flow fit**: `/present` fits only the desktop Data & Decision Flow diagram on a fixed reference canvas; keep the reserved-space reading tray outside that transform and flush to the slide’s right edge so it remains readable and collapsible. Mobile keeps the native stacked flow.
-- **Briefing viewer preload**: register every `/present` `LiveFrame` with `ViewerPreloadProvider`; mount each iframe eagerly once and report launched, loaded, sign-in and slow states separately so offscreen viewers preload without cold remounts.
 
 ## Do not edit
 

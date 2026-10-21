@@ -1,4 +1,4 @@
-// GDPVision partner API v2 · published GDP Events (needs the "events" scope). ?upcoming=1 for future events only.
+// GDPVision partner API v2 · published GDP Events editions (scope "events"). ?upcoming=1 future only, ?series=<slug> one summit.
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/api/public/v2/events")({
@@ -10,8 +10,8 @@ export const Route = createFileRoute("/api/public/v2/events")({
       },
       GET: async ({ request }) => {
         const m = await import("@/lib/public-data/partner.server");
-        const upcomingOnly = new URL(request.url).searchParams.get("upcoming") === "1";
-        return m.withPartner(request, (id) => m.readPublicEvents(id, { upcomingOnly }));
+        const sp = new URL(request.url).searchParams;
+        return m.withPartner(request, (id) => m.readPublicEvents(id, { upcomingOnly: sp.get("upcoming") === "1", series: sp.get("series") }));
       },
     },
   },

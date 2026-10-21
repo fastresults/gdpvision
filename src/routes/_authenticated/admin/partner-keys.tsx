@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { API_SCOPES, API_SCOPE_LABEL } from "@/lib/egov/api-keys.functions";
@@ -35,6 +35,8 @@ function PartnerKeysPage() {
   const [origins, setOrigins] = useState("");
   const [scopes, setScopes] = useState<string[]>([...API_SCOPES]);
   const [issued, setIssued] = useState<string | null>(null);
+  const [eventsPreset, setEventsPreset] = useState(false);
+  const originsRef = useRef<HTMLInputElement>(null);
 
   const make = useMutation({
     mutationFn: () =>
@@ -71,12 +73,41 @@ function PartnerKeysPage() {
         </header>
 
         <section className="space-y-3 border border-line-200 bg-paper-50 p-5">
-          <h2 className="text-sm font-medium">Issue a key</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-medium">Issue a key</h2>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                setPartner("GDP Events");
+                setLabel("GDP Events website");
+                setCountries("*");
+                setScopes([...GDP_EVENTS_PRESET]);
+                setEventsPreset(true);
+                setIssued(null);
+                setTimeout(() => originsRef.current?.focus(), 0);
+              }}
+            >
+              Set up for GDP Events site
+            </button>
+          </div>
+          {eventsPreset && (
+            <p className="border-l-2 border-gold-500 bg-paper-0 px-3 py-2 text-[13px] text-ink-700">
+              Filled in for the GDP Events website: summits, news, sector figures and sign-ups only.
+              Add the site's web address under "Allowed website origins" (for example
+              https://events.gdpvision.com), then click Issue key.
+            </p>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Partner" value={partner} onChange={setPartner} />
             <Field label="Label" value={label} onChange={setLabel} />
             <Field label="Countries (* = all, or codes like ATG,BRB)" value={countries} onChange={setCountries} />
-            <Field label="Allowed website origins (comma separated, optional)" value={origins} onChange={setOrigins} />
+            <Field
+              label="Allowed website origins (comma separated, optional)"
+              value={origins}
+              onChange={setOrigins}
+              inputRef={originsRef}
+            />
           </div>
           <div className="flex flex-wrap gap-3">
             {API_SCOPES.map((s) => (
@@ -103,16 +134,11 @@ function PartnerKeysPage() {
               </label>
             ))}
           </div>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => { setPartner("GDP Events"); setLabel("GDP Events website"); setCountries("*"); setScopes([...GDP_EVENTS_PRESET]); }}
-          >
-            Set up for GDP Events site
-          </button>
-          <button type="button" className="btn-primary" disabled={make.isPending} onClick={() => make.mutate()}>
-            {make.isPending ? "Issuing…" : "Issue key"}
-          </button>
+          <div className="pt-1">
+            <button type="button" className="btn-primary" disabled={make.isPending} onClick={() => make.mutate()}>
+              {make.isPending ? "Issuing…" : "Issue key"}
+            </button>
+          </div>
           {make.error && <p className="text-sm text-signal-negative">{(make.error as Error).message}</p>}
           {issued && (
             <div className="border border-gold-500 bg-paper-0 p-3 text-sm">
@@ -177,11 +203,22 @@ function PartnerKeysPage() {
   );
 }
 
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function Field({
+  label,
+  value,
+  onChange,
+  inputRef,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  inputRef?: React.Ref<HTMLInputElement>;
+}) {
   return (
     <label className="block text-[12px] text-ink-500">
       {label}
       <input
+        ref={inputRef}
         className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-1.5 text-sm text-ink-900"
         value={value}
         onChange={(e) => onChange(e.target.value)}

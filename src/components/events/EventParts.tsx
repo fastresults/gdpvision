@@ -81,7 +81,7 @@ export function SiteLink({ url, name, className }: { url: string | null | undefi
       rel="noopener noreferrer"
       aria-label={`Visit the ${name} website at ${siteHost(url)} (opens in a new tab)`}
       className={cn(
-        "relative z-10 inline-flex w-fit items-center gap-1.5 rounded-full border-[3px] border-ev-ink bg-ev-paper px-3 py-1 text-[13px] font-bold text-ev-ink transition-colors hover:bg-ev-ink hover:text-ev-paper",
+        "relative z-10 inline-flex w-fit max-w-full items-center gap-1.5 whitespace-nowrap rounded-full border-[3px] border-ev-ink bg-ev-paper px-3 py-1 text-[13px] font-bold text-ev-ink transition-colors hover:bg-ev-ink hover:text-ev-paper",
         className,
       )}
     >

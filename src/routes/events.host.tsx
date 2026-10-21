@@ -1,8 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation } from "@tanstack/react-query";
-import { submitHostEnquiry } from "@/lib/events/events.functions";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { listPublicEvents, submitHostEnquiry } from "@/lib/events/events.functions";
+import { EventTile, type EventCardData } from "@/components/events/EventParts";
 import { cn } from "@/lib/utils";
+
+function SummitsStrip() {
+  const q = useQuery({ queryKey: ["events", "public"], queryFn: () => listPublicEvents() });
+  const evs = (q.data ?? []) as EventCardData[];
+  if (!evs.length) return null;
+  return (
+    <section className="mx-auto max-w-[1400px] px-5 pt-16 md:px-8">
+      <h2 className="ev-display text-[56px]">Our summits</h2>
+      <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {evs.map((ev, i) => (
+          <li key={ev.slug}><EventTile ev={ev} index={i} /></li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 const TITLE = "Host a GDP Event in your country";
 const DESCRIPTION =
@@ -44,6 +61,9 @@ function HostPage() {
           </p>
         </div>
       </section>
+
+      <SummitsStrip />
+
 
       <section className="mx-auto max-w-[1400px] px-5 py-16 md:px-8">
         <h2 className="ev-display text-[56px]">Formats</h2>

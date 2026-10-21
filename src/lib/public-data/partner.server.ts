@@ -20,6 +20,9 @@ export interface PartnerIdentity {
   allowedOrigins: string[];
   /** partner-only scope "indices_test": may request the latest private TEST release (?edition=test) */
   testIndices?: boolean;
+  /** partner-only scopes for a GDP Events site */
+  eventsContext?: boolean;
+  eventsRegister?: boolean;
 }
 
 async function admin() {
@@ -51,6 +54,8 @@ export async function authenticatePartnerKey(raw: string): Promise<PartnerIdenti
     scopes: (row.scopes ?? []).filter((s): s is ApiScope => (API_SCOPES as readonly string[]).includes(s)),
     allowedOrigins: row.allowed_origins ?? [],
     testIndices: (row.scopes ?? []).includes("indices_test"),
+    eventsContext: (row.scopes ?? []).includes("events_context"),
+    eventsRegister: (row.scopes ?? []).includes("events_register"),
   };
 }
 
@@ -60,7 +65,7 @@ export async function authenticatePartner(request: Request) {
 }
 
 const CORS = {
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Authorization, Content-Type",
   "Access-Control-Max-Age": "86400",
   Vary: "Origin",
@@ -258,20 +263,125 @@ export async function readIndexEdition(id: PartnerIdentity, index: string, editi
 }
 
 
-/** Published GDP Events (regional, not per country). Registrations are never exposed. */
-export async function readPublicEvents(id: PartnerIdentity, opts: { upcomingOnly?: boolean } = {}) {
+// ------------------------------------------------------------- GDP Events (regional; registrations never exposed)
+const EDITION_SELECT =
+  "id, slug, title, edition_label, tagline, summary, body, format, theme, status, archived, country_code, city, venue, starts_at, ends_at, date_tba, registration_close, capacity, hosts, hero_url, registration_url, recording_url, series_id, event_series(slug, name, short_name, site_url, sector, colour, logo_url), event_sessions(position, starts_at, title, description, speaker_names), event_speakers(position, name, role, organisation, photo_url), event_partners(position, name, tier, logo_url, url), event_media(position, kind, url, caption, credit), event_links(kind, ref, label)";
+
+function needEvents(id: PartnerIdentity) {
   if (!id.scopes.includes("events")) throw httpError(403, 'This key does not include "events".');
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  let q = supabaseAdmin
-    .from("events")
-    .select(
-      "slug, title, tagline, summary, format, theme, country_code, city, venue, starts_at, ends_at, registration_close, capacity, hosts, recording_url, is_placeholder, event_sessions(position, starts_at, title, description, speaker_names), event_speakers(position, name, role, organisation), event_links(kind, ref, label)",
-    )
-    .eq("status", "published")
-    .order("starts_at");
-  if (opts.upcomingOnly) q = q.gte("starts_at", new Date().toISOString());
-  const { data, error } = await q;
+}
+
+/** Published GDP Events editions with series, agenda, speakers, partners and photos. */
+export async function readPublicEvents(id: PartnerIdentity, opts: { upcomingOnly?: boolean; series?: string | null } = {}) {
+  needEvents(id);
+  const f = await import("./events-feed");
+  const sb = await admin();
+  const { data, error } = await (sb as any).from("events").select(EDITION_SELECT).eq("status", "published").eq("archived", false).order("starts_at");
   if (error) throw httpError(500, error.message);
-  const rows = (data ?? []).map((e) => ({ ...e, url: `https://gdpvision.com/events/${e.slug}` }));
-  return { count: rows.length, data: rows };
+  let rows = f.publicEditions((data ?? []) as any[], opts.upcomingOnly);
+  if (opts.series) rows = rows.filter((e: any) => e.event_series?.slug === opts.series);
+  const out = rows.map(f.shapeEdition);
+  return { count: out.length, data: out };
+}
+
+/** Summit series with their published editions (slug, label, dates). */
+export async function readPublicEventSeries(id: PartnerIdentity) {
+  needEvents(id);
+  const sb = await admin();
+  const { data, error } = await (sb as any)
+    .from("event_series")
+    .select("slug, name, short_name, site_url, sector, colour, logo_url, summary, position, events(slug, title, edition_label, status, archived, starts_at, ends_at, date_tba, city, country_code)")
+    .order("position");
+  if (error) throw httpError(500, error.message);
+  const out = (data ?? []).map((s: any) => ({
+    ...s,
+    events: (s.events ?? [])
+      .filter((e: any) => e.status === "published" && !e.archived)
+      .map(({ status: _s, archived: _a, ...e }: any) => ({ ...e, url: `https://gdpvision.com/events/${e.slug}` }))
+      .sort((a: any, b: any) => String(a.starts_at ?? "9").localeCompare(String(b.starts_at ?? "9"))),
+  })).filter((s: any) => s.events.length);
+  return { count: out.length, data: out };
+}
+
+async function editionBySlug(slug: string) {
+  if (!/^[a-z0-9-]{2,120}$/.test(slug)) throw httpError(404, "Event not found.");
+  const sb = await admin();
+  const { data } = await (sb as any).from("events").select(EDITION_SELECT).eq("slug", slug).eq("status", "published").eq("archived", false).maybeSingle();
+  if (!data) throw httpError(404, "Event not found.");
+  return data as any;
+}
+
+export async function readPublicEvent(id: PartnerIdentity, slug: string) {
+  needEvents(id);
+  const f = await import("./events-feed");
+  return { data: f.shapeEdition(await editionBySlug(slug)) };
+}
+
+/** Host-country sector figures and public Second Brain facts for one summit. */
+export async function readEventContext(id: PartnerIdentity, slug: string) {
+  needEvents(id);
+  if (!id.eventsContext) throw httpError(403, 'This key does not include "events_context".');
+  const ev = await editionBySlug(slug);
+  const { brainScope, SERIES_SECTOR } = await import("@/lib/events/brain-sync-rules");
+  const country = brainScope(ev.country_code);
+  const sector = SERIES_SECTOR[ev.event_series?.slug ?? ""] ?? "cross";
+  const empty = { event: slug, country, sector, kpis: [], facts: [], summit_knowledge: [] };
+  if (country === "REGION" || !canReadCountry(id, country)) return { data: empty };
+  const [kpis, brain] = await Promise.all([readPublicResource(country, "kpis"), readPublicResource(country, "brain")]);
+  const facts = (brain.data as any[]);
+  const sb = await admin();
+  const { data: summit } = await (sb as any).from("memory_objects").select("kind, title, payload, updated_at")
+    .eq("visibility", "public").eq("sector_code", sector).in("kind", ["event_topic", "event_partner", "event_speaker"]).limit(300);
+  const mine = (summit ?? []).filter((r: any) => r.payload?.event_slug === slug || (r.payload?.events ?? []).includes(slug));
+  return {
+    data: {
+      ...empty,
+      kpis: kpis.data,
+      facts: sector === "cross" ? facts : [...facts.filter((x) => x.sector_code === sector), ...facts.filter((x) => x.sector_code !== sector)],
+      summit_knowledge: mine.map((r: any) => ({ kind: r.kind, title: r.title, updated_at: r.updated_at })),
+    },
+  };
+}
+
+/** Recent public news signals for a summit's host country (30-day window). */
+export async function readEventMedia(id: PartnerIdentity, slug: string) {
+  needEvents(id);
+  if (!id.scopes.includes("media")) throw httpError(403, 'This key does not include "media".');
+  const ev = await editionBySlug(slug);
+  const { brainScope } = await import("@/lib/events/brain-sync-rules");
+  const country = brainScope(ev.country_code);
+  if (country === "REGION" || !canReadCountry(id, country)) return { country, count: 0, data: [] };
+  const r = await readPublicResource(country, "media");
+  return { country, count: r.data.length, data: r.data, ...r.extra };
+}
+
+/** Register an attendee for a published edition on behalf of a partner site. */
+export async function registerViaPartner(id: PartnerIdentity, slug: string, body: unknown) {
+  if (!id.eventsRegister) throw httpError(403, 'This key does not include "events_register".');
+  const { z } = await import("zod");
+  const parsed = z.object({
+    name: z.string().trim().min(2).max(200),
+    email: z.string().trim().email().max(320),
+    organisation: z.string().trim().max(200).optional().default(""),
+    role: z.string().trim().max(200).optional().default(""),
+    country: z.string().trim().max(120).optional().default(""),
+    needs: z.string().trim().max(1000).optional().default(""),
+  }).safeParse(body);
+  if (!parsed.success) throw httpError(422, "Send name and a valid email (organisation, role, country, needs optional).");
+  const sb = await admin();
+  const source = `partner:${id.keyId}`;
+  const minuteAgo = new Date(Date.now() - 60_000).toISOString();
+  const { count } = await (sb as any).from("event_registrations").select("id", { count: "exact", head: true }).eq("source", source).gte("created_at", minuteAgo);
+  if ((count ?? 0) >= 30) throw httpError(429, "Too many registrations from this key in the last minute. Try again shortly.");
+  const d = parsed.data;
+  const { data: res, error } = await sb.rpc("register_for_event", {
+    _slug: slug, _name: d.name, _email: d.email, _organisation: d.organisation, _role: d.role, _country: d.country, _needs: d.needs,
+  });
+  if (error) throw httpError(500, "Registration could not be saved.");
+  const r = res as { outcome: string; status?: string };
+  if (r.outcome === "ok") {
+    const { data: ev } = await (sb as any).from("events").select("id").eq("slug", slug).single();
+    await (sb as any).from("event_registrations").update({ source }).eq("event_id", ev.id).eq("email_norm", d.email.trim().toLowerCase());
+  }
+  return r;
 }

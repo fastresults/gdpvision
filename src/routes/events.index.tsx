@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { listPublicEvents, listPublicSeries } from "@/lib/events/events.functions";
 import { isUpcoming, FORMAT_LABEL } from "@/lib/events/rules";
-import { COLOUR_BG, COLOUR_TEXT, Countdown, EventTile, formatEventDate, PlaceholderBadge } from "@/components/events/EventParts";
+import { COLOUR_BG, COLOUR_TEXT, Countdown, EventTile, formatEventDate, PlaceholderBadge, SiteLink } from "@/components/events/EventParts";
 import { cn } from "@/lib/utils";
 
 const eventsQuery = queryOptions({ queryKey: ["events", "public"], queryFn: () => listPublicEvents() });
@@ -73,7 +73,7 @@ function EventsIndex() {
       </section>
 
       {/* MARQUEE */}
-      <div className="overflow-hidden border-b-4 border-ev-ink bg-ev-night py-3 text-ev-mango" aria-hidden>
+      <div className="ev-marquee-wrap overflow-hidden border-b-4 border-ev-ink bg-ev-night py-3 text-ev-mango" aria-hidden>
         <div className="ev-marquee flex w-max gap-10 whitespace-nowrap">
           {[...upcoming, ...upcoming, ...upcoming, ...upcoming].map((e, i) => (
             <span key={i} className="ev-display text-[28px]">
@@ -91,18 +91,21 @@ function EventsIndex() {
             const eds = events.filter((e) => e.series_id === s.id);
             const nextEd = eds.find((e) => isUpcoming(e));
             return (
-              <Link
+              <div
                 key={s.slug}
-                to="/events/series/$slug"
-                params={{ slug: s.slug }}
-                className={cn("ev-tile flex min-h-[200px] flex-col justify-between rounded-3xl border-4 border-ev-ink p-5", COLOUR_BG[s.colour], COLOUR_TEXT[s.colour])}
+                className={cn("ev-tile relative flex min-h-[220px] flex-col justify-between gap-3 rounded-3xl border-4 border-ev-ink p-5", COLOUR_BG[s.colour], COLOUR_TEXT[s.colour])}
               >
                 <div className="text-[12px] font-bold uppercase tracking-wider opacity-80">{s.short_name} · {s.sector}</div>
-                <h3 className="ev-display text-[30px] leading-[0.95]">{s.name}</h3>
+                <h3 className="ev-display text-[30px] leading-[0.95]">
+                  <Link to="/events/series/$slug" params={{ slug: s.slug }} className="after:absolute after:inset-0 after:rounded-3xl after:content-['']">
+                    {s.name}
+                  </Link>
+                </h3>
                 <div className="text-[13px] font-semibold">
                   {nextEd ? `Next: ${formatEventDate(nextEd.starts_at)}` : eds.length ? `${eds.length} edition${eds.length > 1 ? "s" : ""}` : "Announcing soon"}
                 </div>
-              </Link>
+                <SiteLink url={s.site_url} name={s.name} />
+              </div>
             );
           })}
         </div>
@@ -147,11 +150,11 @@ function EventsIndex() {
           ) : (
             <ul className="mt-8 divide-y-4 divide-ev-ink border-y-4 border-ev-ink">
               {past.map((e) => (
-                <li key={e.slug}>
+                <li key={e.slug} className="flex flex-wrap items-center gap-4 hover:bg-ev-paper/40">
                   <Link
                     to="/events/$slug"
                     params={{ slug: e.slug }}
-                    className="group flex flex-wrap items-center justify-between gap-4 py-5 hover:bg-ev-paper/40"
+                    className="group flex flex-1 flex-wrap items-center justify-between gap-4 py-5"
                   >
                     <span className="ev-display text-[36px] md:text-[48px] group-hover:translate-x-2 transition-transform motion-reduce:transition-none">
                       {e.title}
@@ -161,6 +164,7 @@ function EventsIndex() {
                       {formatEventDate(e.starts_at)} · {FORMAT_LABEL[e.format]}
                     </span>
                   </Link>
+                  <SiteLink url={e.site_url} name={e.title} />
                 </li>
               ))}
             </ul>

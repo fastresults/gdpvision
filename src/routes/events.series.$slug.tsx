@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowUpRight } from "lucide-react";
 import { getPublicSeries } from "@/lib/events/events.functions";
 import { isUpcoming } from "@/lib/events/rules";
-import { COLOUR_BG, COLOUR_TEXT, EventTile, formatEventDate } from "@/components/events/EventParts";
+import { COLOUR_BG, COLOUR_TEXT, EventTile, formatEventDate, SiteLink } from "@/components/events/EventParts";
 
 const seriesQuery = (slug: string) =>
   queryOptions({ queryKey: ["events", "series", slug], queryFn: () => getPublicSeries({ data: { slug } }) });
@@ -80,11 +80,12 @@ function SeriesPage() {
           ) : (
             <ul className="mt-6 divide-y-4 divide-ev-ink border-y-4 border-ev-ink">
               {past.map((e) => (
-                <li key={e.slug}>
-                  <Link to="/events/$slug" params={{ slug: e.slug }} className="flex flex-wrap justify-between gap-4 py-5">
+                <li key={e.slug} className="flex flex-wrap items-center gap-4">
+                  <Link to="/events/$slug" params={{ slug: e.slug }} className="flex flex-1 flex-wrap justify-between gap-4 py-5">
                     <span className="ev-display text-[36px]">{e.title}</span>
                     <span className="font-semibold">{formatEventDate(e.starts_at)}</span>
                   </Link>
+                  <SiteLink url={e.site_url} name={e.title} />
                 </li>
               ))}
             </ul>

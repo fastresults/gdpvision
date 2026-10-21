@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useRef, useState } from "react";
+import { useRef, useState, type Ref } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { API_SCOPES, API_SCOPE_LABEL } from "@/lib/egov/api-keys.functions";
@@ -212,7 +212,7 @@ function Field({
   label: string;
   value: string;
   onChange: (v: string) => void;
-  inputRef?: React.Ref<HTMLInputElement>;
+  inputRef?: Ref<HTMLInputElement>;
 }) {
   return (
     <label className="block text-[12px] text-ink-500">

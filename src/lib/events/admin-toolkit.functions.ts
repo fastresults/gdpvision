@@ -259,3 +259,19 @@ export const adminSyncApply = createServerFn({ method: "POST" })
     if (data.snapshot_id) await context.supabase.from("event_site_snapshots").update({ applied: true }).eq("id", data.snapshot_id);
     return { ok: true };
   });
+
+// ---------- Deep scrape (every page + AI extraction + Second Brain) ----------
+export const adminDeepScrape = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ series_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { deepScrapeSeries } = await import("./deep-scrape.server");
+    try {
+      const r = await deepScrapeSeries(supabaseAdmin, data.series_id, true);
+      return { ok: true as const, found: r.found, applied: (r as { applied?: unknown }).applied as Record<string, unknown> | undefined };
+    } catch (e) {
+      return { ok: false as const, error: (e as Error).message };
+    }
+  });

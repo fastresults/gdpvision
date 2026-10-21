@@ -76,6 +76,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/events/ceis-2027", label: "CEIS '27 · Energy", description: "17–19 Jun 2027 · Antigua" },
       { to: "/events/cbis-2027", label: "CBIS '27 · Business", description: "28–29 Sep 2027 · Antigua" },
       { to: "/events/chwis-2027", label: "CHWIS '27 · Health", description: "Dates to be announced" },
+      { to: "/events/cis-2027", label: "CIS'27 · Investment Summit", description: "7–10 Apr 2027 · St Kitts" },
       { to: "/events/host", label: "Host an event", description: "Bring a GDPVision session to your country." },
     ],
     featured: {

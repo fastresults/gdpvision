@@ -48,6 +48,7 @@ export type LiveEvent = {
   partners: { name: string; tier: string | null; url: string | null }[];
 };
 
+const snap = (r: BrainRow) => { const { synced_at: _s, ...rest } = r.payload ?? {}; return JSON.stringify([rest, r.visibility, r.title]); };
 const key = (r: Pick<BrainRow, "scope_key" | "sector_code" | "kind" | "title">) => `${r.scope_key}|${r.sector_code}|${r.kind}|${r.title}`;
 
 function dateText(e: LiveEvent): string {
@@ -66,7 +67,7 @@ export function reconcile(existing: BrainRow[], live: LiveEvent[], now: string) 
   const before = new Map<string, string>();
   for (const r of existing) {
     state.set(key(r), { ...r, payload: { ...(r.payload ?? {}) } });
-    if (r.id) before.set(r.id, JSON.stringify([r.payload, r.visibility, r.title]));
+    if (r.id) before.set(r.id, snap(r));
   }
   const liveSlugs = new Set(live.map((e) => e.slug));
   const member = new Set<string>();
@@ -131,7 +132,7 @@ export function reconcile(existing: BrainRow[], live: LiveEvent[], now: string) 
   const updates: BrainRow[] = [];
   for (const r of state.values()) {
     if (!r.id) { inserts.push(r); continue; }
-    if (before.get(r.id) !== JSON.stringify([r.payload, r.visibility, r.title])) updates.push(r);
+    if (before.get(r.id) !== snap(r)) updates.push(r);
   }
   const hidden = updates.filter((r) => r.visibility === "private" && existing.find((x) => x.id === r.id)?.visibility === "public").length;
   return { inserts, updates, summary: { editions: live.length, added: inserts.length, updated: updates.length - hidden, hidden, total_public: [...state.values()].filter((r) => r.visibility === "public").length } };

@@ -55,7 +55,7 @@ function BrainSyncPanel() {
       {r && !r.ok && <p role="alert" className="mt-3 font-semibold text-signal-red">{r.error}</p>}
       {r && r.ok && (
         <p role="status" className="mt-3 rounded-xl border-2 border-ev-ink bg-paper-0 p-3 text-[14px] font-bold">
-          Synced {r.editions} published editions · {r.added} added · {r.updated} updated · {r.hidden} hidden. Re-running never creates duplicates.
+          Synced {r.editions} published editions · {r.added} added · {r.updated} updated · {r.hidden} hidden{r.updated === 0 && r.added === 0 && r.hidden === 0 ? " — already up to date" : ""}. Re-running never creates duplicates.
         </p>
       )}
     </section>

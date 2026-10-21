@@ -23,7 +23,7 @@ describe("events → Second Brain sync", () => {
 
   it("does not duplicate on a second run", () => {
     const first = reconcile([], [ed()], NOW).inserts.map((r, i) => ({ ...r, id: `id${i}` }));
-    const second = reconcile(first, [ed()], NOW);
+    const second = reconcile(first, [ed()], "2026-10-22T00:00:00Z");
     expect(second.inserts).toHaveLength(0);
     expect(second.updates).toHaveLength(0);
   });

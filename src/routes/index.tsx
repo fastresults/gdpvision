@@ -88,7 +88,7 @@ function SiteGate() {
           className="rounded-md border border-line-200 bg-paper-0 px-3 py-2 text-ink-900 outline-none focus:border-ink-500"
         />
         {error && (
-          <p role="alert" className="text-sm text-signal-red">
+          <p role="alert" className="text-sm text-signal-negative">
             Incorrect password
           </p>
         )}

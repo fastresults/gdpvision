@@ -18,6 +18,7 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 - **JSON in UI**: `<PrettyJson>`; raw `JSON.stringify` only in `<textarea>`/collapsed `<details>`.
 - **Illustrations**: monochrome engraved graphite via `<Illustration>`; variants `mark`/`spot`/`aside`/`rule`, one per section, never full-bleed. Exceptions: marketing hero, and the `/present` closing `plate`. Spec: `docs/illustration-contract.md`.
 - **Header logo**: Wordmark links call `scrollToTop()`.
+- **Home gate**: `/` content renders only after server-checked `SITE_PASSWORD` (session cookie, `site-gate/`).
 - **Second brain no-dup**: every ingest/commit path upserts on a normalized key (`docs/map/corpus.md`).
 - **Explain**: derived figures use `<Explain>` + registered rationale, never bare tooltips. Homepage and Brief share `proposedInputForCountry`.
 - **Public tables**: every `CREATE TABLE public.*` has GRANTs + RLS + policies in the same migration.

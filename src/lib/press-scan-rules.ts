@@ -22,7 +22,7 @@ const OFF_TOPIC: Array<{ reason: string; words: RegExp }> = [
   {
     reason: "sports",
     words:
-      /\b(football|soccer|baseball|béisbol|beisbol|pelota|jonr[oó]n|basketball|cricket|t20|odi|wicket|innings|batsman|bowler|test match|cpl|world cup|olympic|olympics|athlete|athletics|sprinter|boxing|boxer|tennis|golf|golfer|racing|regatta|marathon|fixture|tournament|championship|league|striker|goalkeeper|coach|stadium|serie nacional|fútbol|futbol|football club|fc)\b/i,
+      /\b(football|soccer|baseball|béisbol|beisbol|pelota|jonr[oó]n|basketball|cricket|t20|odi|wicket|innings|batsman|bowler|test match|cpl|world cup|olympic|olympics|athlete|athletics|sprinter|boxing|boxer|tennis|golf|golfer|regatta|marathon|tournament|championship|league|striker|goalkeeper|stadium|serie nacional|fútbol|futbol|football club|fc)\b/i,
   },
   {
     reason: "entertainment",

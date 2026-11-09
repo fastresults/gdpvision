@@ -17,7 +17,9 @@ export const getMediaScanOverview = createServerFn({ method: "GET" })
       supabaseAdmin.from("narrative_outlets").select("*").order("scope").order("name"),
       supabaseAdmin
         .from("narrative_harvest_runs")
-        .select("id,window_key,started_at,finished_at,feeds_polled,items_fetched,items_new,items_promoted,triggered_by,countries_run")
+        .select(
+          "id,window_key,started_at,finished_at,feeds_polled,items_fetched,items_new,items_promoted,triggered_by,countries_run",
+        )
         .order("started_at", { ascending: false })
         .limit(8),
       supabaseAdmin.from("narrative_scan_locks").select("holder,expires_at").maybeSingle(),
@@ -50,7 +52,11 @@ export const getPressScanControls = createServerFn({ method: "GET" })
         .select("auto_enabled,daily_ai_limit,per_run_limit,paused_reason,paused_at,updated_at")
         .eq("id", true)
         .maybeSingle(),
-      context.supabase.from("press_scan_ai_usage").select("calls,skipped_offtopic").eq("day", today).maybeSingle(),
+      context.supabase
+        .from("press_scan_ai_usage")
+        .select("calls,skipped_offtopic")
+        .eq("day", today)
+        .maybeSingle(),
     ]);
     if (error) throw new Error(error.message);
     const { PRESS_CLASSIFIER_MODEL } = await import("@/lib/press-scan-rules");
@@ -116,9 +122,20 @@ export const upsertOutlet = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const domain = data.domain.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "").toLowerCase();
-    const row = { ...data, domain, feed_url: data.feed_url ?? null, updated_at: new Date().toISOString() };
-    const { error } = await context.supabase.from("narrative_outlets").upsert(row, { onConflict: "domain" });
+    const domain = data.domain
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/\/.*$/, "")
+      .toLowerCase();
+    const row = {
+      ...data,
+      domain,
+      feed_url: data.feed_url ?? null,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await context.supabase
+      .from("narrative_outlets")
+      .upsert(row, { onConflict: "domain" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -172,5 +189,10 @@ export const fixMediaGaps = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { withScanLock } = await import("@/lib/media-scan.server");
     const { fixGaps } = await import("@/lib/narrative-retag.server");
-    return withScanLock(`gaps:${context.userId}:${Date.now()}`, 15, () => fixGaps(), "media-gap-fix");
+    return withScanLock(
+      `gaps:${context.userId}:${Date.now()}`,
+      15,
+      () => fixGaps(),
+      "media-gap-fix",
+    );
   });

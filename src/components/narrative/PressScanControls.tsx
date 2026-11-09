@@ -5,11 +5,22 @@ import { useEffect, useState } from "react";
 
 import { getPressScanControls, updatePressScanControls } from "@/lib/media-scan.functions";
 
+type ControlsUpdate = {
+  autoEnabled?: boolean;
+  dailyAiLimit?: number;
+  perRunLimit?: number;
+  clearPause?: boolean;
+};
+
 export function PressScanControls() {
   const qc = useQueryClient();
   const load = useServerFn(getPressScanControls);
   const save = useServerFn(updatePressScanControls);
-  const q = useQuery({ queryKey: ["admin", "press-scan-controls"], queryFn: () => load(), refetchInterval: 30_000 });
+  const q = useQuery({
+    queryKey: ["admin", "press-scan-controls"],
+    queryFn: () => load(),
+    refetchInterval: 30_000,
+  });
   const s = q.data?.settings;
   const [daily, setDaily] = useState("");
   const [perRun, setPerRun] = useState("");
@@ -21,7 +32,7 @@ export function PressScanControls() {
   }, [s?.daily_ai_limit, s?.per_run_limit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const m = useMutation({
-    mutationFn: (d: Parameters<typeof save>[0]["data"]) => save({ data: d }),
+    mutationFn: (d: ControlsUpdate) => save({ data: d }),
     onSuccess: (_r, d) => {
       setMsg(
         d.autoEnabled === true
@@ -38,20 +49,39 @@ export function PressScanControls() {
     onError: (e) => setMsg((e as Error).message),
   });
 
-  if (q.isLoading) return <section className="mt-6 border border-line-200 bg-paper-0 p-4 text-sm text-ink-600">Loading scan controls…</section>;
-  if (q.error || !s) return <section className="mt-6 border border-line-200 bg-paper-0 p-4 text-sm text-ink-800">Scan controls could not be loaded.</section>;
+  if (q.isLoading)
+    return (
+      <section className="mt-6 border border-line-200 bg-paper-0 p-4 text-sm text-ink-600">
+        Loading scan controls…
+      </section>
+    );
+  if (q.error || !s)
+    return (
+      <section className="mt-6 border border-line-200 bg-paper-0 p-4 text-sm text-ink-800">
+        Scan controls could not be loaded.
+      </section>
+    );
 
   const used = q.data?.today.calls ?? 0;
-  const pct = s.daily_ai_limit > 0 ? Math.min(100, Math.round((used / s.daily_ai_limit) * 100)) : 100;
+  const pct =
+    s.daily_ai_limit > 0 ? Math.min(100, Math.round((used / s.daily_ai_limit) * 100)) : 100;
   const dailyN = Number(daily);
   const perRunN = Number(perRun);
-  const limitsValid = Number.isInteger(dailyN) && dailyN >= 0 && dailyN <= 20000 && Number.isInteger(perRunN) && perRunN >= 1 && perRunN <= 500;
+  const limitsValid =
+    Number.isInteger(dailyN) &&
+    dailyN >= 0 &&
+    dailyN <= 20000 &&
+    Number.isInteger(perRunN) &&
+    perRunN >= 1 &&
+    perRunN <= 500;
 
   return (
     <section aria-labelledby="scan-controls" className="mt-6 border border-line-200 bg-paper-0 p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 id="scan-controls" className="font-display text-xl text-ink-950">Automatic news scan</h2>
+          <h2 id="scan-controls" className="font-display text-xl text-ink-950">
+            Automatic news scan
+          </h2>
           <p className="mt-1 max-w-2xl text-sm text-ink-600">
             {s.auto_enabled
               ? "On — scans every hour, plus 07:00 and 19:00 UTC."
@@ -70,11 +100,20 @@ export function PressScanControls() {
       </div>
 
       {s.paused_reason && (
-        <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-gold-500 bg-gold-300/20 p-3 text-sm text-ink-900">
+        <div
+          role="alert"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-gold-500 bg-gold-300/20 p-3 text-sm text-ink-900"
+        >
           <span>
-            <strong>Paused</strong> since {s.paused_at ? new Date(s.paused_at).toLocaleString() : "—"}: {s.paused_reason}. No scan will run until you clear this.
+            <strong>Paused</strong> since{" "}
+            {s.paused_at ? new Date(s.paused_at).toLocaleString() : "—"}: {s.paused_reason}. No scan
+            will run until you clear this.
           </span>
-          <button className="btn-ghost" disabled={m.isPending} onClick={() => m.mutate({ clearPause: true })}>
+          <button
+            className="btn-ghost"
+            disabled={m.isPending}
+            onClick={() => m.mutate({ clearPause: true })}
+          >
             Clear pause
           </button>
         </div>
@@ -82,7 +121,9 @@ export function PressScanControls() {
 
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-500">AI requests today (UTC)</p>
+          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-500">
+            AI requests today (UTC)
+          </p>
           <p className="mt-1 text-lg tabular-nums text-ink-950">
             {used.toLocaleString()} of {s.daily_ai_limit.toLocaleString()}
           </p>
@@ -90,7 +131,8 @@ export function PressScanControls() {
             <div className="h-full bg-ink-900" style={{ width: `${pct}%` }} />
           </div>
           <p className="mt-1 text-xs text-ink-600">
-            {(q.data?.today.skipped_offtopic ?? 0).toLocaleString()} off-topic stories skipped without AI today.
+            {(q.data?.today.skipped_offtopic ?? 0).toLocaleString()} off-topic stories skipped
+            without AI today.
           </p>
         </div>
         <label className="text-sm text-ink-700">
@@ -115,18 +157,26 @@ export function PressScanControls() {
             value={perRun}
             onChange={(e) => setPerRun(e.target.value)}
           />
-          <span className="text-xs text-ink-500">Each scan also stops starting new work after one minute.</span>
+          <span className="text-xs text-ink-500">
+            Each scan also stops starting new work after one minute.
+          </span>
         </label>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button
           className="btn-secondary"
-          disabled={m.isPending || !limitsValid || (dailyN === s.daily_ai_limit && perRunN === s.per_run_limit)}
+          disabled={
+            m.isPending ||
+            !limitsValid ||
+            (dailyN === s.daily_ai_limit && perRunN === s.per_run_limit)
+          }
           onClick={() => m.mutate({ dailyAiLimit: dailyN, perRunLimit: perRunN })}
         >
           Save limits
         </button>
-        <span className="text-xs text-ink-500">Stories are sorted by a low-cost AI model ({q.data?.model}).</span>
+        <span className="text-xs text-ink-500">
+          Stories are sorted by a low-cost AI model ({q.data?.model}).
+        </span>
         {msg && <p className="w-full text-sm text-ink-800">{msg}</p>}
       </div>
     </section>

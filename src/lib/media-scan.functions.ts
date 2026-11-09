@@ -1,5 +1,5 @@
 // @domain core
-// @tables narrative_source_stats,narrative_outlets,narrative_media_countries,narrative_feeds,narrative_harvest_runs,intake_items
+// @tables narrative_source_stats,narrative_outlets,narrative_media_countries,narrative_feeds,narrative_harvest_runs,intake_items,press_scan_settings,press_scan_ai_usage
 // @ui src/routes/_authenticated/admin/media-scan.tsx
 
 // Chamber 05 · Super Admin media scan controls (admin only).

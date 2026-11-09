@@ -1,4 +1,6 @@
-// @domain site-gate @tables none @ui src/routes/index.tsx
+// @domain site-gate
+// @tables none
+// @ui src/routes/index.tsx
 import { createServerFn } from "@tanstack/react-start";
 import { useSession } from "@tanstack/react-start/server";
 import { passwordMatches } from "./password";

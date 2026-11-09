@@ -31,12 +31,14 @@ const OFF_TOPIC: Array<{ reason: string; words: RegExp }> = [
   },
   {
     reason: "lifestyle",
-    words: /\b(horoscope|zodiac|lottery|lotto|winning numbers|recipe|recipes|obituary|obituaries|in memoriam|funeral notice|crossword|dating tips)\b/i,
+    words:
+      /\b(horoscope|zodiac|lottery|lotto|winning numbers|recipe|recipes|obituary|obituaries|in memoriam|funeral notice|crossword|dating tips)\b/i,
   },
 ];
 
 // Phrases that contain political words but are not about politics.
-const MISLEADING = /\b(premier league|premier division|party (?:time|music|night)|birthday party|block party)\b/gi;
+const MISLEADING =
+  /\b(premier league|premier division|party (?:time|music|night)|birthday party|block party)\b/gi;
 
 /**
  * Reason a story is clearly off-topic (sports, entertainment, lifestyle) and

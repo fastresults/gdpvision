@@ -8,16 +8,29 @@ import {
   firecrawlUpgrade,
 } from "@/lib/press-monitor.server";
 import { findCluster, storyKeyFromTitle, attachSibling } from "@/lib/story-cluster.server";
-import { computePriorityScore, credibilityFor, PRIORITY_WEIGHTS } from "@/lib/narrative-priority-score";
+import {
+  computePriorityScore,
+  credibilityFor,
+  PRIORITY_WEIGHTS,
+} from "@/lib/narrative-priority-score";
 import { credibilityFromStrength, SOURCE_PRIOR } from "@/lib/narrative-source-strength";
 import { PressAiStop } from "@/lib/press-classifier.server";
-import { SCAN_LIMITS, canStartAi, newBudget, offTopicReason, type ScanBudget } from "@/lib/press-scan-rules";
+import {
+  SCAN_LIMITS,
+  canStartAi,
+  newBudget,
+  offTopicReason,
+  type ScanBudget,
+} from "@/lib/press-scan-rules";
 
 /** Pseudo-country code for shared regional/international outlets. */
 export const REGIONAL_CODE = "CAR";
 const LINK_CHECK_CAP = 80;
 
-type LinkCheck = { status: "verified" | "redirected" | "broken" | "unchecked" | "missing"; final_url: string | null };
+type LinkCheck = {
+  status: "verified" | "redirected" | "broken" | "unchecked" | "missing";
+  final_url: string | null;
+};
 
 /** Confirm an article link opens. Redirects to another site are flagged. */
 export async function checkLink(url: string): Promise<LinkCheck> {
@@ -31,11 +44,19 @@ export async function checkLink(url: string): Promise<LinkCheck> {
       headers: { "User-Agent": "GDPVision-LinkCheck/1.0", Range: "bytes=0-2048" },
     });
     await r.body?.cancel().catch(() => {});
-    if (!r.ok && r.status !== 206 && r.status !== 403) return { status: "broken", final_url: r.url || url };
+    if (!r.ok && r.status !== 206 && r.status !== 403)
+      return { status: "broken", final_url: r.url || url };
     const host = (u: string) => {
-      try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; }
+      try {
+        return new URL(u).hostname.replace(/^www\./, "");
+      } catch {
+        return "";
+      }
     };
-    return { status: host(r.url || url) === host(url) ? "verified" : "redirected", final_url: r.url || url };
+    return {
+      status: host(r.url || url) === host(url) ? "verified" : "redirected",
+      final_url: r.url || url,
+    };
   } catch {
     return { status: "broken", final_url: null };
   } finally {
@@ -55,10 +76,14 @@ async function bumpSpread(primaryId: string, siblingStrength: number) {
   // Weighted by the joining outlet's strength: an S3 source (~40) adds ~0.8.
   const spread = (f.spread_raw ?? 1) + Math.max(0.2, Math.min(2, siblingStrength / 50));
   const spreadPts = Math.round((Math.min(spread - 1, 4) / 4) * PRIORITY_WEIGHTS.spread * 10) / 10;
-  const score = Math.round(((Number(data?.priority_score) || 0) - (f.spread ?? 0) + spreadPts) * 10) / 10;
+  const score =
+    Math.round(((Number(data?.priority_score) || 0) - (f.spread ?? 0) + spreadPts) * 10) / 10;
   await supabaseAdmin
     .from("intake_items")
-    .update({ priority_score: score, priority_factors: { ...f, spread: spreadPts, spread_raw: spread } })
+    .update({
+      priority_score: score,
+      priority_factors: { ...f, spread: spreadPts, spread_raw: spread },
+    })
     .eq("id", primaryId);
 }
 
@@ -92,13 +117,15 @@ export async function readScanSettings(): Promise<PressScanSettings> {
     .eq("id", true)
     .maybeSingle();
   // Missing settings row → treat as off with the most cautious limits.
-  return (data as PressScanSettings | null) ?? {
-    auto_enabled: false,
-    daily_ai_limit: 0,
-    per_run_limit: 1,
-    paused_reason: "Scan settings missing",
-    paused_at: null,
-  };
+  return (
+    (data as PressScanSettings | null) ?? {
+      auto_enabled: false,
+      daily_ai_limit: 0,
+      per_run_limit: 1,
+      paused_reason: "Scan settings missing",
+      paused_at: null,
+    }
+  );
 }
 
 /** A scan that was refused before it started (switched off, paused or already running). */
@@ -117,7 +144,9 @@ export async function runGuardedPressTick(opts: {
 }): Promise<PressTickResult> {
   const settings = await readScanSettings();
   if (settings.paused_reason) {
-    throw new ScanBlocked(`News scan is paused: ${settings.paused_reason}. An admin can clear the pause on the Media Scan page.`);
+    throw new ScanBlocked(
+      `News scan is paused: ${settings.paused_reason}. An admin can clear the pause on the Media Scan page.`,
+    );
   }
   if (opts.automatic && !settings.auto_enabled) {
     throw new ScanBlocked("Automatic news scan is switched off.");
@@ -128,7 +157,8 @@ export async function runGuardedPressTick(opts: {
       runPressTick({ ...opts, budget: newBudget(settings.per_run_limit) }),
     );
   } catch (e) {
-    if ((e as Error).message.startsWith("A full scan is already running")) throw new ScanBlocked((e as Error).message);
+    if ((e as Error).message.startsWith("A full scan is already running"))
+      throw new ScanBlocked((e as Error).message);
     throw e;
   }
 }
@@ -369,20 +399,33 @@ export async function runPressTick(opts: {
     {
       const [{ data: cs }, { data: mcs }] = await Promise.all([
         supabaseAdmin.from("countries").select("code,name"),
-        supabaseAdmin.from("narrative_media_countries").select("code,name,is_regional").eq("active", true),
+        supabaseAdmin
+          .from("narrative_media_countries")
+          .select("code,name,is_regional")
+          .eq("active", true),
       ]);
       for (const c of cs ?? []) knownCountries[c.code as string] = (c.name as string) ?? c.code;
-      for (const c of mcs ?? []) if (!c.is_regional) knownCountries[c.code as string] = c.name as string;
+      for (const c of mcs ?? [])
+        if (!c.is_regional) knownCountries[c.code as string] = c.name as string;
     }
     const outletCred = new Map<string, number>();
     {
-      const { data: outs } = await supabaseAdmin.from("narrative_outlets").select("domain,credibility");
-      for (const o of outs ?? []) outletCred.set((o.domain as string).toLowerCase(), o.credibility as number);
+      const { data: outs } = await supabaseAdmin
+        .from("narrative_outlets")
+        .select("domain,credibility");
+      for (const o of outs ?? [])
+        outletCred.set((o.domain as string).toLowerCase(), o.credibility as number);
     }
     const sourceStats = new Map<string, { strength: number; tier: number }>();
     {
-      const { data: st } = await supabaseAdmin.from("narrative_source_stats").select("feed_id,strength,tier");
-      for (const r of st ?? []) sourceStats.set(r.feed_id as string, { strength: Number(r.strength), tier: r.tier as number });
+      const { data: st } = await supabaseAdmin
+        .from("narrative_source_stats")
+        .select("feed_id,strength,tier");
+      for (const r of st ?? [])
+        sourceStats.set(r.feed_id as string, {
+          strength: Number(r.strength),
+          tier: r.tier as number,
+        });
     }
     const outletOf = (u: string | null) => {
       if (!u) return null;
@@ -423,7 +466,9 @@ export async function runPressTick(opts: {
         ]),
       );
       const st = it.feed_id ? sourceStats.get(it.feed_id) : undefined;
-      const credibility = st ? credibilityFromStrength(st.strength) : credOf(it.url, it.tier_hint ?? c.scope);
+      const credibility = st
+        ? credibilityFromStrength(st.strength)
+        : credOf(it.url, it.tier_hint ?? c.scope);
       const sourceStrength = st?.strength ?? SOURCE_PRIOR;
       const baseScore = {
         severity: c.severity,
@@ -459,72 +504,79 @@ export async function runPressTick(opts: {
       let firstSignal: string | null = null;
       let anyDup = false;
       let promotedHere = 0;
-        for (const tc of targets) {
-          countryList.add(tc);
-          const topic = (c.topic || it.title || "").slice(0, 240);
-          const match = await findCluster(tc, topic);
-          if (match) {
-            const { score, factors } = computePriorityScore({ ...baseScore, spread: 1 });
-            await supabaseAdmin.from("intake_items").insert({
-              ...common,
-              scope_key: tc,
-              topic,
-              story_key: match.story_key,
-              story_primary: false,
-              duplicate_of: match.primary_id,
-              state: "duplicate",
-              priority_score: score,
-              priority_factors: { ...factors, credibility_raw: credibility, spread_raw: 1 },
-              metadata: {
-                dossier_bullets: c.dossier_bullets,
-                rationale: c.rationale,
-                citations: c.citations ?? [],
-                source: "press-tick",
-                ingested_at: new Date().toISOString(),
-                clustered_into: match.primary_id,
-                cluster_similarity: match.similarity,
-              },
-            });
-            await attachSibling(match.primary_id, { url: it.url, title: topic, outlet: outletOf(it.url) });
-            await bumpSpread(match.primary_id, sourceStrength);
-            firstSignal ??= match.primary_id;
-            anyDup = true;
-            clustersMerged++;
-            continue;
-          }
+      for (const tc of targets) {
+        countryList.add(tc);
+        const topic = (c.topic || it.title || "").slice(0, 240);
+        const match = await findCluster(tc, topic);
+        if (match) {
           const { score, factors } = computePriorityScore({ ...baseScore, spread: 1 });
-          const { data: sig, error: sigErr } = await supabaseAdmin
-            .from("intake_items")
-            .insert({
-              ...common,
-              scope_key: tc,
-              topic,
-              story_key: storyKeyFromTitle(topic),
-              story_primary: true,
-              first_to_report: true,
-              priority_score: score,
-              priority_factors: { ...factors, credibility_raw: credibility, spread_raw: 1 },
-              metadata: {
-                dossier_bullets: c.dossier_bullets,
-                rationale: c.rationale,
-                citations: c.citations ?? [],
-                source: "press-tick",
-                ingested_at: new Date().toISOString(),
-                outlet: outletOf(it.url),
-              },
-            })
-            .select("id")
-            .single();
-          if (sigErr) throw sigErr;
-          firstSignal = sig.id;
-          itemsPromoted++;
-          promotedHere++;
+          await supabaseAdmin.from("intake_items").insert({
+            ...common,
+            scope_key: tc,
+            topic,
+            story_key: match.story_key,
+            story_primary: false,
+            duplicate_of: match.primary_id,
+            state: "duplicate",
+            priority_score: score,
+            priority_factors: { ...factors, credibility_raw: credibility, spread_raw: 1 },
+            metadata: {
+              dossier_bullets: c.dossier_bullets,
+              rationale: c.rationale,
+              citations: c.citations ?? [],
+              source: "press-tick",
+              ingested_at: new Date().toISOString(),
+              clustered_into: match.primary_id,
+              cluster_similarity: match.similarity,
+            },
+          });
+          await attachSibling(match.primary_id, {
+            url: it.url,
+            title: topic,
+            outlet: outletOf(it.url),
+          });
+          await bumpSpread(match.primary_id, sourceStrength);
+          firstSignal ??= match.primary_id;
+          anyDup = true;
+          clustersMerged++;
+          continue;
         }
-        await supabaseAdmin
-          .from("narrative_feed_items")
-          .update({ state: anyDup && promotedHere === 0 ? "duplicate" : "promoted", signal_id: firstSignal })
-          .eq("id", it.id);
-        if (it.url) canonSet.add(canonicalUrl(it.url));
+        const { score, factors } = computePriorityScore({ ...baseScore, spread: 1 });
+        const { data: sig, error: sigErr } = await supabaseAdmin
+          .from("intake_items")
+          .insert({
+            ...common,
+            scope_key: tc,
+            topic,
+            story_key: storyKeyFromTitle(topic),
+            story_primary: true,
+            first_to_report: true,
+            priority_score: score,
+            priority_factors: { ...factors, credibility_raw: credibility, spread_raw: 1 },
+            metadata: {
+              dossier_bullets: c.dossier_bullets,
+              rationale: c.rationale,
+              citations: c.citations ?? [],
+              source: "press-tick",
+              ingested_at: new Date().toISOString(),
+              outlet: outletOf(it.url),
+            },
+          })
+          .select("id")
+          .single();
+        if (sigErr) throw sigErr;
+        firstSignal = sig.id;
+        itemsPromoted++;
+        promotedHere++;
+      }
+      await supabaseAdmin
+        .from("narrative_feed_items")
+        .update({
+          state: anyDup && promotedHere === 0 ? "duplicate" : "promoted",
+          signal_id: firstSignal,
+        })
+        .eq("id", it.id);
+      if (it.url) canonSet.add(canonicalUrl(it.url));
     }
 
     let linkChecks = 0;
@@ -556,7 +608,11 @@ export async function runPressTick(opts: {
 
       let upgradedMd: string | null = null;
       const readCap = SCAN_LIMITS.articleReadsPerRun;
-      if (it.url && budget.articleReads < readCap && (isRepLane(it.tier_hint) || budget.articleReads < readCap / 2)) {
+      if (
+        it.url &&
+        budget.articleReads < readCap &&
+        (isRepLane(it.tier_hint) || budget.articleReads < readCap / 2)
+      ) {
         budget.articleReads++;
         upgradedMd = await firecrawlUpgrade(it.url);
       }
@@ -580,7 +636,10 @@ export async function runPressTick(opts: {
           if (e.kind === "pause") {
             await supabaseAdmin
               .from("press_scan_settings")
-              .update({ paused_reason: e.message.slice(0, 300), paused_at: new Date().toISOString() })
+              .update({
+                paused_reason: e.message.slice(0, 300),
+                paused_at: new Date().toISOString(),
+              })
               .eq("id", true);
           }
           return;
@@ -591,11 +650,15 @@ export async function runPressTick(opts: {
         return;
       }
 
-      const targets = Array.from(new Set([...(regional ? [] : [it.country_code]), ...c.countries_mentioned]));
+      const targets = Array.from(
+        new Set([...(regional ? [] : [it.country_code]), ...c.countries_mentioned]),
+      );
       // Relevance gate: keep articles about a covered country AND
       // politics/economy; local feeds also keep anything not marked "ignore".
       const relevant = c.is_political || c.is_economic;
-      const keep = regional ? targets.length > 0 && relevant : relevant || c.recommendation !== "ignore";
+      const keep = regional
+        ? targets.length > 0 && relevant
+        : relevant || c.recommendation !== "ignore";
       if (!keep) {
         await setState(it.id, "discarded");
         return;
@@ -684,7 +747,9 @@ export async function runPressTick(opts: {
   let p1Guarantee: Record<string, unknown> | null = null;
   try {
     const { enforceP1Guarantee } = await import("@/lib/narrative-p1-guarantee.server");
-    const targets = filterCountry ? [filterCountry] : Array.from(universe).filter((c) => c !== REGIONAL_CODE);
+    const targets = filterCountry
+      ? [filterCountry]
+      : Array.from(universe).filter((c) => c !== REGIONAL_CODE);
     p1Guarantee = await enforceP1Guarantee(targets);
   } catch (e) {
     errors.push({ scope: "p1-guarantee", msg: (e as Error).message });

@@ -238,15 +238,14 @@ function countryMenuLine(input: ClassifyInput): string {
   if (!k) return "";
   return `Known countries (ISO3: name): ${Object.entries(k)
     .map(([c, n]) => `${c}: ${n}`)
-    .join("; ")}. List in countries_mentioned only codes from this list that are a main subject of the article (usually 1–3); do not list countries merely named in passing or as examples.`;
+    .join(
+      "; ",
+    )}. List in countries_mentioned only codes from this list that are a main subject of the article (usually 1–3); do not list countries merely named in passing or as examples.`;
 }
 
 const asBool = (v: unknown) => v === true || v === "true" || v === 1;
 
-function normalizeClassification(
-  value: Classification,
-  input: ClassifyInput,
-): Classification {
+function normalizeClassification(value: Classification, input: ClassifyInput): Classification {
   const scopes: Scope[] = ["local", "regional", "international"];
   const recommendations: Classification["recommendation"][] = [
     "lead",

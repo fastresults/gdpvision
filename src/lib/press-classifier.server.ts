@@ -56,11 +56,15 @@ export async function pressAiJson<T>(opts: {
     }
     const outcome = gatewayOutcome(res.status);
     if (res.status === 402) message = message || "AI credits are used up.";
-    if (outcome !== "item") throw new PressAiStop(`AI ${res.status}: ${message}`, outcome, res.status);
+    if (outcome !== "item")
+      throw new PressAiStop(`AI ${res.status}: ${message}`, outcome, res.status);
     throw new Error(`AI ${res.status}: ${message}`);
   }
   const j = (await res.json()) as {
-    choices?: Array<{ finish_reason?: string; message?: { content?: string | null; refusal?: string | null } }>;
+    choices?: Array<{
+      finish_reason?: string;
+      message?: { content?: string | null; refusal?: string | null };
+    }>;
   };
   const choice = j.choices?.[0];
   if (choice?.message?.refusal) throw new Error("AI declined to sort this story.");

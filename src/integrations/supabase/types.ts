@@ -9508,6 +9508,60 @@ export type Database = {
         }
         Relationships: []
       }
+      press_scan_ai_usage: {
+        Row: {
+          calls: number
+          day: string
+          skipped_offtopic: number
+          updated_at: string
+        }
+        Insert: {
+          calls?: number
+          day: string
+          skipped_offtopic?: number
+          updated_at?: string
+        }
+        Update: {
+          calls?: number
+          day?: string
+          skipped_offtopic?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      press_scan_settings: {
+        Row: {
+          auto_enabled: boolean
+          daily_ai_limit: number
+          id: boolean
+          paused_at: string | null
+          paused_reason: string | null
+          per_run_limit: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auto_enabled?: boolean
+          daily_ai_limit?: number
+          id?: boolean
+          paused_at?: string | null
+          paused_reason?: string | null
+          per_run_limit?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auto_enabled?: boolean
+          daily_ai_limit?: number
+          id?: boolean
+          paused_at?: string | null
+          paused_reason?: string | null
+          per_run_limit?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -12509,6 +12563,7 @@ export type Database = {
         Args: { _scope: string; _user_id: string }
         Returns: boolean
       }
+      claim_press_ai_calls: { Args: { _n: number }; Returns: number }
       country_chunks_search: {
         Args: {
           _country_code: string
@@ -12634,6 +12689,7 @@ export type Database = {
           scope: string
         }[]
       }
+      note_press_offtopic: { Args: { _n: number }; Returns: undefined }
       portfolio_profile_history: {
         Args: { _set_id: string }
         Returns: {
@@ -12712,6 +12768,30 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      update_press_scan_settings: {
+        Args: {
+          _auto_enabled?: boolean
+          _clear_pause?: boolean
+          _daily_ai_limit?: number
+          _per_run_limit?: number
+        }
+        Returns: {
+          auto_enabled: boolean
+          daily_ai_limit: number
+          id: boolean
+          paused_at: string | null
+          paused_reason: string | null
+          per_run_limit: number
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "press_scan_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       verify_hook_secret: { Args: { _secret: string }; Returns: boolean }
     }
     Enums: {

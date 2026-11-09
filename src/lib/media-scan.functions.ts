@@ -1,5 +1,5 @@
 // @domain core
-// @tables narrative_source_stats,narrative_outlets,narrative_media_countries,narrative_feeds,narrative_harvest_runs,intake_items
+// @tables narrative_source_stats,narrative_outlets,narrative_media_countries,narrative_feeds,narrative_harvest_runs,intake_items,press_scan_settings,press_scan_ai_usage
 // @ui src/routes/_authenticated/admin/media-scan.tsx
 
 // Chamber 05 · Super Admin media scan controls (admin only).
@@ -17,7 +17,9 @@ export const getMediaScanOverview = createServerFn({ method: "GET" })
       supabaseAdmin.from("narrative_outlets").select("*").order("scope").order("name"),
       supabaseAdmin
         .from("narrative_harvest_runs")
-        .select("id,window_key,started_at,finished_at,feeds_polled,items_fetched,items_new,items_promoted,triggered_by,countries_run")
+        .select(
+          "id,window_key,started_at,finished_at,feeds_polled,items_fetched,items_new,items_promoted,triggered_by,countries_run",
+        )
         .order("started_at", { ascending: false })
         .limit(8),
       supabaseAdmin.from("narrative_scan_locks").select("holder,expires_at").maybeSingle(),
@@ -28,16 +30,64 @@ export const getMediaScanOverview = createServerFn({ method: "GET" })
 export const runMediaScan = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .inputValidator((d: unknown) => z.object({ countryCode: z.string().nullable() }).parse(d))
+  .handler(async ({ data }) => {
+    const { runGuardedPressTick } = await import("@/lib/press-tick.server");
+    return runGuardedPressTick({
+      windowKey: "manual",
+      filterCountry: data.countryCode,
+      triggeredBy: "super-admin",
+      automatic: false,
+    });
+  });
+
+// ─── News scan cost controls (on/off switch, limits, pause) ─────────────────
+
+export const getPressScanControls = createServerFn({ method: "GET" })
+  .middleware([requireAdmin])
+  .handler(async ({ context }) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ data: settings, error }, { data: usage }] = await Promise.all([
+      context.supabase
+        .from("press_scan_settings")
+        .select("auto_enabled,daily_ai_limit,per_run_limit,paused_reason,paused_at,updated_at")
+        .eq("id", true)
+        .maybeSingle(),
+      context.supabase
+        .from("press_scan_ai_usage")
+        .select("calls,skipped_offtopic")
+        .eq("day", today)
+        .maybeSingle(),
+    ]);
+    if (error) throw new Error(error.message);
+    const { PRESS_CLASSIFIER_MODEL } = await import("@/lib/press-scan-rules");
+    return {
+      settings: settings ?? null,
+      today: { calls: usage?.calls ?? 0, skipped_offtopic: usage?.skipped_offtopic ?? 0 },
+      model: PRESS_CLASSIFIER_MODEL,
+    };
+  });
+
+export const updatePressScanControls = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        autoEnabled: z.boolean().optional(),
+        dailyAiLimit: z.number().int().min(0).max(20000).optional(),
+        perRunLimit: z.number().int().min(1).max(500).optional(),
+        clearPause: z.boolean().optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
-    const { withScanLock } = await import("@/lib/media-scan.server");
-    const { runPressTick } = await import("@/lib/press-tick.server");
-    return withScanLock(`${context.userId}:${Date.now()}`, 15, () =>
-      runPressTick({
-        windowKey: "manual",
-        filterCountry: data.countryCode,
-        triggeredBy: "super-admin",
-      }),
-    );
+    const { error } = await context.supabase.rpc("update_press_scan_settings", {
+      _auto_enabled: data.autoEnabled,
+      _daily_ai_limit: data.dailyAiLimit,
+      _per_run_limit: data.perRunLimit,
+      _clear_pause: data.clearPause ?? false,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const syncSharedOutlets = createServerFn({ method: "POST" })
@@ -72,9 +122,20 @@ export const upsertOutlet = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const domain = data.domain.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "").toLowerCase();
-    const row = { ...data, domain, feed_url: data.feed_url ?? null, updated_at: new Date().toISOString() };
-    const { error } = await context.supabase.from("narrative_outlets").upsert(row, { onConflict: "domain" });
+    const domain = data.domain
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/\/.*$/, "")
+      .toLowerCase();
+    const row = {
+      ...data,
+      domain,
+      feed_url: data.feed_url ?? null,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await context.supabase
+      .from("narrative_outlets")
+      .upsert(row, { onConflict: "domain" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -128,5 +189,10 @@ export const fixMediaGaps = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { withScanLock } = await import("@/lib/media-scan.server");
     const { fixGaps } = await import("@/lib/narrative-retag.server");
-    return withScanLock(`gaps:${context.userId}:${Date.now()}`, 15, () => fixGaps(), "media-gap-fix");
+    return withScanLock(
+      `gaps:${context.userId}:${Date.now()}`,
+      15,
+      () => fixGaps(),
+      "media-gap-fix",
+    );
   });

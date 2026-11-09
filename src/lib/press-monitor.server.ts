@@ -1,6 +1,5 @@
 // Server-only helpers for Chamber 05 press monitoring.
 // Imported by /api/public/hooks/press-tick and press-monitor.functions.ts (inside handlers).
-import { perplexityFetch } from "@/lib/perplexity-agent";
 import { createHash } from "crypto";
 
 export type Scope = "local" | "regional" | "international";
@@ -202,7 +201,7 @@ export async function fetchFeed(feed: FeedRow): Promise<FetchResult> {
   }
 }
 
-// ─── Classifier (Perplexity sonar-pro) — shared with narrative-chamber ──────
+// ─── Classifier (low-cost gateway model) — shared with narrative-chamber ────
 
 export interface Classification {
   scope: Scope;
@@ -239,15 +238,14 @@ function countryMenuLine(input: ClassifyInput): string {
   if (!k) return "";
   return `Known countries (ISO3: name): ${Object.entries(k)
     .map(([c, n]) => `${c}: ${n}`)
-    .join("; ")}. List in countries_mentioned only codes from this list that are a main subject of the article (usually 1–3); do not list countries merely named in passing or as examples.`;
+    .join(
+      "; ",
+    )}. List in countries_mentioned only codes from this list that are a main subject of the article (usually 1–3); do not list countries merely named in passing or as examples.`;
 }
 
 const asBool = (v: unknown) => v === true || v === "true" || v === 1;
 
-function normalizeClassification(
-  value: Classification,
-  input: ClassifyInput,
-): Classification {
+function normalizeClassification(value: Classification, input: ClassifyInput): Classification {
   const scopes: Scope[] = ["local", "regional", "international"];
   const recommendations: Classification["recommendation"][] = [
     "lead",
@@ -299,123 +297,70 @@ function normalizeClassification(
   };
 }
 
-async function classifyWithGateway(input: ClassifyInput): Promise<Classification> {
-  const { callGeminiJson } = await import("@/lib/country-onboarding/gemini.server");
-  const { parsed } = await callGeminiJson<Classification>({
+const CLASSIFY_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    scope: { type: "string", enum: ["local", "regional", "international"] },
+    sector_code: { type: "string" },
+    severity: { type: "number" },
+    reach: { type: "number" },
+    sentiment: { type: "number" },
+    topic: { type: "string" },
+    summary: { type: "string" },
+    dossier_bullets: { type: "array", items: { type: "string" } },
+    recommendation: { type: "string", enum: ["lead", "amplify", "counter", "monitor", "ignore"] },
+    rationale: { type: "string" },
+    countries_mentioned: { type: "array", items: { type: "string" } },
+    is_political: { type: "boolean" },
+    is_economic: { type: "boolean" },
+    mentions_government: { type: "boolean" },
+    tags: { type: "array", items: { type: "string" } },
+  },
+  required: [
+    "scope",
+    "sector_code",
+    "severity",
+    "reach",
+    "sentiment",
+    "topic",
+    "summary",
+    "dossier_bullets",
+    "recommendation",
+    "rationale",
+    "countries_mentioned",
+    "is_political",
+    "is_economic",
+    "mentions_government",
+    "tags",
+  ],
+};
+
+/**
+ * Sort one press mention with the low-cost classifier model. Throws
+ * `PressAiStop` when credits, access or rate limits mean the scan must stop.
+ */
+export async function classifySignal(input: ClassifyInput): Promise<Classification> {
+  const { pressAiJson } = await import("@/lib/press-classifier.server");
+  const { SCAN_LIMITS } = await import("@/lib/press-scan-rules");
+  const parsed = await pressAiJson<Classification>({
+    name: "press_signal",
+    schema: CLASSIFY_SCHEMA,
     system:
-      "You classify press mentions for a sovereign government narrative team. Use only the supplied mention. Return cautious, evidence-grounded JSON.",
+      "You classify press mentions for a sovereign government narrative team. Use only the supplied mention. Be cautious and factual. Return JSON only.",
     user: [
       `Country: ${input.countryCode}`,
       input.url ? `Source URL: ${input.url}` : "",
-      input.raw ? `Press mention:\n${input.raw.slice(0, 12000)}` : "",
+      input.raw ? `Press mention:\n${input.raw.slice(0, SCAN_LIMITS.maxPromptChars)}` : "",
       `Allowed sector codes: ${input.sectorMenu.join(", ") || "cross"}`,
       input.hintSectorCode ? `Suggested sector: ${input.hintSectorCode}` : "",
       countryMenuLine(input),
-      "Also flag is_political (elections, parties, government, ministers, policy, diplomacy), is_economic (GDP, growth, budget, debt, investment, trade, tourism receipts, jobs, prices), mentions_government (names the government, a ministry or a minister), and up to 6 short lowercase tags.",
-      "Classify scope, sector, urgency, reach, sentiment and the recommended government response. Return json.",
+      "Flag is_political (elections, parties, government, ministers, policy, diplomacy), is_economic (GDP, growth, budget, debt, investment, trade, tourism receipts, jobs, prices), mentions_government (names the government, a ministry or a minister), and up to 6 short lowercase tags.",
+      "Give scope, sector_code, severity 1-5, reach 1-5, sentiment -2..2, topic (90 chars max), summary (2 factual sentences), dossier_bullets (up to 4), recommendation and a one-sentence rationale.",
     ]
       .filter(Boolean)
       .join("\n\n"),
-    schemaHint:
-      '{"scope":"local|regional|international","sector_code":"allowed code or cross","severity":1,"reach":1,"sentiment":0,"topic":"short headline","summary":"two factual sentences","dossier_bullets":["fact"],"recommendation":"lead|amplify|counter|monitor|ignore","rationale":"one sentence","citations":["https://source"],"countries_mentioned":["ATG"],"is_political":true,"is_economic":false,"mentions_government":true,"tags":["election"]}',
-    citationText: input.raw ?? "",
   });
-  if (!parsed) throw new Error("Press classification returned no usable result.");
-  return normalizeClassification(parsed, input);
-}
-
-export async function classifySignal(input: ClassifyInput): Promise<Classification> {
-  const key = process.env.PERPLEXITY_API_KEY;
-  if (!key) return classifyWithGateway(input);
-  const userPrompt = [
-    `Country: ${input.countryCode}`,
-    input.url ? `URL: ${input.url}` : "",
-    input.raw ? `Raw signal:\n${input.raw}` : "",
-    `Available sector codes: ${input.sectorMenu.join(", ") || "cross"}`,
-    input.hintSectorCode ? `Hint sector_code: ${input.hintSectorCode}` : "",
-    "",
-    "Return strict JSON: scope (local|regional|international), sector_code, severity 1-5, reach 1-5,",
-    "sentiment -2..+2, topic (≤90 chars), summary (2 sentences), dossier_bullets (4 crisp bullets),",
-    "recommendation (lead|amplify|counter|monitor|ignore), rationale (1 sentence),",
-    "countries_mentioned (ISO3 codes), is_political, is_economic, mentions_government (booleans), tags (≤6 lowercase).",
-    countryMenuLine(input),
-  ]
-    .filter(Boolean)
-    .join("\n");
-  const schema = {
-    type: "object",
-    properties: {
-      scope: { type: "string" },
-      sector_code: { type: "string" },
-      severity: { type: "number" },
-      reach: { type: "number" },
-      sentiment: { type: "number" },
-      topic: { type: "string" },
-      summary: { type: "string" },
-      dossier_bullets: { type: "array", items: { type: "string" } },
-      recommendation: { type: "string" },
-      rationale: { type: "string" },
-      countries_mentioned: { type: "array", items: { type: "string" } },
-      is_political: { type: "boolean" },
-      is_economic: { type: "boolean" },
-      mentions_government: { type: "boolean" },
-      tags: { type: "array", items: { type: "string" } },
-    },
-    required: [
-      "scope",
-      "sector_code",
-      "severity",
-      "reach",
-      "sentiment",
-      "topic",
-      "summary",
-      "dossier_bullets",
-      "recommendation",
-      "rationale",
-      "countries_mentioned",
-      "is_political",
-      "is_economic",
-      "mentions_government",
-      "tags",
-    ],
-  };
-  const res = await perplexityFetch({
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "sonar-pro",
-        messages: [
-          {
-            role: "system",
-            content: "You are a McKinsey-grade GDP narrative analyst. Return strict JSON only.",
-          },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_schema", json_schema: { name: "sig", schema } },
-        temperature: 0.2,
-      }),
-    },
-    25_000,
-  );
-  if (!res.ok) {
-    const body = await res.text();
-    if (res.status === 401 && body.includes("insufficient_quota")) {
-      return classifyWithGateway(input);
-    }
-    throw new Error(`classify ${res.status}: ${body.slice(0, 200)}`);
-  }
-  const j = await res.json();
-  const content: string = j?.choices?.[0]?.message?.content ?? "";
-  const citations: string[] = Array.isArray(j?.citations) ? j.citations : [];
-  let parsed: Classification;
-  try {
-    parsed = JSON.parse(content);
-  } catch {
-    const m = content.match(/\{[\s\S]*\}/);
-    if (!m) throw new Error("classifier returned no JSON");
-    parsed = JSON.parse(m[0]);
-  }
-  parsed.citations = citations;
   return normalizeClassification(parsed, input);
 }
 

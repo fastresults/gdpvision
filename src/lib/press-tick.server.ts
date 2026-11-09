@@ -8,14 +8,29 @@ import {
   firecrawlUpgrade,
 } from "@/lib/press-monitor.server";
 import { findCluster, storyKeyFromTitle, attachSibling } from "@/lib/story-cluster.server";
-import { computePriorityScore, credibilityFor, PRIORITY_WEIGHTS } from "@/lib/narrative-priority-score";
+import {
+  computePriorityScore,
+  credibilityFor,
+  PRIORITY_WEIGHTS,
+} from "@/lib/narrative-priority-score";
 import { credibilityFromStrength, SOURCE_PRIOR } from "@/lib/narrative-source-strength";
+import { PressAiStop } from "@/lib/press-classifier.server";
+import {
+  SCAN_LIMITS,
+  canStartAi,
+  newBudget,
+  offTopicReason,
+  type ScanBudget,
+} from "@/lib/press-scan-rules";
 
 /** Pseudo-country code for shared regional/international outlets. */
 export const REGIONAL_CODE = "CAR";
 const LINK_CHECK_CAP = 80;
 
-type LinkCheck = { status: "verified" | "redirected" | "broken" | "unchecked" | "missing"; final_url: string | null };
+type LinkCheck = {
+  status: "verified" | "redirected" | "broken" | "unchecked" | "missing";
+  final_url: string | null;
+};
 
 /** Confirm an article link opens. Redirects to another site are flagged. */
 export async function checkLink(url: string): Promise<LinkCheck> {
@@ -29,11 +44,19 @@ export async function checkLink(url: string): Promise<LinkCheck> {
       headers: { "User-Agent": "GDPVision-LinkCheck/1.0", Range: "bytes=0-2048" },
     });
     await r.body?.cancel().catch(() => {});
-    if (!r.ok && r.status !== 206 && r.status !== 403) return { status: "broken", final_url: r.url || url };
+    if (!r.ok && r.status !== 206 && r.status !== 403)
+      return { status: "broken", final_url: r.url || url };
     const host = (u: string) => {
-      try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; }
+      try {
+        return new URL(u).hostname.replace(/^www\./, "");
+      } catch {
+        return "";
+      }
     };
-    return { status: host(r.url || url) === host(url) ? "verified" : "redirected", final_url: r.url || url };
+    return {
+      status: host(r.url || url) === host(url) ? "verified" : "redirected",
+      final_url: r.url || url,
+    };
   } catch {
     return { status: "broken", final_url: null };
   } finally {
@@ -53,10 +76,14 @@ async function bumpSpread(primaryId: string, siblingStrength: number) {
   // Weighted by the joining outlet's strength: an S3 source (~40) adds ~0.8.
   const spread = (f.spread_raw ?? 1) + Math.max(0.2, Math.min(2, siblingStrength / 50));
   const spreadPts = Math.round((Math.min(spread - 1, 4) / 4) * PRIORITY_WEIGHTS.spread * 10) / 10;
-  const score = Math.round(((Number(data?.priority_score) || 0) - (f.spread ?? 0) + spreadPts) * 10) / 10;
+  const score =
+    Math.round(((Number(data?.priority_score) || 0) - (f.spread ?? 0) + spreadPts) * 10) / 10;
   await supabaseAdmin
     .from("intake_items")
-    .update({ priority_score: score, priority_factors: { ...f, spread: spreadPts, spread_raw: spread } })
+    .update({
+      priority_score: score,
+      priority_factors: { ...f, spread: spreadPts, spread_raw: spread },
+    })
     .eq("id", primaryId);
 }
 
@@ -69,13 +96,83 @@ export type PressTickResult = {
   items_new: number;
   items_promoted: number;
   errors: number;
+  ai_calls: number;
+  skipped_offtopic: number;
+  /** Why the scan stopped starting AI work early, if it did. */
+  stopped: string | null;
 };
+
+export type PressScanSettings = {
+  auto_enabled: boolean;
+  daily_ai_limit: number;
+  per_run_limit: number;
+  paused_reason: string | null;
+  paused_at: string | null;
+};
+
+export async function readScanSettings(): Promise<PressScanSettings> {
+  const { data } = await supabaseAdmin
+    .from("press_scan_settings")
+    .select("auto_enabled,daily_ai_limit,per_run_limit,paused_reason,paused_at")
+    .eq("id", true)
+    .maybeSingle();
+  // Missing settings row → treat as off with the most cautious limits.
+  return (
+    (data as PressScanSettings | null) ?? {
+      auto_enabled: false,
+      daily_ai_limit: 0,
+      per_run_limit: 1,
+      paused_reason: "Scan settings missing",
+      paused_at: null,
+    }
+  );
+}
+
+/** A scan that was refused before it started (switched off, paused or already running). */
+export class ScanBlocked extends Error {}
+
+/**
+ * Every entry point (schedules, admin buttons, country consoles) goes through
+ * here: it checks the on/off switch and pause, then runs one scan at a time.
+ */
+export async function runGuardedPressTick(opts: {
+  windowKey: string;
+  filterCountry?: string | null;
+  triggeredBy: string;
+  /** Scheduled scans only run while the automatic switch is on. */
+  automatic: boolean;
+}): Promise<PressTickResult> {
+  const settings = await readScanSettings();
+  if (settings.paused_reason) {
+    throw new ScanBlocked(
+      `News scan is paused: ${settings.paused_reason}. An admin can clear the pause on the Media Scan page.`,
+    );
+  }
+  if (opts.automatic && !settings.auto_enabled) {
+    throw new ScanBlocked("Automatic news scan is switched off.");
+  }
+  const { withScanLock } = await import("@/lib/media-scan.server");
+  try {
+    return await withScanLock(`${opts.triggeredBy}:${Date.now()}`, 5, () =>
+      runPressTick({ ...opts, budget: newBudget(settings.per_run_limit) }),
+    );
+  } catch (e) {
+    if ((e as Error).message.startsWith("A full scan is already running"))
+      throw new ScanBlocked((e as Error).message);
+    throw e;
+  }
+}
 
 export async function runPressTick(opts: {
   windowKey?: string;
   filterCountry?: string | null;
   triggeredBy?: string;
+  /** Shared across gap-fill sub-scans so they cannot exceed the scan's limits. */
+  budget?: ScanBudget;
 }): Promise<PressTickResult> {
+  const budget = opts.budget ?? newBudget((await readScanSettings()).per_run_limit);
+  let offTopicHere = 0;
+  const aiCallsBefore = budget.aiCalls;
   const windowKey = opts.windowKey ?? "adhoc";
   const filterCountry = opts.filterCountry ?? null;
   const triggeredBy = opts.triggeredBy ?? (filterCountry ? "manual" : "cron");
@@ -212,6 +309,7 @@ export async function runPressTick(opts: {
     for (const f of feeds ?? [])
       feedTier.set(f.id as string, (f as { tier_hint?: string | null }).tier_hint ?? null);
     const perCountryPool = new Map<string, PoolItem[]>();
+    const freshSince = new Date(Date.now() - SCAN_LIMITS.freshDays * 86_400_000).toISOString();
     const targetCountries = filterCountry ? [filterCountry] : Array.from(universe);
     await pMap(
       targetCountries,
@@ -221,6 +319,7 @@ export async function runPressTick(opts: {
           .select("id,country_code,url,title,raw_excerpt,feed_id")
           .eq("state", "new")
           .eq("country_code", cc)
+          .gte("fetched_at", freshSince)
           .order("fetched_at", { ascending: false })
           .limit(perCountryFetch);
         const rows: PoolItem[] = (data ?? []).map((r) => ({
@@ -276,34 +375,10 @@ export async function runPressTick(opts: {
       }
     }
 
-    // Layer 3 · Firecrawl upgrade. Reputational/entity lanes get a bigger
-    // per-country budget because the classifier needs full text to reliably
-    // catch lawsuits, sanctions, envoy stories — snippets aren't enough.
-    const upgradeCapDefault = 8;
-    const upgradeCapReputational = 15;
-    const upgradeSeen = new Map<string, { r: number; d: number }>();
+    // Layer 3 · Firecrawl full-text reads now happen per story, after the
+    // off-topic check and only within the scan's article-read allowance.
     const isRepLane = (t: string | null) =>
       t === "reputational" || t === "entity" || t === "governance";
-    const upgradeTargets = toClassify.filter((it) => {
-      if (!it.url) return false;
-      const bucket = upgradeSeen.get(it.country_code) ?? { r: 0, d: 0 };
-      const cap = isRepLane(it.tier_hint) ? upgradeCapReputational : upgradeCapDefault;
-      const used = isRepLane(it.tier_hint) ? bucket.r : bucket.d;
-      if (used >= cap) return false;
-      if (isRepLane(it.tier_hint)) bucket.r++;
-      else bucket.d++;
-      upgradeSeen.set(it.country_code, bucket);
-      return true;
-    });
-    const upgraded = new Map<string, string>();
-    await pMap(
-      upgradeTargets,
-      async (it) => {
-        const md = await firecrawlUpgrade(it.url!);
-        if (md) upgraded.set(it.id, md);
-      },
-      4,
-    );
 
     const sectorMenuCache = new Map<string, string[]>();
     async function menu(cc: string) {
@@ -324,20 +399,33 @@ export async function runPressTick(opts: {
     {
       const [{ data: cs }, { data: mcs }] = await Promise.all([
         supabaseAdmin.from("countries").select("code,name"),
-        supabaseAdmin.from("narrative_media_countries").select("code,name,is_regional").eq("active", true),
+        supabaseAdmin
+          .from("narrative_media_countries")
+          .select("code,name,is_regional")
+          .eq("active", true),
       ]);
       for (const c of cs ?? []) knownCountries[c.code as string] = (c.name as string) ?? c.code;
-      for (const c of mcs ?? []) if (!c.is_regional) knownCountries[c.code as string] = c.name as string;
+      for (const c of mcs ?? [])
+        if (!c.is_regional) knownCountries[c.code as string] = c.name as string;
     }
     const outletCred = new Map<string, number>();
     {
-      const { data: outs } = await supabaseAdmin.from("narrative_outlets").select("domain,credibility");
-      for (const o of outs ?? []) outletCred.set((o.domain as string).toLowerCase(), o.credibility as number);
+      const { data: outs } = await supabaseAdmin
+        .from("narrative_outlets")
+        .select("domain,credibility");
+      for (const o of outs ?? [])
+        outletCred.set((o.domain as string).toLowerCase(), o.credibility as number);
     }
     const sourceStats = new Map<string, { strength: number; tier: number }>();
     {
-      const { data: st } = await supabaseAdmin.from("narrative_source_stats").select("feed_id,strength,tier");
-      for (const r of st ?? []) sourceStats.set(r.feed_id as string, { strength: Number(r.strength), tier: r.tier as number });
+      const { data: st } = await supabaseAdmin
+        .from("narrative_source_stats")
+        .select("feed_id,strength,tier");
+      for (const r of st ?? [])
+        sourceStats.set(r.feed_id as string, {
+          strength: Number(r.strength),
+          tier: r.tier as number,
+        });
     }
     const outletOf = (u: string | null) => {
       if (!u) return null;
@@ -354,90 +442,21 @@ export async function runPressTick(opts: {
       return credibilityFor({ domain: d, outletCredibility: oc, feedScope });
     };
 
-    // Phase 1 — classify all in parallel, collect results (no inserts yet).
-    type ClassifyResult = {
-      it: (typeof toClassify)[number];
-      c: Awaited<ReturnType<typeof classifySignal>>;
-      pScore: number;
-      targets: string[];
-    };
-    const classified: ClassifyResult[] = [];
-    await pMap(
-      toClassify,
-      async (it) => {
-        try {
-          const regional = it.country_code === REGIONAL_CODE;
-          const sectorMenu = regional ? [] : await menu(it.country_code);
-          const upgradedMd = upgraded.get(it.id);
-          const rawForClassify = upgradedMd
-            ? [it.title, upgradedMd].filter(Boolean).join("\n\n")
-            : [it.title, it.raw_excerpt].filter(Boolean).join("\n\n");
-          const c = await classifySignal({
-            countryCode: regional ? "Caribbean-wide (identify each country)" : it.country_code,
-            url: it.url,
-            raw: rawForClassify,
-            sectorMenu,
-            knownCountries,
-          });
-          const targets = Array.from(
-            new Set([...(regional ? [] : [it.country_code]), ...c.countries_mentioned]),
-          );
-          // Relevance gate: keep articles about a covered country AND
-          // politics/economy; local feeds also keep anything not marked "ignore".
-          const relevant = c.is_political || c.is_economic;
-          const keep = regional
-            ? targets.length > 0 && relevant
-            : relevant || c.recommendation !== "ignore";
-          if (!keep) {
-            await supabaseAdmin
-              .from("narrative_feed_items")
-              .update({ state: "discarded" })
-              .eq("id", it.id);
-            return;
-          }
-          const sev = Math.max(1, Math.min(5, c.severity));
-          const reach = Math.max(1, Math.min(5, c.reach));
-          const leadish = c.recommendation === "lead" || c.recommendation === "counter";
-          const amplify = c.recommendation === "amplify";
-          const pScore =
-            leadish && sev >= 4
-              ? 1
-              : leadish || (amplify && sev >= 4)
-                ? 2
-                : amplify || sev >= 4
-                  ? 3
-                  : sev >= 3 || reach >= 3
-                    ? 4
-                    : 5;
-          classified.push({ it, c, pScore, targets });
-        } catch (e) {
-          errors.push({ scope: `classify:${it.id}`, msg: (e as Error).message });
-          await supabaseAdmin
-            .from("narrative_feed_items")
-            .update({ state: "error", error: (e as Error).message.slice(0, 400) })
-            .eq("id", it.id);
-        }
-      },
-      4,
-    );
+    type ClassifyResult = Awaited<ReturnType<typeof classifySignal>>;
+    const setState = (id: string, state: string, error?: string | null) =>
+      supabaseAdmin
+        .from("narrative_feed_items")
+        .update(error === undefined ? { state } : { state, error })
+        .eq("id", id);
 
-    // Phase 1b — verify every article link opens (capped, time-limited).
-    const links = new Map<string, LinkCheck>();
-    await pMap(
-      classified.filter((r) => r.it.url).slice(0, LINK_CHECK_CAP),
-      async ({ it }) => {
-        links.set(it.id, upgraded.has(it.id) ? { status: "verified", final_url: it.url } : await checkLink(it.url!));
-      },
-      6,
-    );
-
-    // Phase 2 — priority-ordered sequential insert with story clustering.
-    classified.sort(
-      (a, b) => a.pScore - b.pScore || b.c.severity + b.c.reach - (a.c.severity + a.c.reach),
-    );
-
-    for (const { it, c, targets } of classified) {
-      const link = links.get(it.id) ?? { status: it.url ? "unchecked" : "missing", final_url: null };
+    /** Save one sorted story straight away, so a cut-off scan never loses finished work. */
+    async function saveSignal(
+      it: (typeof toClassify)[number],
+      c: ClassifyResult,
+      targets: string[],
+      link: LinkCheck,
+      linkChecked: boolean,
+    ) {
       const tags = Array.from(
         new Set([
           ...c.tags,
@@ -447,7 +466,9 @@ export async function runPressTick(opts: {
         ]),
       );
       const st = it.feed_id ? sourceStats.get(it.feed_id) : undefined;
-      const credibility = st ? credibilityFromStrength(st.strength) : credOf(it.url, it.tier_hint ?? c.scope);
+      const credibility = st
+        ? credibilityFromStrength(st.strength)
+        : credOf(it.url, it.tier_hint ?? c.scope);
       const sourceStrength = st?.strength ?? SOURCE_PRIOR;
       const baseScore = {
         severity: c.severity,
@@ -475,7 +496,7 @@ export async function runPressTick(opts: {
         mentions_government: c.mentions_government,
         link_status: link.status,
         link_final_url: link.final_url,
-        link_checked_at: links.has(it.id) ? new Date().toISOString() : null,
+        link_checked_at: linkChecked ? new Date().toISOString() : null,
         source_feed_id: it.feed_id,
         source_strength: sourceStrength,
         source_tier: st?.tier ?? null,
@@ -483,81 +504,183 @@ export async function runPressTick(opts: {
       let firstSignal: string | null = null;
       let anyDup = false;
       let promotedHere = 0;
-      try {
-        for (const tc of targets) {
-          countryList.add(tc);
-          const topic = (c.topic || it.title || "").slice(0, 240);
-          const match = await findCluster(tc, topic);
-          if (match) {
-            const { score, factors } = computePriorityScore({ ...baseScore, spread: 1 });
-            await supabaseAdmin.from("intake_items").insert({
-              ...common,
-              scope_key: tc,
-              topic,
-              story_key: match.story_key,
-              story_primary: false,
-              duplicate_of: match.primary_id,
-              state: "duplicate",
-              priority_score: score,
-              priority_factors: { ...factors, credibility_raw: credibility, spread_raw: 1 },
-              metadata: {
-                dossier_bullets: c.dossier_bullets,
-                rationale: c.rationale,
-                citations: c.citations ?? [],
-                source: "press-tick",
-                ingested_at: new Date().toISOString(),
-                clustered_into: match.primary_id,
-                cluster_similarity: match.similarity,
-              },
-            });
-            await attachSibling(match.primary_id, { url: it.url, title: topic, outlet: outletOf(it.url) });
-            await bumpSpread(match.primary_id, sourceStrength);
-            firstSignal ??= match.primary_id;
-            anyDup = true;
-            clustersMerged++;
-            continue;
-          }
+      for (const tc of targets) {
+        countryList.add(tc);
+        const topic = (c.topic || it.title || "").slice(0, 240);
+        const match = await findCluster(tc, topic);
+        if (match) {
           const { score, factors } = computePriorityScore({ ...baseScore, spread: 1 });
-          const { data: sig, error: sigErr } = await supabaseAdmin
-            .from("intake_items")
-            .insert({
-              ...common,
-              scope_key: tc,
-              topic,
-              story_key: storyKeyFromTitle(topic),
-              story_primary: true,
-              first_to_report: true,
-              priority_score: score,
-              priority_factors: { ...factors, credibility_raw: credibility, spread_raw: 1 },
-              metadata: {
-                dossier_bullets: c.dossier_bullets,
-                rationale: c.rationale,
-                citations: c.citations ?? [],
-                source: "press-tick",
-                ingested_at: new Date().toISOString(),
-                outlet: outletOf(it.url),
-              },
-            })
-            .select("id")
-            .single();
-          if (sigErr) throw sigErr;
-          firstSignal = sig.id;
-          itemsPromoted++;
-          promotedHere++;
+          await supabaseAdmin.from("intake_items").insert({
+            ...common,
+            scope_key: tc,
+            topic,
+            story_key: match.story_key,
+            story_primary: false,
+            duplicate_of: match.primary_id,
+            state: "duplicate",
+            priority_score: score,
+            priority_factors: { ...factors, credibility_raw: credibility, spread_raw: 1 },
+            metadata: {
+              dossier_bullets: c.dossier_bullets,
+              rationale: c.rationale,
+              citations: c.citations ?? [],
+              source: "press-tick",
+              ingested_at: new Date().toISOString(),
+              clustered_into: match.primary_id,
+              cluster_similarity: match.similarity,
+            },
+          });
+          await attachSibling(match.primary_id, {
+            url: it.url,
+            title: topic,
+            outlet: outletOf(it.url),
+          });
+          await bumpSpread(match.primary_id, sourceStrength);
+          firstSignal ??= match.primary_id;
+          anyDup = true;
+          clustersMerged++;
+          continue;
         }
-        await supabaseAdmin
-          .from("narrative_feed_items")
-          .update({ state: anyDup && promotedHere === 0 ? "duplicate" : "promoted", signal_id: firstSignal })
-          .eq("id", it.id);
-        if (it.url) canonSet.add(canonicalUrl(it.url));
+        const { score, factors } = computePriorityScore({ ...baseScore, spread: 1 });
+        const { data: sig, error: sigErr } = await supabaseAdmin
+          .from("intake_items")
+          .insert({
+            ...common,
+            scope_key: tc,
+            topic,
+            story_key: storyKeyFromTitle(topic),
+            story_primary: true,
+            first_to_report: true,
+            priority_score: score,
+            priority_factors: { ...factors, credibility_raw: credibility, spread_raw: 1 },
+            metadata: {
+              dossier_bullets: c.dossier_bullets,
+              rationale: c.rationale,
+              citations: c.citations ?? [],
+              source: "press-tick",
+              ingested_at: new Date().toISOString(),
+              outlet: outletOf(it.url),
+            },
+          })
+          .select("id")
+          .single();
+        if (sigErr) throw sigErr;
+        firstSignal = sig.id;
+        itemsPromoted++;
+        promotedHere++;
+      }
+      await supabaseAdmin
+        .from("narrative_feed_items")
+        .update({
+          state: anyDup && promotedHere === 0 ? "duplicate" : "promoted",
+          signal_id: firstSignal,
+        })
+        .eq("id", it.id);
+      if (it.url) canonSet.add(canonicalUrl(it.url));
+    }
+
+    let linkChecks = 0;
+    async function processItem(it: (typeof toClassify)[number]) {
+      // 1 · Clearly off-topic stories never reach AI.
+      const reason = offTopicReason(it.title, it.raw_excerpt);
+      if (reason) {
+        budget.skippedOffTopic++;
+        offTopicHere++;
+        await setState(it.id, "discarded", `Skipped before AI: ${reason}`);
+        return;
+      }
+      // 2 · Respect the per-scan limit, time budget and daily limit.
+      if (!canStartAi(budget)) {
+        budget.skippedNoBudget++;
+        return; // stays queued for a later scan
+      }
+      budget.remaining--;
+      const { data: granted } = await supabaseAdmin.rpc("claim_press_ai_calls", { _n: 1 });
+      if ((granted ?? 0) < 1) {
+        budget.remaining = 0;
+        budget.stop ??= { kind: "daily_limit", message: "Daily AI limit reached" };
+        budget.skippedNoBudget++;
+        return;
+      }
+      budget.aiCalls++;
+      // Mark as sent before calling AI so a story is never sent twice.
+      await setState(it.id, "classified");
+
+      let upgradedMd: string | null = null;
+      const readCap = SCAN_LIMITS.articleReadsPerRun;
+      if (
+        it.url &&
+        budget.articleReads < readCap &&
+        (isRepLane(it.tier_hint) || budget.articleReads < readCap / 2)
+      ) {
+        budget.articleReads++;
+        upgradedMd = await firecrawlUpgrade(it.url);
+      }
+
+      const regional = it.country_code === REGIONAL_CODE;
+      let c: ClassifyResult;
+      try {
+        const sectorMenu = regional ? [] : await menu(it.country_code);
+        c = await classifySignal({
+          countryCode: regional ? "Caribbean-wide (identify each country)" : it.country_code,
+          url: it.url,
+          raw: [it.title, upgradedMd ?? it.raw_excerpt].filter(Boolean).join("\n\n"),
+          sectorMenu,
+          knownCountries,
+        });
+      } catch (e) {
+        if (e instanceof PressAiStop) {
+          // Not this story's fault: put it back in the queue and stop the scan.
+          budget.stop ??= { kind: e.kind, message: e.message };
+          await setState(it.id, "new");
+          if (e.kind === "pause") {
+            await supabaseAdmin
+              .from("press_scan_settings")
+              .update({
+                paused_reason: e.message.slice(0, 300),
+                paused_at: new Date().toISOString(),
+              })
+              .eq("id", true);
+          }
+          return;
+        }
+        // A failure with this one story: record it and never resend it.
+        errors.push({ scope: `classify:${it.id}`, msg: (e as Error).message });
+        await setState(it.id, "error", (e as Error).message.slice(0, 400));
+        return;
+      }
+
+      const targets = Array.from(
+        new Set([...(regional ? [] : [it.country_code]), ...c.countries_mentioned]),
+      );
+      // Relevance gate: keep articles about a covered country AND
+      // politics/economy; local feeds also keep anything not marked "ignore".
+      const relevant = c.is_political || c.is_economic;
+      const keep = regional
+        ? targets.length > 0 && relevant
+        : relevant || c.recommendation !== "ignore";
+      if (!keep) {
+        await setState(it.id, "discarded");
+        return;
+      }
+
+      let link: LinkCheck = { status: it.url ? "unchecked" : "missing", final_url: null };
+      let linkChecked = false;
+      if (it.url && linkChecks < LINK_CHECK_CAP) {
+        linkChecks++;
+        linkChecked = true;
+        link = upgradedMd ? { status: "verified", final_url: it.url } : await checkLink(it.url);
+      }
+
+      try {
+        await saveSignal(it, c, targets, link, linkChecked);
       } catch (e) {
         errors.push({ scope: `insert:${it.id}`, msg: (e as Error).message });
-        await supabaseAdmin
-          .from("narrative_feed_items")
-          .update({ state: "error", error: (e as Error).message.slice(0, 400) })
-          .eq("id", it.id);
+        await setState(it.id, "error", (e as Error).message.slice(0, 400));
       }
     }
+
+    await pMap(toClassify, processItem, 4);
   } catch (e) {
     errors.push({ scope: "tick", msg: (e as Error).message });
   }
@@ -603,7 +726,7 @@ export async function runPressTick(opts: {
   // hourly sweep. Skipped when this run is already a gap-fill or single-country tick.
   let gapFilled = 0;
   const gapFillErrors: Array<{ scope: string; msg: string }> = [];
-  if (!filterCountry && windowKey !== "gap-fill" && missing.length > 0) {
+  if (!filterCountry && windowKey !== "gap-fill" && missing.length > 0 && canStartAi(budget)) {
     const targets = missing.slice(0, 8);
     for (const cc of targets) {
       try {
@@ -611,6 +734,7 @@ export async function runPressTick(opts: {
           windowKey: "gap-fill",
           filterCountry: cc,
           triggeredBy: "auto",
+          budget,
         });
         if (sub.items_promoted > 0) gapFilled++;
       } catch (e) {
@@ -623,11 +747,15 @@ export async function runPressTick(opts: {
   let p1Guarantee: Record<string, unknown> | null = null;
   try {
     const { enforceP1Guarantee } = await import("@/lib/narrative-p1-guarantee.server");
-    const targets = filterCountry ? [filterCountry] : Array.from(universe).filter((c) => c !== REGIONAL_CODE);
+    const targets = filterCountry
+      ? [filterCountry]
+      : Array.from(universe).filter((c) => c !== REGIONAL_CODE);
     p1Guarantee = await enforceP1Guarantee(targets);
   } catch (e) {
     errors.push({ scope: "p1-guarantee", msg: (e as Error).message });
   }
+
+  if (offTopicHere > 0) await supabaseAdmin.rpc("note_press_offtopic", { _n: offTopicHere });
 
   await supabaseAdmin
     .from("narrative_harvest_runs")
@@ -646,6 +774,9 @@ export async function runPressTick(opts: {
         _universe: Array.from(universe),
         _missing: missing,
         _gap_filled: gapFilled,
+        _ai_calls: budget.aiCalls - aiCallsBefore,
+        _skipped_offtopic: offTopicHere,
+        _stopped: budget.stop?.message ?? null,
       },
     })
     .eq("id", run.id);
@@ -659,5 +790,8 @@ export async function runPressTick(opts: {
     items_new: itemsNew,
     items_promoted: itemsPromoted,
     errors: errors.length,
+    ai_calls: budget.aiCalls - aiCallsBefore,
+    skipped_offtopic: offTopicHere,
+    stopped: budget.stop?.message ?? null,
   };
 }

@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { MediaSourcesPanel } from "@/components/narrative/MediaSourcesPanel";
+import { PressScanControls } from "@/components/narrative/PressScanControls";
 import { Explain } from "@/components/explain/Explain";
 import "@/lib/explain/narrative-entries";
 import {
@@ -53,7 +54,11 @@ function MediaScanPage() {
   const scan = useMutation({
     mutationFn: () => run({ data: { countryCode: country || null } }),
     onSuccess: (r) => {
-      setMsg(`Scan finished: ${r.feeds_polled} feeds read, ${r.items_new} new articles, ${r.items_promoted} signals added.`);
+      setMsg(
+        `Scan finished: ${r.feeds_polled} feeds read, ${r.items_new} new articles, ${r.ai_calls} sorted by AI, ${r.skipped_offtopic} off-topic skipped, ${r.items_promoted} signals added.` +
+          (r.stopped ? ` Stopped early: ${r.stopped}.` : ""),
+      );
+      void qc.invalidateQueries({ queryKey: ["admin", "press-scan-controls"] });
       refresh();
     },
     onError: (e) => setMsg((e as Error).message),
@@ -105,6 +110,7 @@ function MediaScanPage() {
         <div className="mt-6 mb-16"><MediaSourcesPanel /></div>
       ) : (
       <>
+      <PressScanControls />
       <section className="mt-6 flex flex-wrap items-end gap-3 border border-line-200 bg-paper-0 p-4">
         <label className="text-sm text-ink-700">
           Scope

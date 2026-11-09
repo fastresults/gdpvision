@@ -386,6 +386,13 @@
       "when": 1792549793939,
       "tag": "0054_event_registrations_source",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1794235509862,
+      "tag": "0055_press_scan_controls",
+      "breakpoints": true
     }
   ]
 }

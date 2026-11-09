@@ -10,15 +10,17 @@ export const Route = createFileRoute("/api/public/hooks/narrative-harvest")({
         const { verifyHookRequest, unauthorizedHook } = await import("@/lib/auth/verify-hook.server");
         if (!(await verifyHookRequest(request))) return unauthorizedHook();
 
-        const { runPressTick } = await import("@/lib/press-tick.server");
+        const { runGuardedPressTick, ScanBlocked } = await import("@/lib/press-tick.server");
         try {
-          const result = await runPressTick({
+          const result = await runGuardedPressTick({
             windowKey: "hourly",
             filterCountry: null,
             triggeredBy: "cron",
+            automatic: true,
           });
           return Response.json(result);
         } catch (e) {
+          if (e instanceof ScanBlocked) return Response.json({ ok: false, skipped: e.message });
           return new Response((e as Error).message, { status: 500 });
         }
       },

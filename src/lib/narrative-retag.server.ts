@@ -7,14 +7,41 @@ import { naturalLevel, type GuaranteeSignal } from "@/lib/narrative-p1-guarantee
 type Tag = { i: number; is_political: boolean; is_economic: boolean; mentions_government: boolean; tags: string[] };
 type Item = GuaranteeSignal & { topic: string | null; summary: string | null; scope_key: string };
 
+// Low-cost model, one request per batch, counted against the daily AI limit.
+// Returns null (keyword fallback) when the allowance is used up or AI fails.
 async function aiTag(items: Item[]): Promise<Map<number, Tag> | null> {
   try {
-    const { callGeminiJson } = await import("@/lib/country-onboarding/gemini.server");
+    const { data: granted } = await supabaseAdmin.rpc("claim_press_ai_calls", { _n: 1 });
+    if ((granted ?? 0) < 1) return null;
+    const { pressAiJson } = await import("@/lib/press-classifier.server");
     const lines = items.map((it, i) => `${i}. ${(it.topic ?? "").slice(0, 160)} — ${(it.summary ?? "").slice(0, 280)}`).join("\n");
-    const { parsed } = await callGeminiJson<{ items: Tag[] }>({
-      system: "You tag Caribbean news stories for a government narrative team. Be accurate and cautious.",
+    const parsed = await pressAiJson<{ items: Tag[] }>({
+      name: "story_tags",
+      maxTokens: 4000,
+      system: "You tag Caribbean news stories for a government narrative team. Be accurate and cautious. Return JSON only.",
       user: `For each numbered story set is_political (elections, parties, government, ministers, policy, diplomacy), is_economic (GDP, growth, budget, debt, investment, trade, tourism receipts, jobs, prices), mentions_government (names the government, a ministry or a minister) and up to 4 short lowercase tags.\n\n${lines}`,
-      schemaHint: '{"items":[{"i":0,"is_political":true,"is_economic":false,"mentions_government":true,"tags":["election"]}]}',
+      schema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                i: { type: "number" },
+                is_political: { type: "boolean" },
+                is_economic: { type: "boolean" },
+                mentions_government: { type: "boolean" },
+                tags: { type: "array", items: { type: "string" } },
+              },
+              required: ["i", "is_political", "is_economic", "mentions_government", "tags"],
+            },
+          },
+        },
+        required: ["items"],
+      },
     });
     if (!parsed?.items) return null;
     return new Map(parsed.items.map((t) => [Number(t.i), t]));

@@ -161,11 +161,12 @@ export const runManualTick = createServerFn({ method: "POST" })
       _country_code: data.countryCode,
     });
     if (!role) throw new Error("Only country admins can run the press tick.");
-    const { runPressTick } = await import("@/lib/press-tick.server");
-    return await runPressTick({
+    const { runGuardedPressTick } = await import("@/lib/press-tick.server");
+    return await runGuardedPressTick({
       windowKey: "manual",
       filterCountry: data.countryCode,
       triggeredBy: "manual",
+      automatic: false,
     });
   });
 
